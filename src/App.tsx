@@ -9,8 +9,8 @@ import Alerts from "./pages/UiElements/Alerts";
 import Badges from "./pages/UiElements/Badges";
 import Avatars from "./pages/UiElements/Avatars";
 import Buttons from "./pages/UiElements/Buttons";
-import LineChart from "./pages/Charts/LineChart";
-import BarChart from "./pages/Charts/BarChart";
+// import LineChart from "./pages/Charts/LineChart";
+// import BarChart from "./pages/Charts/BarChart";
 import Calendar from "./pages/Calendar";
 import BasicTables from "./pages/Tables/BasicTables";
 import FormElements from "./pages/Forms/FormElements";
@@ -18,6 +18,14 @@ import Blank from "./pages/Blank";
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
+import Accounts from "./pages/CreateAccounts/Accounts";
+import Recollections from "./pages/Recollections/Recollections";
+import Marketers from "./pages/Marketers/Marketers";
+import Riders from "./pages/Riders/Riders";
+import Agents from "./pages/Agents/Agents";
+import Accountants from "./pages/Accountants/Accountants";
+import Transactions from "./pages/Transactions/Transactions";
+import ForgotPin from "./pages/AuthPages/ForgotPin";
 
 export default function App() {
   return (
@@ -28,6 +36,27 @@ export default function App() {
           {/* Dashboard Layout */}
           <Route element={<AppLayout />}>
             <Route index path="/" element={<Home />} />
+
+            {/* Admin Create Account Page */}
+            <Route path="/accounts" element={<Accounts />} />
+
+            {/* Recollections Page */}
+            <Route path="/recollections" element={<Recollections />} />
+
+            {/* Marketers Page */}
+            <Route path="/marketers" element={<Marketers />} />
+
+            {/* Agents Page */}
+            <Route path="/agents" element={<Agents />} />
+
+            {/* Riders Page */}
+            <Route path="/riders" element={<Riders />} />
+
+            {/* Accountants Page */}
+            <Route path="/accountants" element={<Accountants />} />
+
+            {/* Transactions Log Page */}
+            <Route path="/transactions" element={<Transactions />} />
 
             {/* Others Page */}
             <Route path="/profile" element={<UserProfiles />} />
@@ -49,13 +78,14 @@ export default function App() {
             <Route path="/videos" element={<Videos />} />
 
             {/* Charts */}
-            <Route path="/line-chart" element={<LineChart />} />
-            <Route path="/bar-chart" element={<BarChart />} />
+            {/* <Route path="/line-chart" element={<LineChart />} />
+            <Route path="/bar-chart" element={<BarChart />} /> */}
           </Route>
 
           {/* Auth Layout */}
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
+          <Route path="/forgotpin" element={<ForgotPin />} />
 
           {/* Fallback Route */}
           <Route path="*" element={<NotFound />} />

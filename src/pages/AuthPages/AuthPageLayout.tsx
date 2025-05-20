@@ -12,21 +12,28 @@ export default function AuthLayout({
     <div className="relative p-6 bg-white z-1 dark:bg-gray-900 sm:p-0">
       <div className="relative flex flex-col justify-center w-full h-screen lg:flex-row dark:bg-gray-900 sm:p-0">
         {children}
-        <div className="items-center hidden w-full h-full lg:w-1/2 bg-brand-950 dark:bg-white/5 lg:grid">
+        <div className="items-center hidden w-full h-full lg:w-1/2 bg-brand-500 dark:bg-gray-800 lg:grid">
           <div className="relative flex items-center justify-center z-1">
             {/* <!-- ===== Common Grid Shape Start ===== --> */}
             <GridShape />
             <div className="flex flex-col items-center max-w-xs">
-              <Link to="/" className="block mb-4">
+              <div className="flex items-center justify-start gap-2">
                 <img
-                  width={231}
-                  height={48}
-                  src="/images/logo/auth-logo.svg"
+                  className=""
+                  src="/images/logo/safulpay-icon-lemon.svg"
                   alt="Logo"
+                  width={32}
+                  height={32}
                 />
-              </Link>
+                <span className="text-3xl font-bold tracking-[-0.9px]  text-[#c3f02c]">
+                  SafulPay
+                </span>
+              </div>
+              <h2 className="mb-2 text-lg font-semibold text-white dark:text-white/90">
+                SafulPay Agency Dashboard
+              </h2>
               <p className="text-center text-gray-400 dark:text-white/60">
-                Free and Open-Source Tailwind CSS Admin Dashboard Template
+                Secure Mobile Money Management for Your Business
               </p>
             </div>
           </div>

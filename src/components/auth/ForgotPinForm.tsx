@@ -7,11 +7,13 @@ import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
 import Alert from "../ui/alert/Alert";
 
-export default function SignInForm() {
+export default function ForgotPinForm() {
+  const [pin, setPin] = useState("");
   const [showPin, setShowPin] = useState(false);
+  const [confirmPin, setConfirmPin] = useState("");
+  const [showConfirmPin, setShowConfirmPin] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
   const [phone, setPhone] = useState("");
-  const [pin, setPin] = useState("");
   const [otp, setOtp] = useState("");
   const [showOtpStep, setShowOtpStep] = useState(false);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
@@ -19,10 +21,10 @@ export default function SignInForm() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleRequestOtp = async (e: React.FormEvent) => {
+  const handleResetPin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone || !pin) {
-      setError("Please fill phone number and PIN.");
+    if (!phone) {
+      setError("Please fill phone number.");
       return;
     }
 
@@ -30,14 +32,14 @@ export default function SignInForm() {
     setLoading(true);
 
     try {
-      const response = await fetch("/auth/request-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, pin }),
-      });
-      const data = await response.json();
+      // const response = await fetch("/auth/request-otp", {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({ phone, pin }),
+      // });
+      // const data = await response.json();
       // Simulated response
-      // const data = { success: true, sessionToken: "abc123" };
+      const data = { success: true, sessionToken: "abc123" };
 
       if (data.success) {
         setSessionToken(data.sessionToken);
@@ -54,6 +56,21 @@ export default function SignInForm() {
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!pin) {
+      setError("Please enter a valid PIN");
+      return;
+    }
+
+    if (!confirmPin) {
+      setError("Please confirm new PIN.");
+      return;
+    }
+
+    if (pin !== confirmPin) {
+      setError("Please ensure the pin and confirm pin are the same");
+      return;
+    }
+
     if (!otp || otp.length !== 6) {
       setError("Please enter a valid 6-digit OTP.");
       return;
@@ -70,7 +87,7 @@ export default function SignInForm() {
       });
       const data = await response.json();
       // Simulated response
-      // const data = { success: true, redirectUrl: "/" };
+      // const data = { success: true, redirectUrl: "/dashboard" };
 
       if (data.success) {
         if (isChecked) {
@@ -92,6 +109,7 @@ export default function SignInForm() {
     setOtp("");
     setError("");
     setSessionToken(null);
+    navigate("/signin");
   };
 
   return (
@@ -100,12 +118,12 @@ export default function SignInForm() {
         <div>
           <div className="mb-5 sm:mb-8">
             <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
-              Sign In
+              Forgot Pin
             </h1>
           </div>
           <div>
             {!showOtpStep ? (
-              <form onSubmit={handleRequestOtp}>
+              <form onSubmit={handleResetPin}>
                 <div className="space-y-6">
                   {error && (
                     <Alert
@@ -131,6 +149,39 @@ export default function SignInForm() {
                       }}
                     />
                   </div>
+
+                  {/* <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Checkbox checked={isChecked} onChange={setIsChecked} />
+                      <span className="block font-normal text-gray-700 text-theme-sm dark:text-gray-400">
+                        Keep me logged in
+                      </span>
+                    </div>
+                    <Link
+                      to="/reset-pin"
+                      className="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400"
+                    >
+                      Forgot PIN?
+                    </Link>
+                  </div> */}
+                  <div>
+                    <Button className="w-full" size="sm" disabled={loading}>
+                      {loading ? "Requesting OTP..." : "Request OTP"}
+                    </Button>
+                  </div>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleVerifyOtp}>
+                <div className="space-y-6">
+                  {error && (
+                    <Alert
+                      variant="error"
+                      title="OTP Verification Failed"
+                      message={error}
+                      showLink={false}
+                    />
+                  )}
                   <div>
                     <Label>
                       PIN <span className="text-error-500">*</span>
@@ -140,7 +191,7 @@ export default function SignInForm() {
                         type={showPin ? "text" : "password"}
                         id="pin"
                         name="pin"
-                        placeholder="Enter your PIN"
+                        placeholder="Create new PIN"
                         value={pin}
                         onChange={(e) => {
                           setPin(e.target.value);
@@ -159,38 +210,34 @@ export default function SignInForm() {
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Checkbox checked={isChecked} onChange={setIsChecked} />
-                      <span className="block font-normal text-gray-700 text-theme-sm dark:text-gray-400">
-                        Keep me logged in
+                  <div>
+                    <Label>
+                      Confirm PIN <span className="text-error-500">*</span>
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        type={showConfirmPin ? "text" : "password"}
+                        id="confirmPin"
+                        name="confirmPin"
+                        placeholder="Confirm new PIN"
+                        value={confirmPin}
+                        onChange={(e) => {
+                          setConfirmPin(e.target.value);
+                          setError("");
+                        }}
+                      />
+                      <span
+                        onClick={() => setShowConfirmPin(!showConfirmPin)}
+                        className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
+                      >
+                        {showConfirmPin ? (
+                          <EyeIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
+                        ) : (
+                          <EyeCloseIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
+                        )}
                       </span>
                     </div>
-                    <Link
-                      to="/reset-pin"
-                      className="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400"
-                    >
-                      Forgot PIN?
-                    </Link>
                   </div>
-                  <div>
-                    <Button className="w-full" size="sm" disabled={loading}>
-                      {loading ? "Sending OTP..." : "Sign In"}
-                    </Button>
-                  </div>
-                </div>
-              </form>
-            ) : (
-              <form onSubmit={handleVerifyOtp}>
-                <div className="space-y-6">
-                  {error && (
-                    <Alert
-                      variant="error"
-                      title="OTP Verification Failed"
-                      message={error}
-                      showLink={false}
-                    />
-                  )}
                   <div>
                     <Label>
                       OTP <span className="text-error-500">*</span>
@@ -208,6 +255,13 @@ export default function SignInForm() {
                     />
                   </div>
                   <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Checkbox checked={isChecked} onChange={setIsChecked} />
+                      <span className="block font-normal text-gray-700 text-theme-sm dark:text-gray-400">
+                        Keep me logged in
+                      </span>
+                    </div>
+
                     <button
                       type="button"
                       onClick={handleBackToSignIn}
@@ -224,17 +278,6 @@ export default function SignInForm() {
                 </div>
               </form>
             )}
-            {/* <div className="mt-5">
-              <p className="text-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
-                Don't have an account?{" "}
-                <Link
-                  to="/signup"
-                  className="text-brand-500 hover:text-brand-600 dark:text-brand-400"
-                >
-                  Sign Up
-                </Link>
-              </p>
-            </div> */}
           </div>
         </div>
       </div>

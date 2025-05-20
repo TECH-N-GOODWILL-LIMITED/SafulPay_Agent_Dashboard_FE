@@ -103,7 +103,7 @@ const tableData /*: Order[]*/ = [
   // },
 ];
 
-export default function BasicTables() {
+export default function Agents() {
   return (
     <>
       <PageMeta

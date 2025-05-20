@@ -84,16 +84,29 @@ const AppHeader: React.FC = () => {
           </button>
 
           <Link to="/" className="lg:hidden">
-            <img
-              className="dark:hidden"
-              src="./images/logo/logo.svg"
-              alt="Logo"
-            />
-            <img
-              className="hidden dark:block"
-              src="./images/logo/logo-dark.svg"
-              alt="Logo"
-            />
+            <div className="dark:hidden flex items-center justify-start gap-2">
+              <img
+                className=""
+                src="/images/logo/safulpay-icon-green.svg"
+                alt="Logo"
+                width={28}
+                height={28}
+              />
+              <span className="text-2xl font-bold tracking-[-0.9px] bg-gradient-to-r from-[#3a5646] to-[#c3f02c] bg-clip-text text-transparent">
+                SafulPay
+              </span>
+            </div>
+            <div className="hidden dark:flex items-center justify-center gap-2 w-full">
+              <img
+                src="/images/logo/safulpay-icon-green.svg"
+                alt="Logo"
+                width={28}
+                height={28}
+              />
+              <span className="w-full text-2xl font-bold tracking-[-0.9px] bg-gradient-to-r from-[#3a5646] to-[#c3f02c] bg-clip-text text-transparent">
+                SafulPay
+              </span>
+            </div>
           </Link>
 
           <button

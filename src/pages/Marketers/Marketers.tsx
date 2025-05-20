@@ -65,45 +65,45 @@ const tableData /*: Order[]*/ = [
     budget: "12.7K",
     status: "Active",
   },
-  // {
-  //   id: 4,
-  //   user: {
-  //     image: "/images/user/user-20.jpg",
-  //     name: "Abram Schleifer",
-  //     role: "Digital Marketer",
-  //   },
-  //   projectName: "Social Media",
-  //   team: {
-  //     images: [
-  //       "/images/user/user-28.jpg",
-  //       "/images/user/user-29.jpg",
-  //       "/images/user/user-30.jpg",
-  //     ],
-  //   },
-  //   budget: "2.8K",
-  //   status: "Cancel",
-  // },
-  // {
-  //   id: 5,
-  //   user: {
-  //     image: "/images/user/user-21.jpg",
-  //     name: "Carla George",
-  //     role: "Front-end Developer",
-  //   },
-  //   projectName: "Website",
-  //   team: {
-  //     images: [
-  //       "/images/user/user-31.jpg",
-  //       "/images/user/user-32.jpg",
-  //       "/images/user/user-33.jpg",
-  //     ],
-  //   },
-  //   budget: "4.5K",
-  //   status: "Active",
-  // },
+  {
+    id: 4,
+    user: {
+      image: "/images/user/user-20.jpg",
+      name: "Abram Schleifer",
+      role: "Digital Marketer",
+    },
+    projectName: "Social Media",
+    team: {
+      images: [
+        "/images/user/user-28.jpg",
+        "/images/user/user-29.jpg",
+        "/images/user/user-30.jpg",
+      ],
+    },
+    budget: "2.8K",
+    status: "Cancel",
+  },
+  {
+    id: 5,
+    user: {
+      image: "/images/user/user-21.jpg",
+      name: "Carla George",
+      role: "Front-end Developer",
+    },
+    projectName: "Website",
+    team: {
+      images: [
+        "/images/user/user-31.jpg",
+        "/images/user/user-32.jpg",
+        "/images/user/user-33.jpg",
+      ],
+    },
+    budget: "4.5K",
+    status: "Active",
+  },
 ];
 
-export default function BasicTables() {
+export default function Marketers() {
   return (
     <>
       <PageMeta
