@@ -61,7 +61,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
             </Button>
             <Button
               size="sm"
-              className="bg-error-500"
+              className="bg-brand-accent"
               onClick={handlers.suspend}
             >
               Suspend
@@ -74,7 +74,11 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
       case "Pending":
         return (
           <>
-            <Button size="sm" variant="outline" onClick={handlers.close}>
+            <Button
+              size="sm"
+              className="bg-brand-accent"
+              onClick={handlers.close}
+            >
               Decline
             </Button>
             <Button size="sm" onClick={handlers.approve}>

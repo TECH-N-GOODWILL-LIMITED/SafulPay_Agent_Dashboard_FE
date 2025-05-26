@@ -73,12 +73,12 @@ const othersItems: NavItem[] = [
   {
     icon: <PlusIcon />,
     name: "Deposit",
-    path: "/transactions",
+    path: "/deposit",
   },
   {
     icon: <ArrowUpIcon />,
     name: "Withdrawal",
-    path: "/transactions",
+    path: "/withdrawal",
   },
   {
     icon: <ListIcon />,

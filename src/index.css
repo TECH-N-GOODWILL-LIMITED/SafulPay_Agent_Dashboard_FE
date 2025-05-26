@@ -41,6 +41,9 @@ layer(base);
   --color-white: #ffffff;
   --color-black: #101828;
   --color-brand-secondary: #c3f02c;
+  --color-brand-secondary-10: #e7f9ab;
+
+  --color-brand-accent: #ff8181;
 
   --color-brand-25: #ebeeed;
   --color-brand-50: #d8ddda;
@@ -182,6 +185,11 @@ layer(base);
   ::file-selector-button {
     border-color: var(--color-gray-200, currentColor);
   }
+
+  * {
+    @apply selection:bg-brand-secondary-10;
+  }
+
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;

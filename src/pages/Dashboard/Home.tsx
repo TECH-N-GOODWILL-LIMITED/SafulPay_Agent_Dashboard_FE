@@ -23,6 +23,7 @@ const users: usersMetric[] = [
   { users: "Accountants", metric: 2 },
   { users: "Riders", metric: 4 },
 ];
+
 const usersCashFLow: usersMetric[] = [
   { users: "Total Cummulative Cash", metric: 120000, currencySymbol: true },
   {
@@ -42,6 +43,14 @@ const usersCashFLow: usersMetric[] = [
   },
 ];
 
+const txType = [
+  "Deposit",
+  "Withdrawal",
+  "Disbursement",
+  "Recollection",
+  "Overdue",
+];
+
 export default function Home() {
   return (
     <>
@@ -53,30 +62,32 @@ export default function Home() {
         <div className="col-span-12 space-y-6 xl:col-span-7">
           <div>
             <div>
-              <h3 className="text-2xl font-bold ">Users Metrix</h3>
+              <h3 className="mb-4 text-2xl font-bold text-gray-800 dark:text-white/90">
+                Users Metrix
+              </h3>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 md:gap-6">
                 {users.map((user) => (
                   <EcommerceMetrics data={user} />
                 ))}
               </div>
             </div>
-            <div className="mt-12">
-              <h3 className="text-2xl font-bold ">Cashflow Metrix</h3>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6">
-                {usersCashFLow.map((user) => (
-                  <EcommerceMetrics data={user} />
-                ))}
-              </div>
-            </div>
           </div>
-          {/* <EcommerceMetrics /> */}
-          <MonthlySalesChart />
-          {/* <EcommerceMetrics /> */}
+          <MonthlySalesChart title="Monthly Disbursement" color="#FF8181" />
+          <MonthlySalesChart title="Monthly Transactions" />
         </div>
 
         <div className="col-span-12 xl:col-span-5">
           <RDprogressChart />
-          <RDprogressChart />
+          <div className="mt-12">
+            <h3 className="mb-4 text-2xl font-bold text-gray-800 dark:text-white/90">
+              Cashflow Metrix
+            </h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6">
+              {usersCashFLow.map((user) => (
+                <EcommerceMetrics data={user} type="cash" />
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* <div className="col-span-12">
@@ -88,7 +99,7 @@ export default function Home() {
         </div>
 
         <div className="col-span-12 xl:col-span-7">
-          <RecentOrders />
+          <RecentOrders actionButton="Filter" filterOptions={txType} />
         </div>
       </div>
     </>

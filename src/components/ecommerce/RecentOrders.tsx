@@ -12,6 +12,8 @@ import { useState } from "react";
 // import { Dropdown } from "../ui/dropdown/Dropdown";
 // import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import Button from "../ui/button/Button";
+import { DropdownItem } from "../ui/dropdown/DropdownItem";
+import { Dropdown } from "../ui/dropdown/Dropdown";
 
 // Define the TypeScript interface for the table rows
 interface Product {
@@ -23,6 +25,11 @@ interface Product {
   // status: string; // Status of the product
   image: string; // URL or path to the product image
   status: "Delivered" | "Pending" | "Canceled"; // Status of the product
+}
+
+interface RecentOrdersProps {
+  actionButton?: string;
+  filterOptions?: string[];
 }
 
 // Define the table data using the interface
@@ -92,18 +99,21 @@ const tableData: Product[] = [
   },
 ];
 
-export default function RecentOrders() {
+export default function RecentOrders({
+  actionButton,
+  filterOptions,
+}: RecentOrdersProps) {
   // const [accountType, setAccountType] = useState<string | number>("");
 
-  const [isOpen, setIsOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   function toggleDropdown() {
-    setIsOpen(!isOpen);
+    setIsDropdownOpen(!isDropdownOpen);
   }
 
-  // function closeDropdown() {
-  //   setIsOpen(false);
-  // }
+  function closeDropdown() {
+    setIsDropdownOpen(false);
+  }
 
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pb-3 pt-4 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6">
@@ -115,7 +125,7 @@ export default function RecentOrders() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button
+          {/* <Button
             onClick={toggleDropdown}
             size="sm"
             variant="outline"
@@ -157,10 +167,14 @@ export default function RecentOrders() {
               />
             </svg>
             Filter
-          </Button>
-
-          {/* <div className="relative inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"> */}
-          {/* <button className="dropdown-toggle" onClick={toggleDropdown}>
+          </Button> */}
+          <div className="relative">
+            <Button
+              onClick={toggleDropdown}
+              size="sm"
+              variant="outline"
+              className="dropdown-toggle"
+            >
               <svg
                 className="stroke-current fill-white dark:fill-gray-800"
                 width="20"
@@ -196,27 +210,45 @@ export default function RecentOrders() {
                   strokeWidth="1.5"
                 />
               </svg>
-              Filter
-            </button> */}
-          {/* <Dropdown
-              isOpen={isOpen}
-              onClose={closeDropdown}
-              className="w-40 p-2"
-            >
-              <DropdownItem
-                onItemClick={closeDropdown}
-                className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+              {actionButton}
+            </Button>
+            {!filterOptions ? (
+              <Dropdown
+                isOpen={isDropdownOpen}
+                onClose={closeDropdown}
+                className="w-40 p-2"
               >
-                View More
-              </DropdownItem>
-              <DropdownItem
-              onItemClick={closeDropdown}
-              className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-            >
-              Delete
-            </DropdownItem>
-            </Dropdown>
-          </div> */}
+                <DropdownItem
+                  onItemClick={closeDropdown}
+                  className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                >
+                  View More
+                </DropdownItem>
+                {/* <DropdownItem
+                  onItemClick={closeDropdown}
+                  className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                >
+                  Delete
+                </DropdownItem> */}
+              </Dropdown>
+            ) : (
+              <Dropdown
+                isOpen={isDropdownOpen}
+                onClose={closeDropdown}
+                className="w-40 p-2"
+              >
+                {filterOptions?.map((option) => (
+                  <DropdownItem
+                    key={option}
+                    onItemClick={closeDropdown}
+                    className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                  >
+                    {option}
+                  </DropdownItem>
+                ))}
+              </Dropdown>
+            )}
+          </div>
           <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
             See all
           </button>

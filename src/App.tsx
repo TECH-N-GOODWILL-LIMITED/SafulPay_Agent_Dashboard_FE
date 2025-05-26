@@ -29,6 +29,8 @@ import ForgotPin from "./pages/AuthPages/ForgotPin";
 import Admin from "./pages/Admin/Admin";
 import Disbursement from "./pages/Disbursement.tsx/Disbursement";
 import Audit from "./pages/Audit/Audit";
+import Withdrawal from "./pages/Withdrawal/Withdrawal";
+import Deposit from "./pages/Deposit/Deposit";
 
 export default function App() {
   // NOTE: Fix reponsive for notification dropdown
@@ -67,11 +69,14 @@ export default function App() {
             {/* Disbursement Page */}
             <Route path="/disbursement" element={<Disbursement />} />
 
-            {/* Recollections Page */}
-            <Route path="/recollections" element={<Recollections />} />
-
             {/* Transactions Log Page */}
             <Route path="/transactions" element={<Transactions />} />
+
+            {/* Withdrawals Log Page */}
+            <Route path="/withdrawal" element={<Withdrawal />} />
+
+            {/* Deposit Log Page */}
+            <Route path="/deposit" element={<Deposit />} />
 
             {/* Audit Log Page */}
             <Route path="/audit" element={<Audit />} />
