@@ -15,4 +15,14 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    proxy: {
+      // Proxy API requests starting with /api to your API URL
+      "/api": {
+        target: "https://ycd141j4sl.execute-api.us-east-1.amazonaws.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
+    },
+  },
 });

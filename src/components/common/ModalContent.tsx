@@ -64,12 +64,12 @@ const ModalContent: React.FC<ModalCardProps> = ({
               <div className="relative col-span-2 lg:col-span-1">
                 <Label>Role</Label>
                 <Input
-                  select={true}
-                  userRoles={userRoles}
+                  type="select"
+                  selectOptions={userRoles}
                   value={selectedRole}
                   onChange={handleChange}
                 />
-                <ChevronDownIcon className="absolute bottom-1/5 right-3" />
+                <ChevronDownIcon className="absolute bottom-1/5 right-3 text-gray-800 dark:text-white/90" />
               </div>
             </div>
           </div>

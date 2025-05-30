@@ -5,7 +5,7 @@ import MonthlyTarget from "../../components/ecommerce/MonthlyTarget";
 import RecentOrders from "../../components/ecommerce/RecentOrders";
 import DemographicCard from "../../components/ecommerce/DemographicCard";
 import PageMeta from "../../components/common/PageMeta";
-import RDprogressChart from "../../components/ecommerce/RDprogressChart";
+// import RDprogressChart from "../../components/ecommerce/RDprogressChart";
 
 export interface usersMetric {
   users: string;
@@ -67,7 +67,7 @@ export default function Home() {
               </h3>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 md:gap-6">
                 {users.map((user) => (
-                  <EcommerceMetrics data={user} />
+                  <EcommerceMetrics data={user} key={user.users} />
                 ))}
               </div>
             </div>
@@ -77,14 +77,14 @@ export default function Home() {
         </div>
 
         <div className="col-span-12 xl:col-span-5">
-          <RDprogressChart />
+          <MonthlyTarget title="Recollection Progress" />
           <div className="mt-12">
             <h3 className="mb-4 text-2xl font-bold text-gray-800 dark:text-white/90">
               Cashflow Metrix
             </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6">
               {usersCashFLow.map((user) => (
-                <EcommerceMetrics data={user} type="cash" />
+                <EcommerceMetrics data={user} type="cash" key={user.users} />
               ))}
             </div>
           </div>

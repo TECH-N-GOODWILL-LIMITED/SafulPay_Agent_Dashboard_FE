@@ -1,11 +1,18 @@
+// import { useEffect, useRef, useState } from "react";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
 import Alert from "../ui/alert/Alert";
+
+import { filterPhoneNumber } from "../../utils/utils";
+// import { countries } from "../../utils/countries";
+// import type { countryType } from "../../types/types";
+import { useAuth } from "../../context/AuthContext";
+import { requestOtp, verifyOtpAndLogin } from "../../utils/api";
 
 export default function SignInForm() {
   const [showPin, setShowPin] = useState(false);
@@ -14,89 +21,120 @@ export default function SignInForm() {
   const [pin, setPin] = useState("");
   const [otp, setOtp] = useState("");
   const [showOtpStep, setShowOtpStep] = useState(false);
-  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [sessionToken, setSessionToken] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [alertTitle, setAlertTitle] = useState("");
   const [error, setError] = useState("");
+  const [warnError, setWarnError] = useState<React.ReactNode | string>(null);
+  const [successAlert, setSuccessAlert] = useState("");
   const navigate = useNavigate();
+
+  const { login } = useAuth();
 
   const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!phone || !pin) {
-      setError("Please fill phone number and PIN.");
+      setAlertTitle("Please fill in your Phone number and PIN.");
+      setWarnError(" ");
+      return;
+    }
+
+    const phoneNumber = filterPhoneNumber(phone);
+    if (phoneNumber.length !== 11) {
+      setAlertTitle("Invalid Phone Number Format");
+      setWarnError(" ");
       return;
     }
 
     setError("");
+    setWarnError("");
+    setSuccessAlert("");
     setLoading(true);
+    setPhone(phoneNumber);
 
-    try {
-      // const response = await fetch("/auth/request-otp", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({ phone, pin }),
-      // });
-      // const data = await response.json();
-      // Simulated response
-      const data = { success: true, sessionToken: "abc123" };
+    // Call your API function instead of fetch
+    const response = await requestOtp(phoneNumber);
 
-      if (data.success) {
-        setSessionToken(data.sessionToken);
-        setShowOtpStep(true);
-      } else {
-        setError(data.message || "Invalid phone number or PIN.");
-      }
-    } catch (err) {
-      setError(`Error requesting OTP. Please try again. - ${err}`);
-    } finally {
-      setLoading(false);
+    if (response.success && response.data) {
+      setShowOtpStep(true);
+      setSessionToken(response.data.otp_id);
+      setAlertTitle("OTP Sent");
+      setSuccessAlert(response.data.message || "OTP sent successfully");
+    } else {
+      setAlertTitle("Authentication Failed");
+      setError(response.error || "Invalid phone number or PIN combination.");
+      setSuccessAlert("");
     }
+
+    setLoading(false);
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
+  const handleLogIn = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!otp || otp.length !== 6) {
-      setError("Please enter a valid 6-digit OTP.");
+      setSuccessAlert("");
+      setAlertTitle("Please enter a valid OTP.");
+      setError("Check your phone for OTP");
       return;
     }
 
     setError("");
+    setWarnError("");
+    setSuccessAlert("");
     setLoading(true);
 
-    try {
-      // const response = await fetch("/auth/verify-otp", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({ otp, sessionToken }),
-      // });
-      // const data = await response.json();
-      // Simulated response
-      const data = { success: true, redirectUrl: "/" };
+    const response = await verifyOtpAndLogin(phone, pin, otp, sessionToken);
 
-      if (data.success) {
-        if (isChecked) {
-          localStorage.setItem("keepLoggedIn", "true");
-        }
-        navigate(data.redirectUrl || "/");
-      } else {
-        setError(data.message || "Invalid OTP.");
-      }
-    } catch (err) {
-      setError(`Error verifying OTP. Please try again. - ${err}`);
-    } finally {
-      setLoading(false);
+    console.log(`"before success"=> ${response}`);
+
+    if (response.success && response.data) {
+      // Save user and token in context
+      login(response.data.user, response.data.token);
+      // Navigate to home or dashboard
+      navigate("/");
+    } else {
+      setAlertTitle("OTP Verification Failed");
+      setError(response.error || "Error verifying OTP");
     }
-  };
 
-  const handleBackToSignIn = () => {
-    setShowOtpStep(false);
-    setOtp("");
-    setError("");
-    setSessionToken(null);
+    setLoading(false);
   };
 
   return (
     <div className="flex flex-col flex-1">
-      <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
+      <div className="flex flex-col gap-2 justify-center flex-1 w-full max-w-md mx-auto">
+        {successAlert && (
+          <Alert
+            variant="success"
+            title={alertTitle}
+            message={successAlert}
+            showLink={false}
+          />
+        )}
+        {warnError && (
+          <Alert variant="warning" title={alertTitle} showLink={false}>
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              <p>Phone number must be a Sierra Leone line</p>
+              <p>Ensure to type number in this format.</p>
+              <ul className="list-disc mt-2 ml-4">
+                <li>23230249005</li>
+                <li>30249005</li>
+                <li>030249005</li>
+              </ul>
+            </div>
+          </Alert>
+        )}
+
+        {error && (
+          <Alert
+            variant="error"
+            title={alertTitle}
+            message={error}
+            showLink={false}
+          />
+        )}
         <div>
           <div className="mb-5 sm:mb-8">
             <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
@@ -107,14 +145,6 @@ export default function SignInForm() {
             {!showOtpStep ? (
               <form onSubmit={handleRequestOtp}>
                 <div className="space-y-6">
-                  {error && (
-                    <Alert
-                      variant="error"
-                      title="Authentication Failed"
-                      message={error}
-                      showLink={false}
-                    />
-                  )}
                   <div>
                     <Label>
                       Phone Number <span className="text-error-500">*</span>
@@ -128,8 +158,21 @@ export default function SignInForm() {
                       onChange={(e) => {
                         setPhone(e.target.value);
                         setError("");
+                        setWarnError("");
+                        setSuccessAlert("");
                       }}
                     />
+
+                    {/* <PhoneInput
+                      id="phone"
+                      name="phone"
+                      value={phone}
+                      onChange={(value) => {
+                        setPhone(value);
+                        setError("");
+                      }}
+                      placeholder="Enter phone number"
+                    /> */}
                   </div>
                   <div>
                     <Label>
@@ -141,10 +184,13 @@ export default function SignInForm() {
                         id="pin"
                         name="pin"
                         placeholder="Enter your PIN"
+                        max={6}
                         value={pin}
                         onChange={(e) => {
                           setPin(e.target.value);
                           setError("");
+                          setWarnError("");
+                          setSuccessAlert("");
                         }}
                       />
                       <span
@@ -157,6 +203,11 @@ export default function SignInForm() {
                           <EyeCloseIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
                         )}
                       </span>
+                      {pin && (
+                        <span className="text-[12px] absolute z-30 translate-y-1/2 -bottom-1/2 top-1/2 right-2 text-gray-500">
+                          max length 6
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
@@ -166,31 +217,17 @@ export default function SignInForm() {
                         Keep me logged in
                       </span>
                     </div>
-                    <Link
-                      to="/reset-pin"
-                      className="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400"
-                    >
-                      Forgot PIN?
-                    </Link>
                   </div>
                   <div>
                     <Button className="w-full" size="sm" disabled={loading}>
-                      {loading ? "Sending OTP..." : "Sign In"}
+                      {loading ? "Sending OTP..." : "Request OTP"}
                     </Button>
                   </div>
                 </div>
               </form>
             ) : (
-              <form onSubmit={handleVerifyOtp}>
+              <form onSubmit={handleLogIn}>
                 <div className="space-y-6">
-                  {error && (
-                    <Alert
-                      variant="error"
-                      title="OTP Verification Failed"
-                      message={error}
-                      showLink={false}
-                    />
-                  )}
                   <div>
                     <Label>
                       OTP <span className="text-error-500">*</span>
@@ -204,37 +241,28 @@ export default function SignInForm() {
                       onChange={(e) => {
                         setOtp(e.target.value);
                         setError("");
+                        setWarnError("");
+                        setSuccessAlert("");
                       }}
                     />
                   </div>
                   <div className="flex items-center justify-between">
                     <button
                       type="button"
-                      onClick={handleBackToSignIn}
-                      className="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400"
+                      onClick={handleRequestOtp}
+                      className="text-gray-700 text-theme-sm dark:text-gray-400 hover:text-brand-600"
                     >
-                      Back to Sign In
+                      Resend OTP
                     </button>
                   </div>
                   <div>
                     <Button className="w-full" size="sm" disabled={loading}>
-                      {loading ? "Verifying..." : "Verify OTP"}
+                      {loading ? "Verifying..." : "Sign In"}
                     </Button>
                   </div>
                 </div>
               </form>
             )}
-            {/* <div className="mt-5">
-              <p className="text-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
-                Don't have an account?{" "}
-                <Link
-                  to="/signup"
-                  className="text-brand-500 hover:text-brand-600 dark:text-brand-400"
-                >
-                  Sign Up
-                </Link>
-              </p>
-            </div> */}
           </div>
         </div>
       </div>

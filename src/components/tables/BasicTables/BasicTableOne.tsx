@@ -15,7 +15,8 @@ import { useModal } from "../../../hooks/useModal";
 import { useState } from "react";
 
 interface User {
-  image: string;
+  id: number;
+  image?: string;
   name: string;
   businessName?: string;
   role?: string;
@@ -26,7 +27,6 @@ interface User {
 }
 
 interface TableContentItem {
-  id: number;
   user: User;
 }
 
@@ -140,6 +140,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
             <TableRow>
               {tableHeading?.map((tableHead) => (
                 <TableCell
+                  key={tableHead}
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
@@ -157,133 +158,138 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
 
           {/* Table Body */}
           <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-            {tableContent.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell className="px-5 py-4 sm:px-6 text-start">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 overflow-hidden rounded-full">
-                      <img
-                        width={40}
-                        height={40}
-                        src={order.user.image}
-                        alt={order.user.name}
-                      />
+            {tableContent.length > 0 ? (
+              tableContent.map((order) => (
+                <TableRow key={order.user.id}>
+                  <TableCell className="px-5 py-4 sm:px-6 text-start">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 overflow-hidden rounded-full">
+                        <img
+                          width={40}
+                          height={40}
+                          src={order.user?.image}
+                          alt={order.user.name}
+                        />
+                      </div>
+                      <div>
+                        <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
+                          {order.user.name}
+                        </span>
+                        <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
+                          {order.user.businessName}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                        {order.user.name}
-                      </span>
-                      <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
-                        {order.user.businessName}
-                      </span>
-                    </div>
-                  </div>
-                </TableCell>
+                  </TableCell>
 
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  {order.user.code ? order.user.code : order.user.role}
-                  {order.user.cih && `Le ${order.user.cih}`}
-                </TableCell>
-                {/* {!order.user.code} ||
+                  <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                    {order.user.code ? order.user.code : order.user.role}
+                    {order.user.cih && `Le ${order.user.cih}`}
+                  </TableCell>
+                  {/* {!order.user.code} ||
                 <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                   {order.user.role}
                 </TableCell> */}
-                {/* <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                  {/* <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                   {order.user.code}
                 </TableCell> */}
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  {order.user.phone}
-                </TableCell>
+                  <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                    {order.user.phone}
+                  </TableCell>
 
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  <Badge
-                    size="sm"
-                    color={
-                      order.user.status === "Active"
-                        ? "success"
-                        : order.user.status === "Pending"
-                        ? "warning"
-                        : "error"
-                    }
-                  >
-                    {order.user.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  <button
-                    onClick={() => handleOpenModal(order.user)}
-                    className="hover:text-brand-500 dark:text-gray-400 dark:hover:text-gray-300"
-                  >
-                    Edit
-                  </button>
-                </TableCell>
-
-                <Modal
-                  isOpen={isOpen}
-                  onClose={closeModal}
-                  className="max-w-[700px] m-4"
-                >
-                  <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
-                    <div className="px-2 pr-14">
-                      <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-                        Edit Personal Information
-                      </h4>
-                      <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-                        Update your details to keep your profile up-to-date.
-                      </p>
-                    </div>
-                    <form className="flex flex-col">
-                      <div className="custom-scrollbar h-full overflow-y-auto px-2 pb-3">
-                        <div className="mt-7">
-                          <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
-                            Personal Information
-                          </h5>
-
-                          <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                            <div className="col-span-2 lg:col-span-1">
-                              <Label>First Name</Label>
-                              <Input type="text" value="Musharof" />
-                            </div>
-
-                            <div className="col-span-2 lg:col-span-1">
-                              <Label>Last Name</Label>
-                              <Input type="text" value="Chowdhury" />
-                            </div>
-
-                            <div className="col-span-2 lg:col-span-1">
-                              <Label>Email Address</Label>
-                              <Input type="text" value="randomuser@pimjo.com" />
-                            </div>
-
-                            <div className="col-span-2 lg:col-span-1">
-                              <Label>Phone</Label>
-                              <Input type="text" value="+09 363 398 46" />
-                            </div>
-
-                            <div className="col-span-2">
-                              <Label>Bio</Label>
-                              <Input type="text" value="Team Manager" />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-                        {currentUser &&
-                          getActionButtons(currentUser.status, {
-                            close: closeModal,
-                            suspend: handleSuspend,
-                            approve: handleApprove,
-                            reActivate: handleReActivate,
-                            save: handleSave,
-                          })}
-                      </div>
-                    </form>
-                  </div>
-                </Modal>
-              </TableRow>
-            ))}
+                  <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                    <Badge
+                      size="sm"
+                      color={
+                        order.user.status === "Active"
+                          ? "success"
+                          : order.user.status === "Pending"
+                          ? "warning"
+                          : "error"
+                      }
+                    >
+                      {order.user.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                    <button
+                      onClick={() => handleOpenModal(order.user)}
+                      className="hover:text-brand-500 dark:text-gray-400 dark:hover:text-gray-300"
+                    >
+                      Edit
+                    </button>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <div className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
+                No Data found
+              </div>
+            )}
           </TableBody>
         </Table>
+        <Modal
+          isOpen={isOpen}
+          onClose={closeModal}
+          className="max-w-[700px] m-4"
+        >
+          <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
+            <div className="px-2 pr-14">
+              <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+                Edit Personal Information
+              </h4>
+              <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
+                Update your details to keep your profile up-to-date.
+              </p>
+            </div>
+            <form className="flex flex-col">
+              <div className="custom-scrollbar h-full overflow-y-auto px-2 pb-3">
+                <div className="mt-7">
+                  <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
+                    Personal Information
+                  </h5>
+
+                  <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
+                    <div className="col-span-2 lg:col-span-1">
+                      <Label>First Name</Label>
+                      <Input type="text" value="Musharof" />
+                    </div>
+
+                    <div className="col-span-2 lg:col-span-1">
+                      <Label>Last Name</Label>
+                      <Input type="text" value="Chowdhury" />
+                    </div>
+
+                    <div className="col-span-2 lg:col-span-1">
+                      <Label>Email Address</Label>
+                      <Input type="text" value="randomuser@pimjo.com" />
+                    </div>
+
+                    <div className="col-span-2 lg:col-span-1">
+                      <Label>Phone</Label>
+                      <Input type="text" value="+09 363 398 46" />
+                    </div>
+
+                    <div className="col-span-2">
+                      <Label>Bio</Label>
+                      <Input type="text" value="Team Manager" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
+                {currentUser &&
+                  getActionButtons(currentUser.status, {
+                    close: closeModal,
+                    suspend: handleSuspend,
+                    approve: handleApprove,
+                    reActivate: handleReActivate,
+                    save: handleSave,
+                  })}
+              </div>
+            </form>
+          </div>
+        </Modal>
       </div>
     </div>
   );
