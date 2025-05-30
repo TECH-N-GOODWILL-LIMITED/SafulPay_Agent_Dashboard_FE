@@ -1,10 +1,9 @@
+import { useState, useEffect } from "react";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
-// import RecentOrders from "../../components/ecommerce/RecentOrders";
 import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
-// import RecentOrders from "../../components/ecommerce/RecentOrders";
-// import Button from "../../components/ui/button/Button";
+import { getAllUsers } from "../../utils/api";
 
 interface tableContentType {
   id: number;
@@ -33,65 +32,39 @@ const userRoles: string[] = [
   "Accountant",
 ];
 
-const tableContent: tableContentType[] = [
-  {
-    id: 1,
-    user: {
-      image: "/images/user/user-17.jpg",
-      name: "Barry AbdulRahim",
-      businessName: "Kandoh Logistics",
-      role: "Rider",
-      phone: "30200005",
-      status: "Active",
-    },
-  },
-  {
-    id: 2,
-    user: {
-      image: "/images/user/user-18.jpg",
-      name: "Umaru Kamara",
-      businessName: "Ace Enterprise",
-      role: "Marketer",
-      phone: "80200005",
-      status: "Pending",
-    },
-  },
-  {
-    id: 3,
-    user: {
-      image: "/images/user/user-17.jpg",
-      name: "Alhaji Kajali",
-      businessName: "KJ & Sons",
-      role: "Agent",
-      phone: "60200005",
-      status: "Active",
-    },
-  },
-  {
-    id: 4,
-    user: {
-      image: "/images/user/user-20.jpg",
-      name: "Yero Oyinn",
-      businessName: "",
-      role: "Admin",
-      phone: "80200008",
-      status: "Active",
-    },
-  },
-  {
-    id: 5,
-    user: {
-      image: "/images/user/user-21.jpg",
-      name: "Marcus Otumba",
-      businessName: "Otumba & Olori",
-      role: "Agent",
-      phone: "80200008",
-      status: "Suspended",
-    },
-  },
-];
-
 const Users = () => {
+  const [tableContent, setTableContent] = useState<tableContentType[]>([]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const accessToken =
+          localStorage.getItem("accessToken") || "your-access-token";
+        const response = await getAllUsers(accessToken);
+        if (response.success && response.data) {
+          const users = response.data.users.map((user) => ({
+            id: user.id,
+            user: {
+              image: "/images/user/user-profile.jpg",
+              name: user.name,
+              businessName: "",
+              role: user.role,
+              phone: user.phone,
+              status: user.status === 1 ? "Active" : "Inactive",
+            },
+          }));
+          setTableContent(users);
+        } else {
+          console.error("Failed to fetch users:", response.error);
+        }
+      } catch (err) {
+        console.error("Error fetching users:", err);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
   return (
     <>
       <PageMeta
