@@ -8,13 +8,14 @@ import {
 
 import { useAuth } from "./AuthContext";
 import { getAllUsers } from "../utils/api";
-import { UserBio } from "../types/types";
+import type { UserBio } from "../types/types";
 
 interface UsersContextType {
   allUsers: UserBio[];
   filteredUsers: UserBio[];
   fetchUsers: () => Promise<void>;
   filterByRole: (role: string) => void;
+  title: string;
   error?: string;
   loading: boolean;
 }
@@ -33,13 +34,15 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({
   const [allUsers, setAllUsers] = useState<UserBio[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserBio[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [title, setTitle] = useState<string>("");
   const [error, setError] = useState<string>("");
 
   const { token } = useAuth();
 
   const fetchUsers = async () => {
     if (!token) {
-      setError("Not authenticated");
+      setTitle("Not authenticated");
+      setError("Redirecting...");
       setLoading(false);
       return;
     }
@@ -49,6 +52,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({
       setAllUsers(response.data.users);
       setFilteredUsers(response.data.users);
     } else {
+      setTitle("Failed to fetch users");
       setError(response.error || "Failed to fetch users");
     }
     setLoading(false);
@@ -61,7 +65,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({
 
   useEffect(() => {
     fetchUsers();
-  }, [token]);
+  }, []);
 
   return (
     <UsersContext.Provider
@@ -70,6 +74,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({
         filteredUsers,
         fetchUsers,
         filterByRole,
+        title,
         error,
         loading,
       }}

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useAuth } from "../../context/AuthContext";
 import { useAllUsers } from "../../context/UsersContext";
 import { userRoles } from "../../utils/roles";
 import type { UserBio } from "../../types/types";
@@ -6,6 +7,7 @@ import ComponentCard from "../../components/common/ComponentCard";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
+import Alert from "../../components/ui/alert/Alert";
 
 interface TableContentType {
   user: {
@@ -27,17 +29,24 @@ const tableHeader: string[] = [
 ];
 
 const Users = () => {
-  // const [tableContent, setTableContent] = useState<TableContentType[]>([]);
-  // const [loading, setLoading] = useState(true);
-  // const [error, setError] = useState<string | null>(null);
+  const {
+    // allUsers,
+    title,
+    error,
+    loading,
+    fetchUsers,
+    filteredUsers,
+    filterByRole,
+  } = useAllUsers();
 
-  const { allUsers, fetchUsers, error, loading } = useAllUsers();
+  const { token } = useAuth();
 
   useEffect(() => {
     fetchUsers();
+    console.log(token);
   }, []);
 
-  const tableData: TableContentType[] = allUsers.map((user: UserBio) => ({
+  const tableData: TableContentType[] = filteredUsers.map((user: UserBio) => ({
     user: {
       id: user.id,
       image: "/images/user/user-17.jpg", // or actual image URL if available
@@ -55,7 +64,10 @@ const Users = () => {
   }));
 
   if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (error)
+    return (
+      <Alert variant="error" title={title} message={error} showLink={false} />
+    );
 
   return (
     <>
@@ -69,6 +81,7 @@ const Users = () => {
           title="Users Table"
           desc="Details of all users with various account types"
           actionButton1="Filter"
+          onItemClick={filterByRole}
           userType="User"
           userRoles={userRoles}
           filterOptions={userRoles}
