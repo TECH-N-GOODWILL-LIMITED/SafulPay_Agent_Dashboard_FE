@@ -1,126 +1,191 @@
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
+import type { ApiResponse } from "../types/types";
+import type { LoginResponse } from "../types/types";
+import type { User } from "../types/types";
+import type { UserBio } from "../types/types";
 
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  status: number;
-  role: string;
-}
+const BASE_URL = "https://test.techengood.com";
 
 export const requestOtp = async (
-  phone: string,
-  pin: string
-): Promise<ApiResponse<{ sessionToken: string }>> => {
+  phone: string
+): Promise<ApiResponse<{ otp_id: string; message?: string }>> => {
   try {
-    const apiPhone = phone.startsWith("+") ? phone.slice(1) : phone;
-    const data = { success: true, sessionToken: "abc123" };
+    const response = await fetch(
+      `https://ycd141j4sl.execute-api.us-east-1.amazonaws.com/v1/auth/send-otp`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ recipient: phone }),
+        redirect: "follow",
+      }
+    );
 
-    if (data.success) {
-      return { success: true, data: { sessionToken: data.sessionToken } };
-    } else {
+    if (!response.ok) {
+      if (response.status === 400) {
+        return {
+          success: false,
+          error: "Invalid phone number. Please check and try again.",
+        };
+      }
+      if (response.status === 429) {
+        return {
+          success: false,
+          error: "Too many requests. Please try again later.",
+        };
+      }
       return {
         success: false,
-        error: data.message || "Invalid phone number or PIN.",
+        error: `Failed to send OTP. Server error (${response.status}).`,
       };
     }
+
+    const text = await response.text();
+    if (!text) {
+      return {
+        success: false,
+        error: "Empty response from server. Please try again.",
+      };
+    }
+
+    const data = JSON.parse(text);
+    if (data.status) {
+      return {
+        success: true,
+        data: { otp_id: data.otp_id, message: data.message },
+      };
+    }
+    return { success: false, error: data.message || "Failed to send OTP." };
   } catch (err) {
-    return { success: false, error: `Error requesting OTP: ${err}` };
+    if (err instanceof SyntaxError) {
+      return {
+        success: false,
+        error: "Invalid server response. Please try again.",
+      };
+    }
+    return {
+      success: false,
+      error: "Failed to send OTP. Please check your connection.",
+    };
   }
 };
 
-export const verifyOtp = async (
-  otp: string,
-  sessionToken: string | null
-): Promise<ApiResponse<{ redirectUrl: string }>> => {
+export const verifyOtpAndLogin = async (
+  phone: string,
+  pin: string,
+  otpCode: string,
+  otpId: string
+): Promise<ApiResponse<{ token: string; user: User }>> => {
   try {
-    const data = { success: true, redirectUrl: "/" };
+    const response = await fetch(`${BASE_URL}/api/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        login: phone,
+        pin,
+        otp_code: otpCode,
+        otp_id: otpId,
+      }),
+      redirect: "follow",
+    });
 
-    if (data.success) {
-      return { success: true, data: { redirectUrl: data.redirectUrl || "/" } };
-    } else {
-      return { success: false, error: data.message || "Invalid OTP." };
+    if (!response.ok) {
+      if (response.status === 400) {
+        return {
+          success: false,
+          error: "Invalid OTP or credentials. Please try again.",
+        };
+      }
+      return {
+        success: false,
+        error: `Login failed. Server error (${response.status}).`,
+      };
     }
+
+    const text = await response.text();
+    if (!text) {
+      return {
+        success: false,
+        error: "Empty response from server. Please try again.",
+      };
+    }
+
+    const data: LoginResponse = JSON.parse(text);
+    if (data.status) {
+      return {
+        success: true,
+        data: {
+          token: data.data.access_token,
+          user: data.data.user,
+        },
+      };
+    }
+    return { success: false, error: data.message || "Login failed." };
   } catch (err) {
-    return { success: false, error: `Error verifying OTP: ${err}` };
+    if (err instanceof SyntaxError) {
+      return {
+        success: false,
+        error: "Invalid server response. Please try again.",
+      };
+    }
+    return {
+      success: false,
+      error: "Failed to verify OTP. Please check your connection.",
+    };
   }
 };
 
 export const getAllUsers = async (
   accessToken: string
-): Promise<ApiResponse<{ users: User[] }>> => {
+): Promise<ApiResponse<{ users: UserBio[] }>> => {
   try {
-    // const response = await fetch("https://test.techengood.com/api/auth/getAllUsers", {
-    //   method: "GET",
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //     Authorization: `Bearer ${accessToken}`,
-    //   },
-    // });
-    // const data = await response.json();
-    const data = {
-      status: true,
-      message: "Users retrieved successfully",
-      data: {
-        users: [
-          {
-            id: 1,
-            name: "Toluwani Adepoju",
-            email: "tmedal007@gmail.com",
-            phone: "23278672866",
-            status: 1,
-            role: "Marketer",
-          },
-          {
-            id: 2,
-            name: "Osman Kamara",
-            email: "ockamara@gmail.com",
-            phone: "23230737385",
-            status: 1,
-            role: "Admin",
-          },
-          {
-            id: 8,
-            name: "Abdul Barry",
-            email: "abdulrahimbarrie22@gmail.com",
-            phone: "23234546611",
-            status: 1,
-            role: "Marketer",
-          },
-          {
-            id: 9,
-            name: "Oyinlola Lawal",
-            email: "oyinn.lawal@techengood.com",
-            phone: "23230249205",
-            status: 1,
-            role: "Rider",
-          },
-          {
-            id: 10,
-            name: "Umaru Kamara",
-            email: "umarujnr@gmail.com",
-            phone: "23279750529",
-            status: 1,
-            role: "Rider",
-          },
-        ],
+    const response = await fetch(`${BASE_URL}/api/auth/getAllUsers`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
       },
-    };
+      redirect: "follow",
+    });
 
-    if (data.status) {
-      return { success: true, data: { users: data.data.users } };
-    } else {
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        return {
+          success: false,
+          error: "Session expired. Please sign in again.",
+        };
+      }
       return {
         success: false,
-        error: data.message || "Failed to retrieve users.",
+        error: `Failed to get users. Server error (${response.status}).`,
       };
     }
+
+    const text = await response.text();
+    if (!text) {
+      return {
+        success: false,
+        error: "Empty response from server. Please try again.",
+      };
+    }
+
+    const data = JSON.parse(text);
+    if (data.status) {
+      return { success: true, data: { users: data.data.users } };
+    }
+    return { success: false, error: data.message || "Failed to get users." };
   } catch (err) {
-    return { success: false, error: `Error retrieving users: ${err}` };
+    if (err instanceof SyntaxError) {
+      return {
+        success: false,
+        error: "Invalid server response. Please try again.",
+      };
+    }
+    return {
+      success: false,
+      error: "Failed to retrieve users. Please check your connection.",
+    };
   }
 };

@@ -4,6 +4,9 @@ import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
 import { getAllUsers } from "../../utils/api";
+import { useAppContext } from "../../context/AppContext";
+import { useNavigate } from "react-router-dom";
+import Alert from "../../components/ui/alert/Alert";
 
 interface tableContentType {
   id: number;
@@ -34,18 +37,24 @@ const userRoles: string[] = [
 
 const Users = () => {
   const [tableContent, setTableContent] = useState<tableContentType[]>([]);
+  const [error, setError] = useState("");
+  const { accessToken, clearToken } = useAppContext();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUsers = async () => {
+      if (!accessToken) {
+        navigate("/signin");
+        return;
+      }
+
       try {
-        const accessToken =
-          localStorage.getItem("accessToken") || "your-access-token";
         const response = await getAllUsers(accessToken);
         if (response.success && response.data) {
           const users = response.data.users.map((user) => ({
             id: user.id,
             user: {
-              image: "/images/user/user-profile.jpg",
+              image: "/images/user/user-placeholder.jpg",
               name: user.name,
               businessName: "",
               role: user.role,
@@ -55,15 +64,19 @@ const Users = () => {
           }));
           setTableContent(users);
         } else {
-          console.error("Failed to fetch users:", response.error);
+          setError(response.error || "Failed to fetch users.");
+          if (response.error?.includes("Session expired")) {
+            clearToken();
+            navigate("/signin");
+          }
         }
       } catch (err) {
-        console.error("Error fetching users:", err);
+        setError(`Error fetching users: ${err}`);
       }
     };
 
     fetchUsers();
-  }, []);
+  }, [accessToken, navigate, clearToken]);
 
   return (
     <>
@@ -73,6 +86,14 @@ const Users = () => {
       />
       <PageBreadcrumb pageTitle="Users" />
       <div className="space-y-6">
+        {error && (
+          <Alert
+            variant="error"
+            title="Error"
+            message={error}
+            showLink={false}
+          />
+        )}
         <ComponentCard
           title="Users Table"
           desc="Details of all users with various account types"

@@ -7,7 +7,8 @@ import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
 import Alert from "../ui/alert/Alert";
 import { countries } from "../../utils/countries";
-import { requestOtp, verifyOtp } from "../../utils/api";
+import { requestOtp, verifyOtpAndLogin } from "../../utils/api";
+import { useAppContext } from "../../context/AppContext";
 
 export default function SignInForm() {
   const [showPin, setShowPin] = useState(false);
@@ -15,11 +16,12 @@ export default function SignInForm() {
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
   const [otp, setOtp] = useState("");
+  const [otpId, setOtpId] = useState<string | null>(null);
   const [showOtpStep, setShowOtpStep] = useState(false);
-  const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { setToken } = useAppContext();
 
   const handlePinChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -61,12 +63,12 @@ export default function SignInForm() {
     setLoading(true);
 
     try {
-      const response = await requestOtp(phone, pin);
+      const response = await requestOtp(phone);
       if (response.success && response.data) {
-        setSessionToken(response.data.sessionToken);
+        setOtpId(response.data.otp_id);
         setShowOtpStep(true);
       } else {
-        setError(response.error || "Invalid phone number or PIN.");
+        setError(response.error || "Failed to send OTP.");
       }
     } catch (err) {
       setError(`Error requesting OTP. Please try again. - ${err}`);
@@ -75,10 +77,15 @@ export default function SignInForm() {
     }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
+  const handleVerifyOtpAndLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otp || otp.length !== 6) {
       setError("Please enter a valid 6-digit OTP.");
+      return;
+    }
+
+    if (!otpId) {
+      setError("Session expired. Please request a new OTP.");
       return;
     }
 
@@ -86,12 +93,10 @@ export default function SignInForm() {
     setLoading(true);
 
     try {
-      const response = await verifyOtp(otp, sessionToken);
+      const response = await verifyOtpAndLogin(phone, pin, otp, otpId);
       if (response.success && response.data) {
-        if (isChecked) {
-          localStorage.setItem("keepLoggedIn", "true");
-        }
-        navigate(response.data.redirectUrl);
+        setToken(response.data.token, isChecked);
+        navigate("/dashboard");
       } else {
         setError(response.error || "Invalid OTP.");
       }
@@ -106,7 +111,7 @@ export default function SignInForm() {
     setShowOtpStep(false);
     setOtp("");
     setError("");
-    setSessionToken(null);
+    setOtpId(null);
   };
 
   return (
@@ -139,7 +144,10 @@ export default function SignInForm() {
                       id="phone"
                       name="phone"
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      onChange={(e) => {
+                        setPhone(e.target.value);
+                        setError("");
+                      }}
                       placeholder="Enter phone number"
                     />
                   </div>
@@ -155,7 +163,6 @@ export default function SignInForm() {
                         placeholder="Enter your PIN"
                         value={pin}
                         onChange={handlePinChange}
-                        // maxLength={4}
                       />
                       <span
                         onClick={() => setShowPin(!showPin)}
@@ -191,7 +198,7 @@ export default function SignInForm() {
                 </div>
               </form>
             ) : (
-              <form onSubmit={handleVerifyOtp}>
+              <form onSubmit={handleVerifyOtpAndLogin}>
                 <div className="space-y-6">
                   {error && (
                     <Alert

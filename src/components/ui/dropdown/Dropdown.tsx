@@ -9,6 +9,7 @@ interface DropdownProps {
   search?: boolean;
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
+  searchValue?: string;
 }
 
 export const Dropdown: React.FC<DropdownProps> = ({
@@ -19,6 +20,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
   search = false,
   onSearchChange,
   searchPlaceholder = "",
+  searchValue = "",
 }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -51,7 +53,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
           <input
             type="text"
             placeholder={searchPlaceholder}
-            value={onSearchChange ? "" : undefined}
+            value={searchValue}
             onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
             className="w-full px-3 py-2 text-sm text-gray-700 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
           />

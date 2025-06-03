@@ -1,9 +1,9 @@
 import type React from "react";
 import type { FC } from "react";
 import { useState } from "react";
-import { countries } from "../../../utils/countries";
 import { Dropdown } from "../../ui/dropdown/Dropdown";
 import { DropdownItem } from "../../ui/dropdown/DropdownItem";
+import { countries } from "../../../utils/countries";
 
 interface InputProps {
   type?:
@@ -188,6 +188,7 @@ const Input: FC<InputProps> = ({
             className="w-full mt-1"
             search={true}
             onSearchChange={setSearch}
+            searchValue={search}
             searchPlaceholder="Search country or code..."
           >
             {filteredCountries.length > 0 ? (
