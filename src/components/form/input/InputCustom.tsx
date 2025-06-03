@@ -1,8 +1,7 @@
-// import { useState, type FC } from "react";
-import { type FC } from "react";
-import { userRoles } from "../../../utils/roles";
-// import { Dropdown } from "../../ui/dropdown/Dropdown";
-// import { DropdownItem } from "../../ui/dropdown/DropdownItem";
+import { useState, type FC } from "react";
+import { roles } from "../../../utils/roles";
+import { Dropdown } from "../../ui/dropdown/Dropdown";
+import { DropdownItem } from "../../ui/dropdown/DropdownItem";
 // import { countries } from "../../../utils/countries";
 
 interface InputProps {
@@ -49,9 +48,9 @@ const Input: FC<InputProps> = ({
   success = false,
   error = false,
   hint,
-  selectOptions = userRoles,
+  selectOptions = roles,
 }) => {
-  // const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   let inputClasses = ` h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3  dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 ${className}`;
 
@@ -65,13 +64,13 @@ const Input: FC<InputProps> = ({
     inputClasses += ` bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:text-white/90  dark:focus:border-brand-800`;
   }
 
-  // function toggleDropdown() {
-  //   setIsDropdownOpen(!isDropdownOpen);
-  // }
+  function toggleDropdown() {
+    setIsDropdownOpen(!isDropdownOpen);
+  }
 
-  // function closeDropdown() {
-  //   setIsDropdownOpen(false);
-  // }
+  function closeDropdown() {
+    setIsDropdownOpen(false);
+  }
 
   return (
     <div className="relative">

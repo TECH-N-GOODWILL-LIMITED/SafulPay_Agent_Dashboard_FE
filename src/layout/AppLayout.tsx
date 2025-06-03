@@ -1,5 +1,7 @@
+// import { useEffect } from "react";
 import { SidebarProvider, useSidebar } from "../context/SidebarContext";
-import { Outlet } from "react-router";
+import { Navigate, Outlet } from "react-router";
+import { useAuth } from "../context/AuthContext";
 import AppHeader from "./AppHeader";
 import Backdrop from "./Backdrop";
 import AppSidebar from "./AppSidebar";
@@ -28,6 +30,13 @@ const LayoutContent: React.FC = () => {
 };
 
 const AppLayout: React.FC = () => {
+  const { token } = useAuth();
+
+  // Redirect if not authenticated
+  if (!token) {
+    return <Navigate to="/signin" replace />;
+  }
+
   return (
     <SidebarProvider>
       <LayoutContent />

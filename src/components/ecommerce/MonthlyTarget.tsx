@@ -5,7 +5,12 @@ import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { MoreDotIcon } from "../../icons";
 
-export default function MonthlyTarget({ title }) {
+interface MonthlyTargetProp {
+  title: string;
+}
+
+export default function MonthlyTarget({ title }: MonthlyTargetProp) {
+  const [isOpen, setIsOpen] = useState(false);
   const series = [75.55];
   const options: ApexOptions = {
     colors: ["#465FFF"],
@@ -54,7 +59,6 @@ export default function MonthlyTarget({ title }) {
     },
     labels: ["Progress"],
   };
-  const [isOpen, setIsOpen] = useState(false);
 
   function toggleDropdown() {
     setIsOpen(!isOpen);

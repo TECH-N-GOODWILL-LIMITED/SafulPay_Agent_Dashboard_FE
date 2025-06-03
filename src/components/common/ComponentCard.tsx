@@ -12,7 +12,7 @@ interface ComponentCardProps {
   className?: string;
   desc?: string;
   actionButton1?: string;
-  actionButton2?: string;
+  onItemClick?: (role: string) => void;
   filterOptions?: string[];
   userRoles?: string[];
   userType?: string;
@@ -24,7 +24,7 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
   className = "",
   desc = "",
   actionButton1 = "",
-  actionButton2 = "",
+  onItemClick,
   filterOptions,
   userRoles,
   userType = "",
@@ -33,6 +33,12 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
 
   function toggleDropdown() {
     setIsDropdownOpen(!isDropdownOpen);
+  }
+
+  function handleItemClick(option: string) {
+    if (onItemClick) onItemClick(option);
+
+    setIsDropdownOpen(false);
   }
 
   function closeDropdown() {
@@ -66,7 +72,7 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
           </p>
         )}
 
-        {(actionButton1 || actionButton2) && (
+        {actionButton1 && (
           <div className="flex items-center gap-3">
             <Button size="sm" endIcon="✚" onClick={openModal}>
               Add {userType}
@@ -144,7 +150,7 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
                   {filterOptions?.map((option) => (
                     <DropdownItem
                       key={option}
-                      onItemClick={closeDropdown}
+                      onItemClick={() => handleItemClick?.(option)}
                       className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                     >
                       {option}

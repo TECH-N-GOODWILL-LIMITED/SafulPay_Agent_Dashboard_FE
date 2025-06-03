@@ -33,8 +33,6 @@ import Withdrawal from "./pages/Withdrawal/Withdrawal";
 import Deposit from "./pages/Deposit/Deposit";
 
 export default function App() {
-  // NOTE: Fix reponsive for notification dropdown
-
   return (
     <>
       <Router>

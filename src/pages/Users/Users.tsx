@@ -1,15 +1,18 @@
+import { useEffect } from "react";
+import { useAuth } from "../../context/AuthContext";
+import { useAllUsers } from "../../context/UsersContext";
+import { userRoles } from "../../utils/roles";
+import type { UserBio } from "../../types/types";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
-// import RecentOrders from "../../components/ecommerce/RecentOrders";
 import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
-// import RecentOrders from "../../components/ecommerce/RecentOrders";
-// import Button from "../../components/ui/button/Button";
+import Alert from "../../components/ui/alert/Alert";
 
-interface tableContentType {
-  id: number;
+interface TableContentType {
   user: {
-    image: string;
+    id: number;
+    image?: string;
     name: string;
     businessName: string;
     role: string;
@@ -25,73 +28,47 @@ const tableHeader: string[] = [
   "Status",
 ];
 
-const userRoles: string[] = [
-  "Admin",
-  "Agents",
-  "Marketer",
-  "Rider",
-  "Accountant",
-];
-
-const tableContent: tableContentType[] = [
-  {
-    id: 1,
-    user: {
-      image: "/images/user/user-17.jpg",
-      name: "Barry AbdulRahim",
-      businessName: "Kandoh Logistics",
-      role: "Rider",
-      phone: "30200005",
-      status: "Active",
-    },
-  },
-  {
-    id: 2,
-    user: {
-      image: "/images/user/user-18.jpg",
-      name: "Umaru Kamara",
-      businessName: "Ace Enterprise",
-      role: "Marketer",
-      phone: "80200005",
-      status: "Pending",
-    },
-  },
-  {
-    id: 3,
-    user: {
-      image: "/images/user/user-17.jpg",
-      name: "Alhaji Kajali",
-      businessName: "KJ & Sons",
-      role: "Agent",
-      phone: "60200005",
-      status: "Active",
-    },
-  },
-  {
-    id: 4,
-    user: {
-      image: "/images/user/user-20.jpg",
-      name: "Yero Oyinn",
-      businessName: "",
-      role: "Admin",
-      phone: "80200008",
-      status: "Active",
-    },
-  },
-  {
-    id: 5,
-    user: {
-      image: "/images/user/user-21.jpg",
-      name: "Marcus Otumba",
-      businessName: "Otumba & Olori",
-      role: "Agent",
-      phone: "80200008",
-      status: "Suspended",
-    },
-  },
-];
-
 const Users = () => {
+  const {
+    // allUsers,
+    title,
+    error,
+    loading,
+    fetchUsers,
+    filteredUsers,
+    filterByRole,
+  } = useAllUsers();
+
+  const { token } = useAuth();
+
+  useEffect(() => {
+    fetchUsers();
+    console.log(token);
+  }, []);
+
+  const tableData: TableContentType[] = filteredUsers.map((user: UserBio) => ({
+    user: {
+      id: user.id,
+      image: "/images/user/user-17.jpg", // or actual image URL if available
+      name: user.name,
+      businessName: "", // add if your API provides it
+      role: user.role,
+      phone: user.phone,
+      status:
+        user.status === 1
+          ? "Active"
+          : user.status === 2
+          ? "Pending"
+          : "Suspended",
+    },
+  }));
+
+  if (loading) return <div>Loading...</div>;
+  if (error)
+    return (
+      <Alert variant="error" title={title} message={error} showLink={false} />
+    );
+
   return (
     <>
       <PageMeta
@@ -104,14 +81,12 @@ const Users = () => {
           title="Users Table"
           desc="Details of all users with various account types"
           actionButton1="Filter"
+          onItemClick={filterByRole}
           userType="User"
           userRoles={userRoles}
           filterOptions={userRoles}
         >
-          <BasicTableOne
-            tableHeading={tableHeader}
-            tableContent={tableContent}
-          />
+          <BasicTableOne tableHeading={tableHeader} tableContent={tableData} />
         </ComponentCard>
       </div>
     </>
