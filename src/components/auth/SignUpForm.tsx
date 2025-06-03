@@ -5,7 +5,6 @@ import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Checkbox from "../form/input/Checkbox";
 import Alert from "../ui/alert/Alert";
-import PhoneNumberInput from "./PhoneNumberInput";
 
 export default function AdminAccountCreationForm() {
   const [showPin, setShowPin] = useState(false);
@@ -95,14 +94,12 @@ export default function AdminAccountCreationForm() {
                     <Label>
                       Phone Number<span className="text-error-500">*</span>
                     </Label>
-                    <PhoneNumberInput
+                    <Input
+                      type="tel"
                       id="phone"
                       name="phone"
                       value={phone}
-                      onChange={(value) => {
-                        setPhone(value);
-                        setError("");
-                      }}
+                      onChange={(e) => setPhone(e.target.value)}
                       placeholder="Enter phone number"
                     />
                   </div>

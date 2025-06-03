@@ -8,7 +8,6 @@ import Button from "../ui/button/Button";
 import Alert from "../ui/alert/Alert";
 import { countries } from "../../utils/countries";
 import { requestOtp, verifyOtp } from "../../utils/api";
-import PhoneNumberInput from "./PhoneNumberInput";
 
 export default function SignInForm() {
   const [showPin, setShowPin] = useState(false);
@@ -135,14 +134,12 @@ export default function SignInForm() {
                     <Label>
                       Phone Number <span className="text-error-500">*</span>
                     </Label>
-                    <PhoneNumberInput
+                    <Input
+                      type="tel"
                       id="phone"
                       name="phone"
                       value={phone}
-                      onChange={(value) => {
-                        setPhone(value);
-                        setError("");
-                      }}
+                      onChange={(e) => setPhone(e.target.value)}
                       placeholder="Enter phone number"
                     />
                   </div>
