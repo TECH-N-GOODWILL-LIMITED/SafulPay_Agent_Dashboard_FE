@@ -1,4 +1,3 @@
-// import { useEffect } from "react";
 import { SidebarProvider, useSidebar } from "../context/SidebarContext";
 import { Navigate, Outlet } from "react-router";
 import { useAuth } from "../context/AuthContext";
@@ -36,6 +35,8 @@ const AppLayout: React.FC = () => {
   if (!token) {
     return <Navigate to="/signin" replace />;
   }
+
+  console.log(token);
 
   return (
     <SidebarProvider>

@@ -1,10 +1,22 @@
-import { createContext, useContext, useState, ReactNode } from "react";
-import type { User } from "../types/types";
+import {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+  // useEffect,
+} from "react";
+import type { User, LoginResponseData } from "../types/types";
+import {
+  clearResponseCookies,
+  getResponseCookies,
+  setResponseCookies,
+} from "../utils/authCookies";
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (user: User, token: string) => void;
+  login: (data: LoginResponseData, keepLoggedIn: boolean) => void;
   logout: () => void;
 }
 
@@ -19,18 +31,29 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [responseData, setResponseDataState] =
+    useState<LoginResponseData | null>(() => {
+      return getResponseCookies();
+    });
 
-  const login = (user: User, token: string) => {
-    setUser(user);
-    setToken(token);
-    console.log(token);
+  useEffect(() => {
+    const data = getResponseCookies();
+    if (data && data !== responseData) {
+      setResponseDataState(data);
+    }
+  }, []);
+
+  const user = responseData?.user || null;
+  const token = responseData?.access_token || null;
+
+  const login = (data: LoginResponseData, keepLoggedIn: boolean) => {
+    setResponseDataState(data);
+    setResponseCookies(data, keepLoggedIn);
   };
 
   const logout = () => {
-    setUser(null);
-    setToken(null);
+    setResponseDataState(null);
+    clearResponseCookies();
   };
 
   return (

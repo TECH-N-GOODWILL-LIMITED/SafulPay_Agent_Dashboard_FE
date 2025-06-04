@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { Modal } from "../../ui/modal";
+import { useModal } from "../../../hooks/useModal";
 import {
   Table,
   TableBody,
@@ -10,9 +13,6 @@ import Badge from "../../ui/badge/Badge";
 import Button from "../../ui/button/Button";
 import Input from "../../form/input/InputField";
 import Label from "../../form/Label";
-import { Modal } from "../../ui/modal";
-import { useModal } from "../../../hooks/useModal";
-import { useState } from "react";
 
 interface User {
   id: number;
@@ -22,6 +22,7 @@ interface User {
   role?: string;
   code?: string;
   cih?: number;
+  residualAmount?: number;
   phone: string;
   status: string;
 }
@@ -183,9 +184,30 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                   </TableCell>
 
                   <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                    {order.user.code ? order.user.code : order.user.role}
-                    {order.user.cih && `Le ${order.user.cih}`}
+                    {order.user.role}
                   </TableCell>
+
+                  {order.user.code && (
+                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                      {order.user.code}
+                    </TableCell>
+                  )}
+
+                  {order.user.residualAmount !== 0 ? (
+                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                      {`Le ${order.user.residualAmount}`}
+                    </TableCell>
+                  ) : (
+                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                      Le 0.00
+                    </TableCell>
+                  )}
+
+                  {order.user.cih && (
+                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                      {`Le ${order.user.cih}`}
+                    </TableCell>
+                  )}
                   {/* {!order.user.code} ||
                 <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                   {order.user.role}
@@ -222,9 +244,11 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                 </TableRow>
               ))
             ) : (
-              <div className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
-                No Data found
-              </div>
+              <TableRow>
+                <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                  No Data found
+                </TableCell>
+              </TableRow>
             )}
           </TableBody>
         </Table>
