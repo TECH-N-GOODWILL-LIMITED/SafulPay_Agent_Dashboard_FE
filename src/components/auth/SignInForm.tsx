@@ -15,18 +15,18 @@ import { useAuth } from "../../context/AuthContext";
 import { requestOtp, verifyOtpAndLogin } from "../../utils/api";
 
 export default function SignInForm() {
-  const [showPin, setShowPin] = useState(false);
-  const [isChecked, setIsChecked] = useState(false);
-  const [phone, setPhone] = useState("");
-  const [pin, setPin] = useState("");
-  const [otp, setOtp] = useState("");
-  const [showOtpStep, setShowOtpStep] = useState(false);
+  const [showPin, setShowPin] = useState<boolean>(false);
+  const [isChecked, setIsChecked] = useState<boolean>(false);
+  const [phone, setPhone] = useState<string>("");
+  const [pin, setPin] = useState<string>("");
+  const [otp, setOtp] = useState<string>("");
+  const [showOtpStep, setShowOtpStep] = useState<boolean>(false);
   const [sessionToken, setSessionToken] = useState<string>("");
-  const [loading, setLoading] = useState(false);
-  const [alertTitle, setAlertTitle] = useState("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [alertTitle, setAlertTitle] = useState<string>("");
   const [error, setError] = useState("");
   const [warnError, setWarnError] = useState<React.ReactNode | string>(null);
-  const [successAlert, setSuccessAlert] = useState("");
+  const [successAlert, setSuccessAlert] = useState<string>("");
   const navigate = useNavigate();
 
   const { login } = useAuth();
@@ -87,11 +87,9 @@ export default function SignInForm() {
 
     const response = await verifyOtpAndLogin(phone, pin, otp, sessionToken);
 
-    console.log(`"before success"=> ${response}`);
-
     if (response.success && response.data) {
       // Save user and token in context
-      login(response.data.user, response.data.token);
+      login(response.data, response.success);
       // Navigate to home or dashboard
       navigate("/");
     } else {
@@ -119,9 +117,9 @@ export default function SignInForm() {
               <p>Phone number must be a Sierra Leone line</p>
               <p>Ensure to type number in this format.</p>
               <ul className="list-disc mt-2 ml-4">
-                <li>23230249005</li>
                 <li>30249005</li>
                 <li>030249005</li>
+                <li>23230249005</li>
               </ul>
             </div>
           </Alert>
@@ -153,7 +151,7 @@ export default function SignInForm() {
                       type="tel"
                       id="phone"
                       name="phone"
-                      placeholder="Enter phone number (e.g., +1234567890)"
+                      placeholder="Enter phone number (e.g., 23298765432)"
                       value={phone}
                       onChange={(e) => {
                         setPhone(e.target.value);

@@ -36,7 +36,9 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
   }
 
   function handleItemClick(option: string) {
-    if (onItemClick) onItemClick(option);
+    if (onItemClick) {
+      onItemClick(option);
+    }
 
     setIsDropdownOpen(false);
   }
@@ -74,9 +76,11 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
 
         {actionButton1 && (
           <div className="flex items-center gap-3">
-            <Button size="sm" endIcon="✚" onClick={openModal}>
-              Add {userType}
-            </Button>
+            {userType !== "Agent" && (
+              <Button size="sm" endIcon="✚" onClick={openModal}>
+                Add {userType}
+              </Button>
+            )}
 
             <div className="relative">
               <Button

@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { useAuth } from "../../context/AuthContext";
 import { useAllUsers } from "../../context/UsersContext";
 import { userRoles } from "../../utils/roles";
 import type { UserBio } from "../../types/types";
@@ -28,22 +27,12 @@ const tableHeader: string[] = [
   "Status",
 ];
 
-const Users = () => {
-  const {
-    // allUsers,
-    title,
-    error,
-    loading,
-    fetchUsers,
-    filteredUsers,
-    filterByRole,
-  } = useAllUsers();
-
-  const { token } = useAuth();
+const Users: React.FC = () => {
+  const { fetchUsers, title, error, loading, filteredUsers, filterByRole } =
+    useAllUsers();
 
   useEffect(() => {
     fetchUsers();
-    console.log(token);
   }, []);
 
   const tableData: TableContentType[] = filteredUsers.map((user: UserBio) => ({
@@ -63,7 +52,8 @@ const Users = () => {
     },
   }));
 
-  if (loading) return <div>Loading...</div>;
+  if (loading)
+    return <div className="text-gray-500 dark:text-gray-400">Loading...</div>;
   if (error)
     return (
       <Alert variant="error" title={title} message={error} showLink={false} />

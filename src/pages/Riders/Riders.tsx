@@ -1,18 +1,19 @@
+import { useEffect } from "react";
+import { useAllUsers } from "../../context/UsersContext";
+import { userRoles } from "../../utils/roles";
+import type { UserBio } from "../../types/types";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
-// import RecentOrders from "../../components/ecommerce/RecentOrders";
 import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
-// import RecentOrders from "../../components/ecommerce/RecentOrders";
-// import Button from "../../components/ui/button/Button";
+import Alert from "../../components/ui/alert/Alert";
 
-interface tableContentType {
-  id: number;
+interface TableContentType {
   user: {
-    image: string;
+    id: number;
+    image?: string;
     name: string;
-    // businessName: string;
-    // code: string;
+    role: string;
     cih: number;
     phone: string;
     status: string;
@@ -21,78 +22,43 @@ interface tableContentType {
 
 const tableHeader: string[] = [
   "Name",
-  "Cash in Hand",
+  "Role",
+  "Cash in hand",
   "Phone Number",
   "Status",
 ];
 
-const userRoles: string[] = [
-  "Admin",
-  "Agent",
-  "Marketer",
-  "Rider",
-  "Accountant",
-];
+const Riders: React.FC = () => {
+  const { title, error, loading, filteredUsers, filterByRole } = useAllUsers();
 
-const tableContent: tableContentType[] = [
-  {
-    id: 1,
-    user: {
-      image: "/images/user/user-17.jpg",
-      name: "Barry AbdulRahim",
-      // businessName: "Kandoh Logistics",
-      cih: 20000,
-      phone: "30200005",
-      status: "Active",
-    },
-  },
-  {
-    id: 2,
-    user: {
-      image: "/images/user/user-18.jpg",
-      name: "Umaru Kamara",
-      // businessName: "Ace Enterprise",
-      cih: 1500,
-      phone: "80200005",
-      status: "Active",
-    },
-  },
-  {
-    id: 3,
-    user: {
-      image: "/images/user/user-17.jpg",
-      name: "Alhaji Kajalie",
-      // businessName: "KJ & Sons",
-      cih: 17050,
-      phone: "60200005",
-      status: "Active",
-    },
-  },
-  {
-    id: 4,
-    user: {
-      image: "/images/user/user-20.jpg",
-      name: "Yero Oyinn",
-      // businessName: "",
-      cih: 30330,
-      phone: "80200008",
-      status: "Active",
-    },
-  },
-  {
-    id: 5,
-    user: {
-      image: "/images/user/user-21.jpg",
-      name: "Marcus Otumba",
-      // businessName: "Otumba & Olori",
-      cih: 150,
-      phone: "80200008",
-      status: "Suspended",
-    },
-  },
-];
+  useEffect(() => {
+    filterByRole("Rider");
+  }, [filterByRole]);
 
-const Riders = () => {
+  const tableData: TableContentType[] = filteredUsers?.map((user: UserBio) => ({
+    user: {
+      id: user.id,
+      image: "/images/user/user-20.jpg", // or actual image URL if available
+      name: user.name,
+      role: user.role,
+      cih: 200000,
+      phone: user.phone,
+      status:
+        user.status === 1
+          ? "Active"
+          : user.status === 2
+          ? "Pending"
+          : "Suspended",
+    },
+  }));
+
+  if (loading)
+    return <div className="text-gray-500 dark:text-gray-400">Loading...</div>;
+  if (error)
+    return (
+      <Alert variant="error" title={title} message={error} showLink={false} />
+    );
+
   return (
     <>
       <PageMeta
@@ -107,11 +73,9 @@ const Riders = () => {
           actionButton1="Filter"
           userType="Rider"
           userRoles={userRoles}
+          filterOptions={userRoles}
         >
-          <BasicTableOne
-            tableHeading={tableHeader}
-            tableContent={tableContent}
-          />
+          <BasicTableOne tableHeading={tableHeader} tableContent={tableData} />
         </ComponentCard>
       </div>
     </>

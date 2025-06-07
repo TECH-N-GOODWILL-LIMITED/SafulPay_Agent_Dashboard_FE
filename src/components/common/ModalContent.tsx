@@ -4,6 +4,10 @@ import Input from "../form/input/InputField";
 import Button from "../ui/button/Button";
 import { useModal } from "../../hooks/useModal";
 import { ChevronDownIcon } from "../../icons";
+import { useAllUsers } from "../../context/UsersContext";
+// import { useAuth } from "../../context/AuthContext";
+import { filterPhoneNumber } from "../../utils/utils";
+import Alert from "../ui/alert/Alert";
 
 interface ModalCardProps {
   modalHeading: string;
@@ -19,20 +23,69 @@ const ModalContent: React.FC<ModalCardProps> = ({
   userRoles,
   selectRole,
 }) => {
-  const [selectedRole, setSelectedRole] = useState(selectRole);
+  const [selectedRole, setSelectedRole] = useState<string | undefined>(
+    selectRole
+  );
+  const [phone, setPhone] = useState<string | undefined>("");
+  const [alertTitle, setAlertTitle] = useState<string>("");
+  const [error, setError] = useState<string | undefined>("");
+  const [warnError, setWarnError] = useState<string | undefined>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const { registerUser, title, error: apiError } = useAllUsers();
+  // const { token } = useAuth();
 
   const { closeModal } = useModal();
 
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving changes...");
-    closeModal();
+  const userOptions = userRoles?.filter((role) => role !== "Agent");
+
+  const handlePhoneChange = (
+    e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>
+  ) => {
+    setPhone(e.target.value);
+    setError("");
+    setWarnError("");
+    // setSuccessAlert("");
   };
 
-  const handleChange = (
+  const handleRoleChange = (
     e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>
   ) => {
     setSelectedRole(e.target.value);
+  };
+
+  const handleRegisterUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!phone || !selectedRole) {
+      setAlertTitle("Fill the required field");
+      setError("Input a phone number and select role");
+      return;
+    }
+
+    console.log(selectedRole);
+
+    const phoneNumber = filterPhoneNumber(phone);
+    if (phoneNumber.length !== 11) {
+      setAlertTitle("Invalid Phone Number Format");
+      setWarnError(" ");
+      return;
+    }
+
+    const regRole = selectedRole.trim();
+    console.log(regRole);
+
+    setError("");
+    setWarnError("");
+    // setSuccessAlert("");
+    setLoading(true);
+
+    const response = await registerUser(phoneNumber, regRole);
+
+    if (response.success && response.data) {
+      closeModal();
+    }
+
+    setLoading(false);
   };
 
   return (
@@ -44,10 +97,40 @@ const ModalContent: React.FC<ModalCardProps> = ({
         {desc && (
           <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
             {desc}
-            Enter Information
           </p>
         )}
       </div>
+      {/* {successAlert && (
+          <Alert
+            variant="success"
+            title={alertTitle}
+            message={successAlert}
+            showLink={false}
+          />
+        )} */}
+
+      {warnError && (
+        <Alert variant="warning" title={alertTitle} showLink={false}>
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            <p>Phone number must be a Sierra Leone line</p>
+            <p>Ensure to type number in this format.</p>
+            <ul className="list-disc mt-2 ml-4">
+              <li>23230249005</li>
+              <li>30249005</li>
+              <li>030249005</li>
+            </ul>
+          </div>
+        </Alert>
+      )}
+
+      {(apiError || error) && (
+        <Alert
+          variant={"error"}
+          title={title ? title : alertTitle}
+          message={apiError ? apiError : error}
+          showLink={false}
+        />
+      )}
       <form className="flex flex-col">
         <div className="custom-scrollbar h-full overflow-y-auto px-2 pb-3">
           <div className="">
@@ -57,17 +140,28 @@ const ModalContent: React.FC<ModalCardProps> = ({
 
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
               <div className="col-span-2 lg:col-span-1">
-                <Label>Phone</Label>
-                <Input type="text" value="+09 363 398 46" />
+                <Label>
+                  Phone <span className="text-error-500 ml-2">*</span>
+                </Label>
+                <Input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  placeholder="Enter phone number (e.g., 23298765432)"
+                  value={phone}
+                  onChange={handlePhoneChange}
+                />
               </div>
 
               <div className="relative col-span-2 lg:col-span-1">
-                <Label>Role</Label>
+                <Label>
+                  Role<span className="text-error-500 ml-2">*</span>
+                </Label>
                 <Input
                   type="select"
-                  selectOptions={userRoles}
+                  selectOptions={userOptions}
                   value={selectedRole}
-                  onChange={handleChange}
+                  onChange={handleRoleChange}
                 />
                 <ChevronDownIcon className="absolute bottom-1/5 right-3 text-gray-800 dark:text-white/90" />
               </div>
@@ -78,8 +172,8 @@ const ModalContent: React.FC<ModalCardProps> = ({
           <Button size="sm" variant="outline" onClick={closeModal}>
             Close
           </Button>
-          <Button size="sm" onClick={handleSave}>
-            Create
+          <Button size="sm" onClick={(e) => handleRegisterUser(e)}>
+            {loading ? "Registering..." : "Register"}
           </Button>
         </div>
       </form>

@@ -1,6 +1,6 @@
 export const userRoles: string[] = [
   "Admin",
-  "Agents",
+  "Agent",
   "Marketer",
   "Rider",
   "Accountant",
