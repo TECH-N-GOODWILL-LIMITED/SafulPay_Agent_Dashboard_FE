@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
-import Button from "../ui/button/Button";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../ui/modal";
-import ModalContent from "./ModalContent";
+import Button from "../ui/button/Button";
+import RegisterModal from "./RegisterModal";
 
 interface ComponentCardProps {
   title: string;
@@ -48,14 +48,6 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
   }
 
   const { isOpen, openModal, closeModal } = useModal();
-
-  // const navigate = useNavigate();
-
-  // const handleSave = () => {
-  //   // Handle save logic here
-  //   console.log("Saving changes...");
-  //   closeModal();
-  // };
 
   return (
     <div
@@ -154,7 +146,7 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
                   {filterOptions?.map((option) => (
                     <DropdownItem
                       key={option}
-                      onItemClick={() => handleItemClick?.(option)}
+                      onItemClick={() => handleItemClick(option)}
                       className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                     >
                       {option}
@@ -177,10 +169,11 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
       </div>
 
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
-        <ModalContent
+        <RegisterModal
           modalHeading="Add a new user"
           userRoles={userRoles}
           selectRole={userType}
+          onClose={closeModal}
         />
       </Modal>
     </div>

@@ -3,8 +3,11 @@ import UserMetaCard from "../components/UserProfile/UserMetaCard";
 import UserInfoCard from "../components/UserProfile/UserInfoCard";
 import UserAddressCard from "../components/UserProfile/UserAddressCard";
 import PageMeta from "../components/common/PageMeta";
+import { useAuth } from "../context/AuthContext";
 
 export default function UserProfiles() {
+  const { user } = useAuth();
+
   return (
     <>
       <PageMeta
@@ -17,9 +20,9 @@ export default function UserProfiles() {
           Profile
         </h3>
         <div className="space-y-6">
-          <UserMetaCard />
-          <UserInfoCard />
-          <UserAddressCard />
+          <UserMetaCard user={user} />
+          <UserInfoCard user={user} />
+          <UserAddressCard user={user} />
         </div>
       </div>
     </>

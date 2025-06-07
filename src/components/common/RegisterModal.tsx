@@ -1,27 +1,29 @@
 import { useState } from "react";
+import { useAuth } from "../../context/AuthContext";
+import { useAllUsers } from "../../context/UsersContext";
+import { registerUser } from "../../utils/api";
+import { filterPhoneNumber } from "../../utils/utils";
+import { ChevronDownIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Button from "../ui/button/Button";
-import { useModal } from "../../hooks/useModal";
-import { ChevronDownIcon } from "../../icons";
-import { useAllUsers } from "../../context/UsersContext";
-// import { useAuth } from "../../context/AuthContext";
-import { filterPhoneNumber } from "../../utils/utils";
 import Alert from "../ui/alert/Alert";
 
-interface ModalCardProps {
+interface RegisterModalProps {
   modalHeading: string;
   desc?: string;
   className?: string;
   userRoles?: string[];
   selectRole?: string;
+  onClose: () => void;
 }
 
-const ModalContent: React.FC<ModalCardProps> = ({
+const RegisterModal: React.FC<RegisterModalProps> = ({
   modalHeading,
   desc,
   userRoles,
   selectRole,
+  onClose,
 }) => {
   const [selectedRole, setSelectedRole] = useState<string | undefined>(
     selectRole
@@ -29,12 +31,10 @@ const ModalContent: React.FC<ModalCardProps> = ({
   const [phone, setPhone] = useState<string | undefined>("");
   const [alertTitle, setAlertTitle] = useState<string>("");
   const [error, setError] = useState<string | undefined>("");
-  const [warnError, setWarnError] = useState<string | undefined>("");
+  const [warnError, setWarnError] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
-  const { registerUser, title, error: apiError } = useAllUsers();
-  // const { token } = useAuth();
-
-  const { closeModal } = useModal();
+  const { token } = useAuth();
+  const { fetchUsers } = useAllUsers();
 
   const userOptions = userRoles?.filter((role) => role !== "Agent");
 
@@ -43,7 +43,7 @@ const ModalContent: React.FC<ModalCardProps> = ({
   ) => {
     setPhone(e.target.value);
     setError("");
-    setWarnError("");
+    setWarnError(false);
     // setSuccessAlert("");
   };
 
@@ -53,36 +53,42 @@ const ModalContent: React.FC<ModalCardProps> = ({
     setSelectedRole(e.target.value);
   };
 
-  const handleRegisterUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleRegister = async () => {
     if (!phone || !selectedRole) {
       setAlertTitle("Fill the required field");
       setError("Input a phone number and select role");
       return;
     }
 
-    console.log(selectedRole);
+    if (!token) {
+      setAlertTitle("Not authenticated");
+      setError("Refresh page...");
+      return;
+    }
 
     const phoneNumber = filterPhoneNumber(phone);
     if (phoneNumber.length !== 11) {
       setAlertTitle("Invalid Phone Number Format");
-      setWarnError(" ");
+      setWarnError(true);
       return;
     }
 
-    const regRole = selectedRole.trim();
-    console.log(regRole);
-
-    setError("");
-    setWarnError("");
-    // setSuccessAlert("");
     setLoading(true);
+    setError("");
+    setWarnError(false);
 
-    const response = await registerUser(phoneNumber, regRole);
+    const response = await registerUser(token, phoneNumber, selectedRole);
 
     if (response.success && response.data) {
-      closeModal();
+      // Registration succeeded
+      // response.data.user contains the new user
+      // Optionally, refresh user list
+      await fetchUsers();
+      onClose(); // close modal
+    } else {
+      // Show error
+      setAlertTitle("Registration Failed");
+      setError(response.error || "Registration failed");
     }
 
     setLoading(false);
@@ -123,15 +129,21 @@ const ModalContent: React.FC<ModalCardProps> = ({
         </Alert>
       )}
 
-      {(apiError || error) && (
+      {error && (
         <Alert
           variant={"error"}
-          title={title ? title : alertTitle}
-          message={apiError ? apiError : error}
+          title={alertTitle}
+          message={error}
           showLink={false}
         />
       )}
-      <form className="flex flex-col">
+      <form
+        className="flex flex-col"
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleRegister();
+        }}
+      >
         <div className="custom-scrollbar h-full overflow-y-auto px-2 pb-3">
           <div className="">
             <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
@@ -149,7 +161,9 @@ const ModalContent: React.FC<ModalCardProps> = ({
                   name="phone"
                   placeholder="Enter phone number (e.g., 23298765432)"
                   value={phone}
+                  max={12}
                   onChange={handlePhoneChange}
+                  error={warnError}
                 />
               </div>
 
@@ -169,10 +183,10 @@ const ModalContent: React.FC<ModalCardProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-          <Button size="sm" variant="outline" onClick={closeModal}>
+          <Button size="sm" variant="outline" onClick={onClose}>
             Close
           </Button>
-          <Button size="sm" onClick={(e) => handleRegisterUser(e)}>
+          <Button size="sm" onClick={handleRegister} disabled={loading}>
             {loading ? "Registering..." : "Register"}
           </Button>
         </div>
@@ -181,4 +195,4 @@ const ModalContent: React.FC<ModalCardProps> = ({
   );
 };
 
-export default ModalContent;
+export default RegisterModal;

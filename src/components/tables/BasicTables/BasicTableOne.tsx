@@ -17,7 +17,7 @@ import Label from "../../form/Label";
 interface User {
   id: number;
   image?: string;
-  name: string;
+  name?: string;
   businessName?: string;
   role?: string;
   code?: string;
@@ -49,6 +49,8 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const { isOpen, openModal, closeModal } = useModal();
 
+  const showResidualAmount = tableHeading?.includes("Residual Amount");
+
   const getActionButtons = (
     status: string,
     handlers: Handlers
@@ -62,13 +64,10 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
             </Button>
             <Button
               size="sm"
-              className="bg-brand-accent"
+              className="bg-brand-accent hover:bg-brand-accent-100"
               onClick={handlers.suspend}
             >
               Suspend
-            </Button>
-            <Button size="sm" onClick={handlers.save}>
-              Save Changes
             </Button>
           </>
         );
@@ -102,6 +101,11 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
         return null;
     }
   };
+
+  const profileName = currentUser?.name;
+  const parts = profileName?.trim().split(" ");
+  const firstName = parts?.[0];
+  const lastName = parts?.slice(1).join(" ");
 
   const handleOpenModal = (user: User) => {
     setCurrentUser(user);
@@ -161,7 +165,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
           <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
             {tableContent.length > 0 ? (
               tableContent.map((order) => (
-                <TableRow key={order.user.id}>
+                <TableRow key={`${order.user.id}${order.user.name}`}>
                   <TableCell className="px-5 py-4 sm:px-6 text-start">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 overflow-hidden rounded-full">
@@ -193,13 +197,9 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                     </TableCell>
                   )}
 
-                  {order.user.residualAmount !== 0 ? (
+                  {showResidualAmount && (
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      {`Le ${order.user.residualAmount}`}
-                    </TableCell>
-                  ) : (
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      Le 0.00
+                      Le {order.user.residualAmount?.toFixed(2)}
                     </TableCell>
                   )}
 
@@ -276,27 +276,35 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                   <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                     <div className="col-span-2 lg:col-span-1">
                       <Label>First Name</Label>
-                      <Input type="text" value="Musharof" />
+                      <Input type="text" value={firstName || " "} readOnly />
                     </div>
 
                     <div className="col-span-2 lg:col-span-1">
                       <Label>Last Name</Label>
-                      <Input type="text" value="Chowdhury" />
+                      <Input type="text" value={lastName || " "} readOnly />
                     </div>
 
                     <div className="col-span-2 lg:col-span-1">
                       <Label>Email Address</Label>
-                      <Input type="text" value="randomuser@pimjo.com" />
+                      <Input type="text" value={"example@email.com"} readOnly />
                     </div>
 
                     <div className="col-span-2 lg:col-span-1">
                       <Label>Phone</Label>
-                      <Input type="text" value="+09 363 398 46" />
+                      <Input
+                        type="text"
+                        value={currentUser?.phone || " "}
+                        readOnly
+                      />
                     </div>
 
                     <div className="col-span-2">
-                      <Label>Bio</Label>
-                      <Input type="text" value="Team Manager" />
+                      <Label>Role</Label>
+                      <Input
+                        type="text"
+                        value={currentUser?.role || " "}
+                        readOnly
+                      />
                     </div>
                   </div>
                 </div>

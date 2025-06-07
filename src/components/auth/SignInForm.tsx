@@ -24,8 +24,8 @@ export default function SignInForm() {
   const [sessionToken, setSessionToken] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [alertTitle, setAlertTitle] = useState<string>("");
-  const [error, setError] = useState("");
-  const [warnError, setWarnError] = useState<React.ReactNode | string>(null);
+  const [error, setError] = useState<string>("");
+  const [warnError, setWarnError] = useState<boolean>(false);
   const [successAlert, setSuccessAlert] = useState<string>("");
   const navigate = useNavigate();
 
@@ -36,19 +36,19 @@ export default function SignInForm() {
 
     if (!phone || !pin) {
       setAlertTitle("Please fill in your Phone number and PIN.");
-      setWarnError(" ");
+      setWarnError(true);
       return;
     }
 
     const phoneNumber = filterPhoneNumber(phone);
     if (phoneNumber.length !== 11) {
       setAlertTitle("Invalid Phone Number Format");
-      setWarnError(" ");
+      setWarnError(true);
       return;
     }
 
     setError("");
-    setWarnError("");
+    setWarnError(false);
     setSuccessAlert("");
     setLoading(true);
     setPhone(phoneNumber);
@@ -81,7 +81,7 @@ export default function SignInForm() {
     }
 
     setError("");
-    setWarnError("");
+    setWarnError(false);
     setSuccessAlert("");
     setLoading(true);
 
@@ -153,12 +153,14 @@ export default function SignInForm() {
                       name="phone"
                       placeholder="Enter phone number (e.g., 23298765432)"
                       value={phone}
+                      max={12}
                       onChange={(e) => {
                         setPhone(e.target.value);
                         setError("");
-                        setWarnError("");
+                        setWarnError(false);
                         setSuccessAlert("");
                       }}
+                      error={warnError}
                     />
 
                     {/* <PhoneInput
@@ -182,12 +184,12 @@ export default function SignInForm() {
                         id="pin"
                         name="pin"
                         placeholder="Enter your PIN"
-                        max={6}
+                        max={4}
                         value={pin}
                         onChange={(e) => {
                           setPin(e.target.value);
                           setError("");
-                          setWarnError("");
+                          setWarnError(false);
                           setSuccessAlert("");
                         }}
                       />
@@ -203,7 +205,7 @@ export default function SignInForm() {
                       </span>
                       {pin && (
                         <span className="text-[12px] absolute z-30 translate-y-1/2 -bottom-1/2 top-1/2 right-2 text-gray-500">
-                          max length 6
+                          max length 4
                         </span>
                       )}
                     </div>
@@ -236,14 +238,23 @@ export default function SignInForm() {
                       name="otp"
                       placeholder="Enter 6-digit OTP"
                       value={otp}
+                      max={6}
                       onChange={(e) => {
                         setOtp(e.target.value);
                         setError("");
-                        setWarnError("");
+                        setWarnError(false);
                         setSuccessAlert("");
                       }}
+                      error={error.trim.length > 0}
                     />
+
+                    {otp && (
+                      <span className="text-[12px] absolute z-30 translate-y-1/2 -bottom-1/2 top-1/2 right-2 text-gray-500">
+                        max length 6
+                      </span>
+                    )}
                   </div>
+
                   <div className="flex items-center justify-between">
                     <button
                       type="button"

@@ -2,6 +2,8 @@ import type { Agent, ApiResponse, LoginResponseData } from "../types/types";
 import type { LoginResponse } from "../types/types";
 import type { UserBio } from "../types/types";
 
+const BASE_URL = "https://test.techengood.com/api";
+
 export const requestOtp = async (
   phone: string
 ): Promise<ApiResponse<{ otp_id: string; message?: string }>> => {
@@ -36,7 +38,7 @@ export const verifyOtpAndLogin = async (
   otpId: string
 ): Promise<ApiResponse<LoginResponseData>> => {
   try {
-    const response = await fetch("https://test.techengood.com/api/auth/login", {
+    const response = await fetch(`${BASE_URL}/auth/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -68,17 +70,14 @@ export const getAllUsers = async (
   accessToken: string
 ): Promise<ApiResponse<{ users: UserBio[] }>> => {
   try {
-    const response = await fetch(
-      "https://test.techengood.com/api/auth/getAllUsers",
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        redirect: "follow",
-      }
-    );
+    const response = await fetch(`${BASE_URL}/auth/getAllUsers`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      redirect: "follow",
+    });
     const data = await response.json();
 
     if (response.ok && data.status) {
@@ -95,17 +94,14 @@ export const getAllAgents = async (
   accessToken: string
 ): Promise<ApiResponse<{ agents: Agent[] }>> => {
   try {
-    const response = await fetch(
-      "https://test.techengood.com/api/auth/agents/getAllAgents",
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        redirect: "follow",
-      }
-    );
+    const response = await fetch(`${BASE_URL}/auth/agents/getAllAgents`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      redirect: "follow",
+    });
     const data = await response.json();
 
     if (response.ok && data.status) {
@@ -122,34 +118,28 @@ export const registerUser = async (
   accessToken: string,
   phone: string,
   role: string
-): Promise<ApiResponse<{ users: UserBio[] }>> => {
+): Promise<ApiResponse<{ user: UserBio }>> => {
   try {
-    const response = await fetch(
-      "https://test.techengood.com/api/auth/register",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          phone,
-          role,
-        }),
-        redirect: "follow",
-      }
-    );
+    const response = await fetch(`${BASE_URL}/auth/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ phone, role }),
+      redirect: "follow",
+    });
     const data = await response.json();
 
     if (response.ok && data.status) {
-      return { success: true, data: { users: data.data.users } };
+      return { success: true, data: { user: data.data.user } };
     } else {
       return {
         success: false,
-        error: data.message || "Failed to register users",
+        error: data.errors.phone || "Failed to register user",
       };
     }
   } catch (err) {
-    return { success: false, error: `Error registering users: ${err}` };
+    return { success: false, error: `Error registering user: ${err}` };
   }
 };
