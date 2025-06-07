@@ -1,4 +1,4 @@
-import type { usersMetric } from "../../pages/Dashboard/Home";
+import type { usersMetric } from "../../types/types";
 import { DollarLineIcon, GroupIcon } from "../../icons";
 // import Badge from "../ui/badge/Badge";
 

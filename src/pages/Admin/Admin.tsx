@@ -1,18 +1,23 @@
 import { useEffect } from "react";
 import { useAllUsers } from "../../context/UsersContext";
 import { userRoles } from "../../utils/roles";
-import type { UserBio } from "../../types/types";
+import type { Agent, UserBio } from "../../types/types";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
 import Alert from "../../components/ui/alert/Alert";
 
+interface AgentWithRole extends Agent {
+  role: string; // set to "Agent"
+}
+type usersItem = UserBio | AgentWithRole;
+
 interface TableContentType {
   user: {
     id: number;
     image?: string;
-    name: string;
+    name?: string;
     role: string;
     phone: string;
     status: string;
@@ -28,21 +33,23 @@ const Admin = () => {
     filterByRole("Admin");
   }, [filterByRole]);
 
-  const tableData: TableContentType[] = filteredUsers?.map((user: UserBio) => ({
-    user: {
-      id: user.id,
-      image: "/images/user/user-07.jpg", // or actual image URL if available
-      name: user.name,
-      role: user.role,
-      phone: user.phone,
-      status:
-        user.status === 1
-          ? "Active"
-          : user.status === 2
-          ? "Pending"
-          : "Suspended",
-    },
-  }));
+  const tableData: TableContentType[] = filteredUsers?.map(
+    (user: usersItem) => ({
+      user: {
+        id: user.id,
+        image: "/images/user/user-07.jpg", // or actual image URL if available
+        name: user.name,
+        role: user.role,
+        phone: user.phone,
+        status:
+          user.status === 1
+            ? "Active"
+            : user.status === 2
+            ? "Pending"
+            : "Suspended",
+      },
+    })
+  );
 
   if (loading)
     return <div className="text-gray-500 dark:text-gray-400">Loading...</div>;

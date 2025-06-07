@@ -1,7 +1,6 @@
 import { useEffect } from "react";
-import { useAllUsers } from "../../context/UsersContext";
+import { useAllUsers, usersItem } from "../../context/UsersContext";
 import { userRoles } from "../../utils/roles";
-import type { UserBio } from "../../types/types";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
@@ -12,7 +11,7 @@ interface TableContentType {
   user: {
     id: number;
     image?: string;
-    name: string;
+    name?: string;
     businessName: string;
     role: string;
     phone: string;
@@ -35,22 +34,26 @@ const Users: React.FC = () => {
     fetchUsers();
   }, []);
 
-  const tableData: TableContentType[] = filteredUsers.map((user: UserBio) => ({
-    user: {
-      id: user.id,
-      image: "/images/user/user-17.jpg", // or actual image URL if available
-      name: user.name,
-      businessName: "", // add if your API provides it
-      role: user.role,
-      phone: user.phone,
-      status:
-        user.status === 1
-          ? "Active"
-          : user.status === 2
-          ? "Pending"
-          : "Suspended",
-    },
-  }));
+  const userOptions = [...userRoles, "All Users"];
+
+  const tableData: TableContentType[] = filteredUsers.map(
+    (user: usersItem) => ({
+      user: {
+        id: user.id,
+        image: "/images/user/user-17.jpg", // or actual image URL if available
+        name: user.name,
+        businessName: "", // add if your API provides it
+        role: user.role,
+        phone: user.phone,
+        status:
+          user.status === 1
+            ? "Active"
+            : user.status === 2
+            ? "Pending"
+            : "Suspended",
+      },
+    })
+  );
 
   if (loading)
     return <div className="text-gray-500 dark:text-gray-400">Loading...</div>;
@@ -74,7 +77,7 @@ const Users: React.FC = () => {
           onItemClick={filterByRole}
           userType="User"
           userRoles={userRoles}
-          filterOptions={userRoles}
+          filterOptions={userOptions}
         >
           <BasicTableOne tableHeading={tableHeader} tableContent={tableData} />
         </ComponentCard>

@@ -36,8 +36,6 @@ const AppLayout: React.FC = () => {
     return <Navigate to="/signin" replace />;
   }
 
-  console.log(token);
-
   return (
     <SidebarProvider>
       <LayoutContent />

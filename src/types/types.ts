@@ -4,31 +4,25 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
-export interface User {
-  id: number;
-  phone: string;
-  role: string;
-  status: number;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface UserBio {
   id: number;
   name: string;
   businessName?: string;
-  email: string;
-  phone: string;
   image?: string;
+  phone: string;
+  email: string;
+  address?: string;
   status: number;
   role: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface LoginResponseData {
   access_token: string;
   token_type: string;
   expires_in: number;
-  user: User;
+  user: UserBio;
 }
 
 export interface LoginResponse {
@@ -53,6 +47,7 @@ export interface Marketer {
 
 export interface Agent {
   id: number;
+  name?: string;
   marketer_id: string;
   business_name: string;
   latitude: string;
@@ -84,4 +79,12 @@ export interface countryType {
   flag: string;
   limitNumber: number;
   example: string;
+}
+
+export interface usersMetric {
+  users: string;
+  metric: number;
+  currencySymbol?: boolean;
+  // cash: string;
+  // amount?: number;
 }

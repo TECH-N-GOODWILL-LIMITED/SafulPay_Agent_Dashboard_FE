@@ -1,28 +1,12 @@
 import EcommerceMetrics from "../../components/ecommerce/EcommerceMetrics";
 import MonthlySalesChart from "../../components/ecommerce/MonthlySalesChart";
-// import StatisticsChart from "../../components/ecommerce/StatisticsChart";
 import MonthlyTarget from "../../components/ecommerce/MonthlyTarget";
 import RecentOrders from "../../components/ecommerce/RecentOrders";
 import DemographicCard from "../../components/ecommerce/DemographicCard";
 import PageMeta from "../../components/common/PageMeta";
-// import RDprogressChart from "../../components/ecommerce/RDprogressChart";
-
-export interface usersMetric {
-  users: string;
-  metric: number;
-  currencySymbol?: boolean;
-  // cash: string;
-  // amount?: number;
-}
-
-const users: usersMetric[] = [
-  { users: "Total Users", metric: 120 },
-  { users: "Admin", metric: 5 },
-  { users: "Marketers", metric: 6 },
-  { users: "Agents", metric: 103 },
-  { users: "Accountants", metric: 2 },
-  { users: "Riders", metric: 4 },
-];
+import { useAllUsers } from "../../context/UsersContext";
+import { generateUserMetrics } from "../../utils/utils";
+import type { usersMetric } from "../../types/types";
 
 const usersCashFLow: usersMetric[] = [
   { users: "Total Cummulative Cash", metric: 120000, currencySymbol: true },
@@ -52,6 +36,10 @@ const txType = [
 ];
 
 export default function Home() {
+  const { allUsers } = useAllUsers();
+
+  const userMetrics = generateUserMetrics(allUsers);
+
   return (
     <>
       <PageMeta
@@ -66,7 +54,7 @@ export default function Home() {
                 Users Metrix
               </h3>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 md:gap-6">
-                {users.map((user) => (
+                {userMetrics.map((user) => (
                   <EcommerceMetrics data={user} key={user.users} />
                 ))}
               </div>

@@ -1,20 +1,27 @@
-import { useModal } from "../../hooks/useModal";
-import { Modal } from "../ui/modal";
-import Button from "../ui/button/Button";
-import Input from "../form/input/InputField";
-import Label from "../form/Label";
-import { useNavigate } from "react-router";
+// import { useModal } from "../../hooks/useModal";
+// import { Modal } from "../ui/modal";
+// import Button from "../ui/button/Button";
+// import Input from "../form/input/InputField";
+// import Label from "../form/Label";
+import type { UserBio } from "../../types/types";
 
-export default function UserInfoCard() {
-  const { isOpen, openModal, closeModal } = useModal();
+interface UserMetaProps {
+  user: UserBio | null;
+}
 
-  const navigate = useNavigate();
+export default function UserInfoCard({ user }: UserMetaProps) {
+  // const { isOpen, openModal, closeModal } = useModal();
 
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving changes...");
-    closeModal();
-  };
+  const profileName = user?.name;
+  const parts = profileName?.trim().split(" ");
+  const firstName = parts?.[0];
+  const lastName = parts?.slice(1).join(" ");
+
+  // const handleSave = () => {
+  //   // Handle save logic here
+  //   console.log("Saving changes...");
+  //   closeModal();
+  // };
 
   return (
     <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
@@ -30,7 +37,7 @@ export default function UserInfoCard() {
                 First Name
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                Barry
+                {firstName}
               </p>
             </div>
 
@@ -39,7 +46,7 @@ export default function UserInfoCard() {
                 Last Name
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                AdbulRahmin
+                {lastName}
               </p>
             </div>
 
@@ -48,7 +55,7 @@ export default function UserInfoCard() {
                 Email address
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                barry007@techengood.com
+                {user?.email}
               </p>
             </div>
 
@@ -57,7 +64,7 @@ export default function UserInfoCard() {
                 Phone
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                +232 30200005
+                {user?.phone ? `+ ${user?.phone}` : ""}
               </p>
             </div>
 
@@ -66,23 +73,13 @@ export default function UserInfoCard() {
                 Role
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                Admin
+                {user?.role}
               </p>
-            </div>
-
-            <div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => navigate("/forgotpin")}
-              >
-                Change Pin
-              </Button>
             </div>
           </div>
         </div>
 
-        <button
+        {/* <button
           onClick={openModal}
           className="flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto"
         >
@@ -102,10 +99,10 @@ export default function UserInfoCard() {
             />
           </svg>
           Edit
-        </button>
+        </button> */}
       </div>
 
-      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
+      {/* <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
         <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
@@ -160,7 +157,7 @@ export default function UserInfoCard() {
             </div>
           </form>
         </div>
-      </Modal>
+      </Modal> */}
     </div>
   );
 }

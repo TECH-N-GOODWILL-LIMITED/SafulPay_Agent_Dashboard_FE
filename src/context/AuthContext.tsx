@@ -4,9 +4,8 @@ import {
   useState,
   ReactNode,
   useEffect,
-  // useEffect,
 } from "react";
-import type { User, LoginResponseData } from "../types/types";
+import type { LoginResponseData, UserBio } from "../types/types";
 import {
   clearResponseCookies,
   getResponseCookies,
@@ -14,7 +13,7 @@ import {
 } from "../utils/authCookies";
 
 interface AuthContextType {
-  user: User | null;
+  user: UserBio | null;
   token: string | null;
   login: (data: LoginResponseData, keepLoggedIn: boolean) => void;
   logout: () => void;
