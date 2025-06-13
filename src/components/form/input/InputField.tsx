@@ -16,6 +16,17 @@ interface InputProps {
     | "tel"
     | "select"
     | string;
+  inputMode?:
+    | "text"
+    | "email"
+    | "tel"
+    | "search"
+    | "url"
+    | "numeric"
+    | "none"
+    | "decimal"
+    | undefined;
+  pattern?: string | undefined;
   id?: string;
   name?: string;
   placeholder?: string;
@@ -37,6 +48,8 @@ interface InputProps {
 
 const Input: FC<InputProps> = ({
   type = "text",
+  inputMode = "text",
+  pattern,
   id,
   name,
   placeholder,
@@ -80,6 +93,8 @@ const Input: FC<InputProps> = ({
       {type !== "select" ? (
         <input
           type={type}
+          inputMode={inputMode}
+          pattern={pattern}
           id={id}
           name={name}
           placeholder={placeholder}

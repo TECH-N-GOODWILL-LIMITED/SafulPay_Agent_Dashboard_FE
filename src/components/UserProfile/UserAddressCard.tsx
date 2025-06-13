@@ -32,7 +32,9 @@ export default function UserAddressCard({ user }: UserMetaProps) {
                   Country
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  {user?.address ? user.address : "Sierra Leone."}
+                  {user?.country_code !== "SL"
+                    ? user?.country_code
+                    : "Sierra Leone."}
                 </p>
               </div>
 
@@ -56,7 +58,7 @@ export default function UserAddressCard({ user }: UserMetaProps) {
 
               <div>
                 <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  ID Number
+                  NIN
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
                   AS4568384

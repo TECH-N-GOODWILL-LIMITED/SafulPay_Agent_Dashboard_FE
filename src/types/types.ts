@@ -6,12 +6,16 @@ export interface ApiResponse<T> {
 
 export interface UserBio {
   id: number;
+  business_name?: string;
+  firstname?: string;
+  lastname?: string;
   name: string;
-  businessName?: string;
-  image?: string;
+  username?: string;
   phone: string;
+  image?: string;
   email: string;
   address?: string;
+  country_code?: string;
   status: number;
   role: string;
   created_at?: string;
@@ -34,42 +38,49 @@ export interface LoginResponse {
 
 export interface Marketer {
   id: number;
+  firstname: string;
+  lastname: string;
   name: string;
-  email: string;
+  username: string;
   phone: string;
+  email: string;
   image?: string;
   status: number;
   role_id: number;
+  country_code?: string;
   bearer_token: string;
-  created_at: string;
-  updated_at: string;
+  // created_at: string;
+  // updated_at: string;
 }
 
 export interface Agent {
   id: number;
-  name?: string;
-  marketer_id: string;
+  master_id?: string;
   business_name: string;
-  latitude: string;
-  longitude: string;
+  firstname: string;
+  lastname: string;
+  name: string;
+  username?: string;
+  phone: string;
+  email: string;
+  image?: string;
   model: string;
-  threshold_wallet_balance: string;
   category: string;
+  status: string;
+  threshold_wallet_balance: string;
   threshold_cash_in_hand: string;
   residual_amount: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  email: string;
-  phone: string;
-  master_id: string | null;
+  latitude: string;
+  longitude: string;
+  created_at?: string;
+  updated_at?: string;
   marketer: Marketer | null;
 }
 
 export interface AgentResponse {
   status: boolean;
   message: string;
-  agents: Agent[];
+  data: Agent[];
 }
 
 export interface countryType {

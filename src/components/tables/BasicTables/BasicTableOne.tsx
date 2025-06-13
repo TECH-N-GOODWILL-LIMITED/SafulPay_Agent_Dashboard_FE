@@ -18,6 +18,8 @@ interface User {
   id: number;
   image?: string;
   name?: string;
+  firstName?: string;
+  lastName?: string;
   businessName?: string;
   role?: string;
   code?: string;
@@ -102,10 +104,11 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
     }
   };
 
-  const profileName = currentUser?.name;
-  const parts = profileName?.trim().split(" ");
-  const firstName = parts?.[0];
-  const lastName = parts?.slice(1).join(" ");
+  // const profileName = currentUser?.name;
+  // const profileNam = currentUser?.firstname;
+  // const parts = profileName?.trim().split(" ");
+  // const firstName = parts?.[0];
+  // const lastName = parts?.slice(1).join(" ");
 
   const handleOpenModal = (user: User) => {
     setCurrentUser(user);
@@ -165,7 +168,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
           <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
             {tableContent.length > 0 ? (
               tableContent.map((order) => (
-                <TableRow key={`${order.user.id}${order.user.name}`}>
+                <TableRow key={`${order.user.id}${order.user.role}`}>
                   <TableCell className="px-5 py-4 sm:px-6 text-start">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 overflow-hidden rounded-full">
@@ -276,12 +279,20 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                   <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                     <div className="col-span-2 lg:col-span-1">
                       <Label>First Name</Label>
-                      <Input type="text" value={firstName || " "} readOnly />
+                      <Input
+                        type="text"
+                        value={currentUser?.firstName || " "}
+                        readOnly
+                      />
                     </div>
 
                     <div className="col-span-2 lg:col-span-1">
                       <Label>Last Name</Label>
-                      <Input type="text" value={lastName || " "} readOnly />
+                      <Input
+                        type="text"
+                        value={currentUser?.lastName || " "}
+                        readOnly
+                      />
                     </div>
 
                     <div className="col-span-2 lg:col-span-1">

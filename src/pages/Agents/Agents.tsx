@@ -39,8 +39,8 @@ const Agents: React.FC = () => {
   const tableData: TableContentType[] = allAgents.map((agent: Agent) => ({
     user: {
       id: agent.id,
-      image: agent.marketer?.image || "/images/user/user-12.jpg", // fallback image
-      name: agent.marketer?.name || "N/A",
+      image: agent.image || "/images/user/user-12.jpg", // fallback image
+      name: agent.name || "N/A",
       businessName: agent.business_name,
       role: "Agent", // or derive from marketer.role if available
       residualAmount: parseFloat(agent?.residual_amount) || 0.0,

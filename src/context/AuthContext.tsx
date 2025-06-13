@@ -5,12 +5,13 @@ import {
   ReactNode,
   useEffect,
 } from "react";
-import type { LoginResponseData, UserBio } from "../types/types";
+import { logOut } from "../utils/api";
 import {
   clearResponseCookies,
   getResponseCookies,
   setResponseCookies,
 } from "../utils/authCookies";
+import type { LoginResponseData, UserBio } from "../types/types";
 
 interface AuthContextType {
   user: UserBio | null;
@@ -50,7 +51,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     setResponseCookies(data, keepLoggedIn);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    if (token) {
+      await logOut(token); // optional: handle response
+    }
+
     setResponseDataState(null);
     clearResponseCookies();
   };

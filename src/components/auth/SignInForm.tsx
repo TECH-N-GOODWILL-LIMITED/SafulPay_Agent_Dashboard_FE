@@ -180,12 +180,14 @@ export default function SignInForm() {
                     </Label>
                     <div className="relative">
                       <Input
-                        type={showPin ? "text" : "password"}
                         id="pin"
                         name="pin"
+                        type={showPin ? "text" : "password"}
                         placeholder="Enter your PIN"
                         max={4}
                         value={pin}
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         onChange={(e) => {
                           setPin(e.target.value);
                           setError("");
@@ -233,9 +235,11 @@ export default function SignInForm() {
                       OTP <span className="text-error-500">*</span>
                     </Label>
                     <Input
-                      type="text"
                       id="otp"
                       name="otp"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       placeholder="Enter 6-digit OTP"
                       value={otp}
                       max={6}

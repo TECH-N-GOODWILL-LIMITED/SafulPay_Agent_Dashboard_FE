@@ -29,7 +29,10 @@ const LayoutContent: React.FC = () => {
 };
 
 const AppLayout: React.FC = () => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+
+  console.log(token);
+  console.log(user);
 
   // Redirect if not authenticated
   if (!token) {
