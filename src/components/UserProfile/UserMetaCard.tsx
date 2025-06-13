@@ -23,7 +23,7 @@ export default function UserMetaCard({ user }: UserMetaProps) {
                 </p>
                 <div className="hidden h-3.5 w-px bg-gray-300 dark:bg-gray-700 xl:block"></div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {user?.address ? user.role : "Calaba town, Eastern Area"}
+                  {user?.address ? user.address : "Calaba town, Eastern Area"}
                 </p>
               </div>
             </div>

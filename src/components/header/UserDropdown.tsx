@@ -3,9 +3,13 @@ import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { useAuth } from "../../context/AuthContext";
 import Button from "../ui/button/Button";
+import { useNavigate } from "react-router";
 
 export default function UserDropdown() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const navigate = useNavigate();
 
   function toggleDropdown() {
     setIsOpen(!isOpen);
@@ -17,9 +21,12 @@ export default function UserDropdown() {
 
   const { user, logout } = useAuth();
 
-  const profileName = user?.name;
-  const parts = profileName?.trim().split(" ");
-  const firstName = parts?.[0];
+  const handleLogout = async () => {
+    setLoading(true);
+    await logout(); // call your context logout
+    setLoading(false);
+    navigate("/signin");
+  };
 
   return (
     <div className="relative">
@@ -32,7 +39,7 @@ export default function UserDropdown() {
         </span>
 
         <span className="block mr-1 font-medium text-theme-sm">
-          {firstName}
+          {user?.firstname}
         </span>
         <svg
           className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${
@@ -122,8 +129,9 @@ export default function UserDropdown() {
           </li>
         </ul>
         <Button
-          onClick={logout}
+          onClick={handleLogout}
           variant="outline"
+          disabled={loading}
           className="flex items-center gap-3 px-3 py-2 mt-3 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
         >
           <svg
@@ -141,7 +149,7 @@ export default function UserDropdown() {
               fill=""
             />
           </svg>
-          Sign out
+          {loading ? "Signing out..." : "Sign out"}
         </Button>
       </Dropdown>
     </div>

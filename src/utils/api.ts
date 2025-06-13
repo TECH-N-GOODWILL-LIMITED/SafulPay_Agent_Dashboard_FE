@@ -8,12 +8,12 @@ export const requestOtp = async (
   phone: string
 ): Promise<ApiResponse<{ otp_id: string; message?: string }>> => {
   try {
-    const response = await fetch("/api/v1/auth/send-otp", {
+    const response = await fetch(`${BASE_URL}/auth/sendOTP`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ recipient: phone }),
+      body: JSON.stringify({ phone }),
       redirect: "follow",
     });
     const data = await response.json();
@@ -21,7 +21,7 @@ export const requestOtp = async (
     if (response.ok && data.status) {
       return {
         success: true,
-        data: { otp_id: data.otp_id, message: data.message },
+        data: { otp_id: data.data.otp_id, message: data.message },
       };
     } else {
       return { success: false, error: data.message || "Failed to send OTP" };
@@ -66,6 +66,33 @@ export const verifyOtpAndLogin = async (
   }
 };
 
+export const logOut = async (
+  accessToken: string
+): Promise<ApiResponse<{ status: string; message?: string }>> => {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/logout`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      redirect: "follow",
+    });
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return {
+        success: true,
+        data: { status: data.status, message: data.message },
+      };
+    } else {
+      return { success: false, error: data.message || "Failed to logout user" };
+    }
+  } catch (err) {
+    return { success: false, error: `Error logging user out: ${err}` };
+  }
+};
+
 export const getAllUsers = async (
   accessToken: string
 ): Promise<ApiResponse<{ users: UserBio[] }>> => {
@@ -105,7 +132,7 @@ export const getAllAgents = async (
     const data = await response.json();
 
     if (response.ok && data.status) {
-      return { success: true, data: { agents: data.agents } };
+      return { success: true, data: { agents: data.data } };
     } else {
       return { success: false, error: data.message || "Failed to get agents" };
     }

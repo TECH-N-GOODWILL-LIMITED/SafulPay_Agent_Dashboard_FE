@@ -10,13 +10,6 @@ interface UserMetaProps {
 }
 
 export default function UserInfoCard({ user }: UserMetaProps) {
-  // const { isOpen, openModal, closeModal } = useModal();
-
-  const profileName = user?.name;
-  const parts = profileName?.trim().split(" ");
-  const firstName = parts?.[0];
-  const lastName = parts?.slice(1).join(" ");
-
   // const handleSave = () => {
   //   // Handle save logic here
   //   console.log("Saving changes...");
@@ -37,7 +30,7 @@ export default function UserInfoCard({ user }: UserMetaProps) {
                 First Name
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                {firstName}
+                {user?.firstname}
               </p>
             </div>
 
@@ -46,7 +39,7 @@ export default function UserInfoCard({ user }: UserMetaProps) {
                 Last Name
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                {lastName}
+                {user?.lastname}
               </p>
             </div>
 

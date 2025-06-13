@@ -42,6 +42,8 @@ const Users: React.FC = () => {
         id: user.id,
         image: "/images/user/user-17.jpg", // or actual image URL if available
         name: user.name,
+        firstName: user.firstname,
+        lastName: user.lastname,
         businessName: "", // add if your API provides it
         role: user.role,
         phone: user.phone,
