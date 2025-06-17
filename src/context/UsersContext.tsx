@@ -8,18 +8,12 @@ import {
 } from "react";
 import { useAuth } from "./AuthContext";
 import { getAllUsers, getAllAgents } from "../utils/api";
-import type { Agent } from "../types/types";
-import type { UserBio } from "../types/types";
+import type { Agent, UserBio } from "../types/types";
+import { Role } from "../types/types";
 
-interface AgentWithRole extends Agent {
-  role: string; // set to "Agent"
-}
-
-export type usersItem = UserBio | AgentWithRole;
+export type usersItem = UserBio | Agent;
 
 interface UsersContextType {
-  // allUsers: UserBio[];
-  // filteredUsers: UserBio[];
   allAgents: Agent[];
   allUsers: usersItem[];
   filteredUsers: usersItem[];
@@ -35,15 +29,14 @@ const UsersContext = createContext<UsersContextType | undefined>(undefined);
 
 export const useAllUsers = () => {
   const context = useContext(UsersContext);
-  if (!context) throw new Error("useUser must be used within UserProvider");
+  if (!context)
+    throw new Error("useAllUsers must be used within UsersProvider");
   return context;
 };
 
 export const UsersProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  //   const [userError, setUserError] = useState<string | null>(null);
-  //   const [agentError, setAgentError] = useState<string | null>(null);
   const [allUsers, setAllUsers] = useState<usersItem[]>([]);
   const [allAgents, setAllAgents] = useState<Agent[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<usersItem[]>([]);
@@ -63,10 +56,18 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({
 
     const response = await getAllAgents(token);
     if (response.success && response.data) {
-      setAllAgents(response.data.agents);
+      const agentsWithRole = response.data.agents.map((agent) => ({
+        ...agent,
+        role: Role.Agent,
+      }));
+      setAllAgents(agentsWithRole);
     } else {
       setTitle("Failed to fetch agents");
-      setError(response.error || "Failed to fetch agents");
+      setError(
+        typeof response.error === "string"
+          ? response.error
+          : response.error?.message || "Failed to fetch agents"
+      );
     }
     setLoading(false);
   };
@@ -88,29 +89,34 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({
     ]);
 
     if (userRes.success && userRes.data && agentRes.success && agentRes.data) {
-      const combined = [
-        ...userRes.data.users,
-        ...agentRes.data.agents.map((agent) => ({
-          ...agent,
-          role: "Agent",
-        })),
-      ];
+      const agentUsers = agentRes.data.agents.map((agent) => ({
+        ...agent,
+        role: Role.Agent, // ✅ use enum, not raw string
+      }));
+
+      const combined: usersItem[] = [...userRes.data.users, ...agentUsers];
 
       setAllUsers(combined);
       setFilteredUsers(combined);
-
       setError("");
     } else {
-      // Handle errors separately
       if (!userRes.success && !agentRes.success) {
         setTitle("ERROR !!!");
         setError("Failed to fetch users and agents");
       } else if (!userRes.success) {
         setTitle("Failed to fetch users");
-        setError(userRes.error || "Failed to fetch users");
+        setError(
+          typeof userRes.error === "string"
+            ? userRes.error
+            : userRes.error?.message || "Failed to fetch users"
+        );
       } else if (!agentRes.success) {
         setTitle("Failed to fetch agents");
-        setError(agentRes.error || "Failed to fetch agents");
+        setError(
+          typeof agentRes.error === "string"
+            ? agentRes.error
+            : agentRes.error?.message || "Failed to fetch agents"
+        );
       }
     }
     setLoading(false);
@@ -119,7 +125,6 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({
   const filterByRole = useCallback(
     (role: string) => {
       if (role === "All Users") return setFilteredUsers(allUsers);
-
       const filtered = allUsers.filter((user) => user.role === role);
       setFilteredUsers(filtered);
     },

@@ -4,20 +4,11 @@ import { userRoles } from "../../utils/roles";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
-import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
+import BasicTableOne, {
+  TableContentItem,
+} from "../../components/tables/BasicTables/BasicTableOne";
 import Alert from "../../components/ui/alert/Alert";
-
-interface TableContentType {
-  user: {
-    id: number;
-    image?: string;
-    name?: string;
-    businessName: string;
-    role: string;
-    phone: string;
-    status: string;
-  };
-}
+import { UserBio, Agent, Role } from "../../types/types";
 
 const tableHeader: string[] = [
   "Name/Business Name",
@@ -32,30 +23,48 @@ const Users: React.FC = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   const userOptions = [...userRoles, "All Users"];
 
-  const tableData: TableContentType[] = filteredUsers.map(
-    (user: usersItem) => ({
-      user: {
-        id: user.id,
-        image: "/images/user/user-17.jpg", // or actual image URL if available
-        name: user.name,
-        firstName: user.firstname,
-        lastName: user.lastname,
-        businessName: "", // add if your API provides it
-        role: user.role,
-        phone: user.phone,
-        status:
-          user.status === 1
-            ? "Active"
-            : user.status === 2
-            ? "Pending"
-            : "Suspended",
-      },
-    })
-  );
+  const tableData: TableContentItem[] = filteredUsers.map((user: usersItem) => {
+    const baseUser: UserBio = {
+      id: user.id,
+      image: user.image,
+      name: user.name,
+      firstname: user.firstname,
+      lastname: user.lastname,
+      business_name: user.business_name,
+      username: user.username,
+      phone: user.phone,
+      email: user.email || "N/A",
+      country_code: user.country_code,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+      status: user.status,
+      role: user.role as Role,
+      address: "address" in user ? user.address : undefined,
+    };
+
+    return {
+      user:
+        user.role === "Agent"
+          ? {
+              ...baseUser,
+              master_id: (user as Agent).master_id,
+              model: (user as Agent).model,
+              category: (user as Agent).category,
+              threshold_wallet_balance: (user as Agent)
+                .threshold_wallet_balance,
+              threshold_cash_in_hand: (user as Agent).threshold_cash_in_hand,
+              residual_amount: (user as Agent).residual_amount,
+              latitude: (user as Agent).latitude,
+              longitude: (user as Agent).longitude,
+              marketer: (user as Agent).marketer,
+            }
+          : baseUser,
+    };
+  });
 
   if (loading)
     return <div className="text-gray-500 dark:text-gray-400">Loading...</div>;

@@ -13,6 +13,7 @@ import { filterPhoneNumber } from "../../utils/utils";
 // import type { countryType } from "../../types/types";
 import { useAuth } from "../../context/AuthContext";
 import { requestOtp, verifyOtpAndLogin } from "../../utils/api";
+// import { useAppContext } from "../../context/AppContext";
 
 export default function SignInForm() {
   const [showPin, setShowPin] = useState<boolean>(false);
@@ -24,10 +25,19 @@ export default function SignInForm() {
   const [sessionToken, setSessionToken] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [alertTitle, setAlertTitle] = useState<string>("");
-  const [error, setError] = useState<string>("");
-  const [warnError, setWarnError] = useState<boolean>(false);
+  const [error, setError] = useState("");
+  const [warnError, setWarnError] = useState<React.ReactNode | string>(null);
   const [successAlert, setSuccessAlert] = useState<string>("");
   const navigate = useNavigate();
+  // const { setToken } = useAppContext();
+
+  // const handlePinChange = (
+  //   e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  // ) => {
+  //   const value = e.target.value.replace(/\D/g, "").slice(0, 4);
+  //   setPin(value);
+  //   setError("");
+  // };
 
   const { login } = useAuth();
 
@@ -36,19 +46,19 @@ export default function SignInForm() {
 
     if (!phone || !pin) {
       setAlertTitle("Please fill in your Phone number and PIN.");
-      setWarnError(true);
+      setWarnError(" ");
       return;
     }
 
     const phoneNumber = filterPhoneNumber(phone);
     if (phoneNumber.length !== 11) {
       setAlertTitle("Invalid Phone Number Format");
-      setWarnError(true);
+      setWarnError(" ");
       return;
     }
 
     setError("");
-    setWarnError(false);
+    setWarnError("");
     setSuccessAlert("");
     setLoading(true);
     setPhone(phoneNumber);
@@ -63,7 +73,12 @@ export default function SignInForm() {
       setSuccessAlert(response.data.message || "OTP sent successfully");
     } else {
       setAlertTitle("Authentication Failed");
-      setError(response.error || "Invalid phone number or PIN combination.");
+      setError(
+        typeof response.error === "string"
+          ? response.error
+          : response.error?.message ||
+              "Invalid phone number or PIN combination."
+      );
       setSuccessAlert("");
     }
 
@@ -81,7 +96,7 @@ export default function SignInForm() {
     }
 
     setError("");
-    setWarnError(false);
+    setWarnError("");
     setSuccessAlert("");
     setLoading(true);
 
@@ -94,7 +109,11 @@ export default function SignInForm() {
       navigate("/");
     } else {
       setAlertTitle("OTP Verification Failed");
-      setError(response.error || "Error verifying OTP");
+      setError(
+        typeof response.error === "string"
+          ? response.error
+          : response.error?.message || "Error verifying OTP"
+      );
     }
 
     setLoading(false);
@@ -153,14 +172,12 @@ export default function SignInForm() {
                       name="phone"
                       placeholder="Enter phone number (e.g., 23298765432)"
                       value={phone}
-                      max={12}
                       onChange={(e) => {
                         setPhone(e.target.value);
                         setError("");
-                        setWarnError(false);
+                        setWarnError("");
                         setSuccessAlert("");
                       }}
-                      error={warnError}
                     />
 
                     {/* <PhoneInput
@@ -180,18 +197,16 @@ export default function SignInForm() {
                     </Label>
                     <div className="relative">
                       <Input
+                        type={showPin ? "text" : "password"}
                         id="pin"
                         name="pin"
-                        type={showPin ? "text" : "password"}
                         placeholder="Enter your PIN"
-                        max={4}
+                        // max={6}
                         value={pin}
-                        inputMode="numeric"
-                        pattern="[0-9]*"
                         onChange={(e) => {
                           setPin(e.target.value);
                           setError("");
-                          setWarnError(false);
+                          setWarnError("");
                           setSuccessAlert("");
                         }}
                       />
@@ -207,7 +222,7 @@ export default function SignInForm() {
                       </span>
                       {pin && (
                         <span className="text-[12px] absolute z-30 translate-y-1/2 -bottom-1/2 top-1/2 right-2 text-gray-500">
-                          max length 4
+                          max length 6
                         </span>
                       )}
                     </div>
@@ -235,34 +250,22 @@ export default function SignInForm() {
                       OTP <span className="text-error-500">*</span>
                     </Label>
                     <Input
+                      type="text"
                       id="otp"
                       name="otp"
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
                       placeholder="Enter 6-digit OTP"
                       value={otp}
-                      max={6}
                       onChange={(e) => {
                         setOtp(e.target.value);
                         setError("");
-                        setWarnError(false);
+                        setWarnError("");
                         setSuccessAlert("");
                       }}
-                      error={error.trim.length > 0}
                     />
-
-                    {otp && (
-                      <span className="text-[12px] absolute z-30 translate-y-1/2 -bottom-1/2 top-1/2 right-2 text-gray-500">
-                        max length 6
-                      </span>
-                    )}
                   </div>
-
                   <div className="flex items-center justify-between">
                     <button
-                      type="button"
-                      onClick={handleRequestOtp}
+                      type="submit"
                       className="text-gray-700 text-theme-sm dark:text-gray-400 hover:text-brand-600"
                     >
                       Resend OTP

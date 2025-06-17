@@ -8,29 +8,19 @@ import {
   TableHeader,
   TableRow,
 } from "../../ui/table";
-
 import Badge from "../../ui/badge/Badge";
 import Button from "../../ui/button/Button";
 import Input from "../../form/input/InputField";
 import Label from "../../form/Label";
+import { UserBio, Agent, Status } from "../../../types/types";
+import { useAuth } from "../../../context/AuthContext";
+import { useAllUsers } from "../../../context/UsersContext";
+import { changeUserStatus, changeAgentStatus } from "../../../utils/api";
 
-interface User {
-  id: number;
-  image?: string;
-  name?: string;
-  firstName?: string;
-  lastName?: string;
-  businessName?: string;
-  role?: string;
-  code?: string;
-  cih?: number;
-  residualAmount?: number;
-  phone: string;
-  status: string;
-}
+type TableUser = UserBio | Agent;
 
-interface TableContentItem {
-  user: User;
+export interface TableContentItem {
+  user: TableUser;
 }
 
 interface Order {
@@ -38,7 +28,6 @@ interface Order {
   tableContent: TableContentItem[];
 }
 
-// Handlers type
 interface Handlers {
   close: () => void;
   suspend?: () => void;
@@ -47,103 +36,155 @@ interface Handlers {
   save?: () => void;
 }
 
+const statusToString = (status: Status): string => {
+  return status === Status.Active
+    ? "Active"
+    : status === Status.Pending
+    ? "Pending"
+    : "Suspended";
+};
+
 const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<TableUser | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const { isOpen, openModal, closeModal } = useModal();
+  const { token } = useAuth();
+  const { fetchUsers } = useAllUsers();
 
   const showResidualAmount = tableHeading?.includes("Residual Amount");
 
+  const isAgent = (user: TableUser): user is Agent => "residual_amount" in user;
+
+  const handleStatusChange = async (
+    id: number,
+    status: Status,
+    isAgentUser: boolean
+  ) => {
+    if (!token) {
+      setError("Not authenticated");
+      return;
+    }
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const response = isAgentUser
+        ? await changeAgentStatus(token, id, status)
+        : await changeUserStatus(token, id, status);
+
+      if (response.success) {
+        await fetchUsers(); // Refresh user list
+        closeModal();
+      } else {
+        setError(
+          typeof response.error === "string"
+            ? response.error
+            : response.error?.message || "Failed to update status"
+        );
+      }
+    } catch (err) {
+      setError(`Error: ${err}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const getActionButtons = (
-    status: string,
+    status: Status,
     handlers: Handlers
   ): React.ReactNode | null => {
-    switch (status) {
-      case "Active":
-        return (
-          <>
-            <Button size="sm" variant="outline" onClick={handlers.close}>
-              Close
-            </Button>
-            <Button
-              size="sm"
-              className="bg-brand-accent hover:bg-brand-accent-100"
-              onClick={handlers.suspend}
-            >
-              Suspend
-            </Button>
-          </>
-        );
-      case "Pending":
-        return (
+    const statusStr = statusToString(status);
+    return (
+      <>
+        {error && <p className="text-red-500 text-sm">{error}</p>}
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handlers.close}
+          disabled={isProcessing}
+        >
+          Close
+        </Button>
+        {statusStr === "Active" && (
+          <Button
+            size="sm"
+            className="bg-brand-accent hover:bg-brand-accent-100"
+            onClick={handlers.suspend}
+            disabled={isProcessing}
+          >
+            Suspend
+          </Button>
+        )}
+        {statusStr === "Pending" && (
           <>
             <Button
               size="sm"
               className="bg-brand-accent"
               onClick={handlers.close}
+              disabled={isProcessing}
             >
               Decline
             </Button>
-            <Button size="sm" onClick={handlers.approve}>
+            <Button
+              size="sm"
+              onClick={handlers.approve}
+              disabled={isProcessing}
+            >
               Approve
             </Button>
           </>
-        );
-      case "Suspended":
-        return (
-          <>
-            <Button size="sm" variant="outline" onClick={handlers.close}>
-              Close
-            </Button>
-            <Button size="sm" onClick={handlers.reActivate}>
-              Re-activate
-            </Button>
-          </>
-        );
-      default:
-        return null;
-    }
+        )}
+        {statusStr === "Suspended" && (
+          <Button
+            size="sm"
+            onClick={handlers.reActivate}
+            disabled={isProcessing}
+          >
+            Re-activate
+          </Button>
+        )}
+      </>
+    );
   };
 
-  // const profileName = currentUser?.name;
-  // const profileNam = currentUser?.firstname;
-  // const parts = profileName?.trim().split(" ");
-  // const firstName = parts?.[0];
-  // const lastName = parts?.slice(1).join(" ");
-
-  const handleOpenModal = (user: User) => {
+  const handleOpenModal = (user: TableUser) => {
     setCurrentUser(user);
+    setError(null);
     openModal();
   };
 
   const handleSave = (): void => {
-    // Handle save logic here
     console.log("Saving changes...");
     closeModal();
   };
 
   const handleSuspend = (): void => {
-    // Suspend logic
-    console.log("Suspending user...");
-    closeModal();
+    if (currentUser) {
+      handleStatusChange(
+        currentUser.id,
+        Status.Suspended,
+        isAgent(currentUser)
+      );
+    }
   };
 
   const handleApprove = (): void => {
-    // Approve logic
-    console.log("Approving changes...");
-    closeModal();
+    if (currentUser) {
+      handleStatusChange(currentUser.id, Status.Active, isAgent(currentUser));
+    }
   };
 
   const handleReActivate = (): void => {
-    // Re-activate logic
-    console.log("Reactivating user...");
-    closeModal();
+    if (currentUser) {
+      handleStatusChange(currentUser.id, Status.Active, isAgent(currentUser));
+    }
   };
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
       <div className="max-w-full overflow-x-auto">
         <Table>
-          {/* Table Header */}
           <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
             <TableRow>
               {tableHeading?.map((tableHead) => (
@@ -163,8 +204,6 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
               </TableCell>
             </TableRow>
           </TableHeader>
-
-          {/* Table Body */}
           <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
             {tableContent.length > 0 ? (
               tableContent.map((order) => (
@@ -175,7 +214,9 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                         <img
                           width={40}
                           height={40}
-                          src={order.user?.image}
+                          src={
+                            order.user.image || "/images/user/placeholder.jpg"
+                          }
                           alt={order.user.name}
                         />
                       </div>
@@ -184,56 +225,44 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                           {order.user.name}
                         </span>
                         <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
-                          {order.user.businessName}
+                          {order.user.business_name || "N/A"}
                         </span>
                       </div>
                     </div>
                   </TableCell>
-
                   <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                     {order.user.role}
                   </TableCell>
-
-                  {order.user.code && (
+                  {isAgent(order.user) && order.user.master_id && (
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      {order.user.code}
+                      {order.user.master_id}
                     </TableCell>
                   )}
-
-                  {showResidualAmount && (
+                  {showResidualAmount && isAgent(order.user) && (
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      Le {order.user.residualAmount?.toFixed(2)}
+                      Le {order.user.residual_amount.toFixed(2)}
                     </TableCell>
                   )}
-
-                  {order.user.cih && (
+                  {isAgent(order.user) && order.user.threshold_cash_in_hand && (
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      {`Le ${order.user.cih}`}
+                      Le {order.user.threshold_cash_in_hand.toFixed(2)}
                     </TableCell>
                   )}
-                  {/* {!order.user.code} ||
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  {order.user.role}
-                </TableCell> */}
-                  {/* <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  {order.user.code}
-                </TableCell> */}
                   <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                     {order.user.phone}
                   </TableCell>
-
                   <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                     <Badge
                       size="sm"
                       color={
-                        order.user.status === "Active"
+                        order.user.status === Status.Active
                           ? "success"
-                          : order.user.status === "Pending"
+                          : order.user.status === Status.Pending
                           ? "warning"
                           : "error"
                       }
                     >
-                      {order.user.status}
+                      {statusToString(order.user.status)}
                     </Badge>
                   </TableCell>
                   <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
@@ -275,31 +304,31 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                   <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
                     Personal Information
                   </h5>
-
                   <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                     <div className="col-span-2 lg:col-span-1">
                       <Label>First Name</Label>
                       <Input
                         type="text"
-                        value={currentUser?.firstName || " "}
+                        value={currentUser?.firstname || " "}
                         readOnly
                       />
                     </div>
-
                     <div className="col-span-2 lg:col-span-1">
                       <Label>Last Name</Label>
                       <Input
                         type="text"
-                        value={currentUser?.lastName || " "}
+                        value={currentUser?.lastname || " "}
                         readOnly
                       />
                     </div>
-
                     <div className="col-span-2 lg:col-span-1">
                       <Label>Email Address</Label>
-                      <Input type="text" value={"example@email.com"} readOnly />
+                      <Input
+                        type="text"
+                        value={currentUser?.email || "example@email.com"}
+                        readOnly
+                      />
                     </div>
-
                     <div className="col-span-2 lg:col-span-1">
                       <Label>Phone</Label>
                       <Input
@@ -308,7 +337,6 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                         readOnly
                       />
                     </div>
-
                     <div className="col-span-2">
                       <Label>Role</Label>
                       <Input

@@ -1,6 +1,7 @@
 import type { Agent, ApiResponse, LoginResponseData } from "../types/types";
 import type { LoginResponse } from "../types/types";
 import type { UserBio } from "../types/types";
+import type { Status } from "../types/types";
 
 const BASE_URL = "https://test.techengood.com/api";
 
@@ -54,6 +55,8 @@ export const verifyOtpAndLogin = async (
     const data: LoginResponse = await response.json();
 
     if (response.ok && data.status) {
+      console.log(data.data);
+
       return {
         success: true,
         data: data.data,
@@ -132,7 +135,19 @@ export const getAllAgents = async (
     const data = await response.json();
 
     if (response.ok && data.status) {
-      return { success: true, data: { agents: data.data } };
+      return {
+        success: true,
+        data: {
+          agents: data.data.map((agent: Agent) => ({
+            ...agent,
+            threshold_wallet_balance: Number(agent.threshold_wallet_balance),
+            threshold_cash_in_hand: Number(agent.threshold_cash_in_hand),
+            residual_amount: Number(agent.residual_amount),
+            latitude: Number(agent.latitude),
+            longitude: Number(agent.longitude),
+          })),
+        },
+      };
     } else {
       return { success: false, error: data.message || "Failed to get agents" };
     }
@@ -168,5 +183,71 @@ export const registerUser = async (
     }
   } catch (err) {
     return { success: false, error: `Error registering user: ${err}` };
+  }
+};
+
+export const changeUserStatus = async (
+  accessToken: string,
+  id: number,
+  status: Status
+): Promise<ApiResponse<{ message: string }>> => {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/changeUserStatus`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ id, status }),
+      redirect: "follow",
+    });
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return {
+        success: true,
+        data: { message: data.message || "Status updated" },
+      };
+    } else {
+      return {
+        success: false,
+        error: data.message || "Failed to change user status",
+      };
+    }
+  } catch (err) {
+    return { success: false, error: `Error changing user status: ${err}` };
+  }
+};
+
+export const changeAgentStatus = async (
+  accessToken: string,
+  id: number,
+  status: Status
+): Promise<ApiResponse<{ message: string }>> => {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/agents/changeAgentStatus`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ master_id: id, status }),
+      redirect: "follow",
+    });
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return {
+        success: true,
+        data: { message: data.message || "Status updated" },
+      };
+    } else {
+      return {
+        success: false,
+        error: data.message || "Failed to change agent status",
+      };
+    }
+  } catch (err) {
+    return { success: false, error: `Error changing agent status: ${err}` };
   }
 };
