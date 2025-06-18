@@ -13,6 +13,9 @@ import Badge from "../../ui/badge/Badge";
 import Button from "../../ui/button/Button";
 import Input from "../../form/input/InputField";
 import Label from "../../form/Label";
+import { useAuth } from "../../../context/AuthContext";
+import { useAllUsers } from "../../../context/UsersContext";
+import { changeAgentStatus, changeUserStatus } from "../../../utils/api";
 
 interface User {
   id: number;
@@ -44,14 +47,49 @@ interface Handlers {
   suspend?: () => void;
   approve?: () => void;
   reActivate?: () => void;
+  decline?: () => void;
   save?: () => void;
 }
 
 const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isActionLoading, setIsActionLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>("");
   const { isOpen, openModal, closeModal } = useModal();
+  const { token } = useAuth();
+  const { fetchUsers } = useAllUsers();
 
   const showResidualAmount = tableHeading?.includes("Residual Amount");
+
+  const changeStatus = async (
+    user: User,
+    token: string,
+    newStatus: number
+  ): Promise<boolean> => {
+    setIsActionLoading(true);
+    setErrorMessage("");
+    try {
+      const isAgent = user.role === "Agent";
+      const response = isAgent
+        ? await changeAgentStatus(token, user.id, newStatus)
+        : await changeUserStatus(token, user.id, newStatus);
+
+      if (response.success) {
+        await fetchUsers();
+        return true;
+      } else {
+        setErrorMessage(response.error || `Failed to change status`);
+        console.error("Failed to change status:", response.error);
+        return false;
+      }
+    } catch (err) {
+      setErrorMessage("An unexpected error occurred");
+      console.error("Error changing status:", err);
+      return false;
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
 
   const getActionButtons = (
     status: string,
@@ -68,8 +106,9 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
               size="sm"
               className="bg-brand-accent hover:bg-brand-accent-100"
               onClick={handlers.suspend}
+              disabled={isActionLoading}
             >
-              Suspend
+              {isActionLoading ? "Suspending..." : "Suspend"}
             </Button>
           </>
         );
@@ -79,12 +118,17 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
             <Button
               size="sm"
               className="bg-brand-accent"
-              onClick={handlers.close}
+              onClick={handlers.decline}
+              disabled={isActionLoading}
             >
-              Decline
+              {isActionLoading ? "Declining..." : "Decline"}
             </Button>
-            <Button size="sm" onClick={handlers.approve}>
-              Approve
+            <Button
+              size="sm"
+              onClick={handlers.approve}
+              disabled={isActionLoading}
+            >
+              {isActionLoading ? "Approving..." : "Approve"}
             </Button>
           </>
         );
@@ -94,8 +138,12 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
             <Button size="sm" variant="outline" onClick={handlers.close}>
               Close
             </Button>
-            <Button size="sm" onClick={handlers.reActivate}>
-              Re-activate
+            <Button
+              size="sm"
+              onClick={handlers.reActivate}
+              disabled={isActionLoading}
+            >
+              {isActionLoading ? "Reactivating..." : "Re-activate"}
             </Button>
           </>
         );
@@ -104,39 +152,44 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
     }
   };
 
-  // const profileName = currentUser?.name;
-  // const profileNam = currentUser?.firstname;
-  // const parts = profileName?.trim().split(" ");
-  // const firstName = parts?.[0];
-  // const lastName = parts?.slice(1).join(" ");
-
   const handleOpenModal = (user: User) => {
     setCurrentUser(user);
+    setErrorMessage("");
     openModal();
   };
 
   const handleSave = (): void => {
-    // Handle save logic here
     console.log("Saving changes...");
     closeModal();
   };
 
-  const handleSuspend = (): void => {
-    // Suspend logic
-    console.log("Suspending user...");
-    closeModal();
+  const handleSuspend = async (): Promise<void> => {
+    if (!currentUser || !token) return;
+    if (await changeStatus(currentUser, token, 3)) {
+      closeModal();
+    }
   };
 
-  const handleApprove = (): void => {
-    // Approve logic
-    console.log("Approving changes...");
-    closeModal();
+  const handleApprove = async (): Promise<void> => {
+    if (!currentUser || !token) return;
+    if (await changeStatus(currentUser, token, 1)) {
+      closeModal();
+    }
   };
 
-  const handleReActivate = (): void => {
-    // Re-activate logic
-    console.log("Reactivating user...");
-    closeModal();
+  const handleReActivate = async (): Promise<void> => {
+    if (!currentUser || !token) return;
+    if (await changeStatus(currentUser, token, 1)) {
+      closeModal();
+    }
+  };
+
+  const handleDecline = async (): Promise<void> => {
+    if (!currentUser || !token) return;
+    if (await changeStatus(currentUser, token, 4)) {
+      // Assuming 4 not sure about this, just added this just in case, cc @yero
+      closeModal();
+    }
   };
 
   return (
@@ -282,7 +335,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                       <Input
                         type="text"
                         value={currentUser?.firstName || " "}
-                        readOnly
+                        disabled={true}
                       />
                     </div>
 
@@ -320,6 +373,9 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                   </div>
                 </div>
               </div>
+              {errorMessage && (
+                <p className="px-2 text-sm text-error-500">{errorMessage}</p>
+              )}
               <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
                 {currentUser &&
                   getActionButtons(currentUser.status, {
@@ -327,6 +383,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                     suspend: handleSuspend,
                     approve: handleApprove,
                     reActivate: handleReActivate,
+                    decline: handleDecline,
                     save: handleSave,
                   })}
               </div>

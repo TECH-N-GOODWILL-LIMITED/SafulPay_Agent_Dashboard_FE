@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 
-// Assume these icons are imported from an icon library
 import {
   BoxCubeIcon,
   ChevronDownIcon,
@@ -15,6 +14,7 @@ import {
   ArrowUpIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
+import { useAuth } from "../context/AuthContext";
 
 type NavItem = {
   name: string;
@@ -23,7 +23,7 @@ type NavItem = {
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
 };
 
-// NOTE: ACTION BUTTONS
+//! NOTE: ACTION BUTTONS
 // ACTIVE USERS - edit, block
 // BLOCKED USERS - edit, Unblock
 // PENDING USERS - edit, reject/approve,
@@ -40,19 +40,9 @@ const navItems: NavItem[] = [
       { name: "All Users", path: "/users" },
       { name: "Admin", path: "/admin" },
       { name: "Marketers", path: "/marketers" },
-      //     // Add copy url/link to marketers table
-      //     // add actions column to all table(block/unblock...)
       { name: "Agents", path: "/agents" },
-      // name, business name, phone no, address,status, cash in hand, wallet balance, actions(view, edit, block/unblock )
-      //     // view- fullName , business name, set location/region, location- lng,lat, mapView, model type(ownership/target), phone number, reject/approve
-      //     // !ownershipModel{
-      //     //   show( threshold balance, cash in hand balance, residual balance )
-      //     //   return
-      //     // }
       { name: "Riders", path: "/riders" },
-      // name , phone no, status, cash in hand, wallet balance, action- view live location(call mapView-leaflet or any map api/googlemap - use traccar to get live lng/lat), block/unblock
       { name: "Accountants", path: "/accountants" },
-      // name, phone no, wallet balance, cash in hand balance, edit, block/unblock
     ],
   },
   {
@@ -67,7 +57,6 @@ const othersItems: NavItem[] = [
     icon: <BoxCubeIcon />,
     name: "Recollections",
     path: "/recollections",
-    // tag/note, date created + time, status, demographics, assigned rider, action(assign)- moves to a route(params)/modal for that particular recollection
   },
   { icon: <DollarLineIcon />, name: "Disbursement", path: "/disbursement" },
   {
@@ -84,18 +73,18 @@ const othersItems: NavItem[] = [
     icon: <ListIcon />,
     name: "Transactions Log",
     path: "/transactions",
-    // subItems: [{ name: "Hello", path: "/world" }],
   },
   {
     icon: <ListIcon />,
     name: "Audit Log",
     path: "/audit",
-    // show logs of users being blocked and admin who performed the action
   },
 ];
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const { user } = useAuth();
+  const userRole = user?.role || "Admin";
   const location = useLocation();
 
   const [openSubmenu, setOpenSubmenu] = useState<{
@@ -107,7 +96,6 @@ const AppSidebar: React.FC = () => {
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // const isActive = (path: string) => location.pathname === path;
   const isActive = useCallback(
     (path: string) => location.pathname === path,
     [location.pathname]
@@ -162,57 +150,55 @@ const AppSidebar: React.FC = () => {
     });
   };
 
+  const getFilteredSubItems = (
+    subItems: NavItem["subItems"],
+    role: string
+  ): NavItem["subItems"] => {
+    if (!subItems) return subItems;
+    switch (role) {
+      case "Admin":
+        return subItems.filter((item) =>
+          ["All Users", "Accountants"].includes(item.name)
+        );
+      case "Accountant":
+        return subItems.filter((item) =>
+          ["All Users", "Accountants"].includes(item.name)
+        );
+      case "Marketer":
+        return subItems.filter((item) =>
+          ["All Users", "Marketers"].includes(item.name)
+        );
+      default:
+        return subItems;
+    }
+  };
+
   const renderMenuItems = (items: NavItem[], menuType: "main" | "others") => (
     <ul className="flex flex-col gap-4">
-      {items.map((nav, index) => (
-        <li key={nav.name}>
-          {nav.subItems ? (
-            <button
-              onClick={() => handleSubmenuToggle(index, menuType)}
-              className={`menu-item group ${
-                openSubmenu?.type === menuType && openSubmenu?.index === index
-                  ? "menu-item-active"
-                  : "menu-item-inactive"
-              } cursor-pointer ${
-                !isExpanded && !isHovered
-                  ? "lg:justify-center"
-                  : "lg:justify-start"
-              }`}
-            >
-              <span
-                className={`menu-item-icon-size  ${
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
-                    ? "menu-item-icon-active"
-                    : "menu-item-icon-inactive"
-                }`}
-              >
-                {nav.icon}
-              </span>
-              {(isExpanded || isHovered || isMobileOpen) && (
-                <span className="menu-item-text">{nav.name}</span>
-              )}
-              {(isExpanded || isHovered || isMobileOpen) && (
-                <ChevronDownIcon
-                  className={`ml-auto w-5 h-5 transition-transform duration-200 ${
-                    openSubmenu?.type === menuType &&
-                    openSubmenu?.index === index
-                      ? "rotate-180 text-brand-500"
-                      : ""
-                  }`}
-                />
-              )}
-            </button>
-          ) : (
-            nav.path && (
-              <Link
-                to={nav.path}
+      {items.map((nav, index) => {
+        const filteredSubItems =
+          nav.name === "Users"
+            ? getFilteredSubItems(nav.subItems, userRole)
+            : nav.subItems;
+        return (
+          <li key={nav.name}>
+            {filteredSubItems ? (
+              <button
+                onClick={() => handleSubmenuToggle(index, menuType)}
                 className={`menu-item group ${
-                  isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
+                  openSubmenu?.type === menuType && openSubmenu?.index === index
+                    ? "menu-item-active"
+                    : "menu-item-inactive"
+                } cursor-pointer ${
+                  !isExpanded && !isHovered
+                    ? "lg:justify-center"
+                    : "lg:justify-start"
                 }`}
               >
                 <span
                   className={`menu-item-icon-size ${
-                    isActive(nav.path)
+                    openSubmenu?.type === menuType &&
+                    openSubmenu?.index === index
                       ? "menu-item-icon-active"
                       : "menu-item-icon-inactive"
                   }`}
@@ -222,66 +208,104 @@ const AppSidebar: React.FC = () => {
                 {(isExpanded || isHovered || isMobileOpen) && (
                   <span className="menu-item-text">{nav.name}</span>
                 )}
-              </Link>
-            )
-          )}
-          {nav.subItems && (isExpanded || isHovered || isMobileOpen) && (
-            <div
-              ref={(el) => {
-                subMenuRefs.current[`${menuType}-${index}`] = el;
-              }}
-              className="overflow-hidden transition-all duration-300"
-              style={{
-                height:
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
-                    ? `${subMenuHeight[`${menuType}-${index}`]}px`
-                    : "0px",
-              }}
-            >
-              <ul className="mt-2 space-y-1 ml-9">
-                {nav.subItems.map((subItem) => (
-                  <li key={subItem.name}>
-                    <Link
-                      to={subItem.path}
-                      className={`menu-dropdown-item ${
-                        isActive(subItem.path)
-                          ? "menu-dropdown-item-active"
-                          : "menu-dropdown-item-inactive"
+                {(isExpanded || isHovered || isMobileOpen) &&
+                  filteredSubItems.length > 0 && (
+                    <ChevronDownIcon
+                      className={`ml-auto w-5 h-5 transition-transform duration-200 ${
+                        openSubmenu?.type === menuType &&
+                        openSubmenu?.index === index
+                          ? "rotate-180 text-brand-500"
+                          : ""
                       }`}
-                    >
-                      {subItem.name}
-                      <span className="flex items-center gap-1 ml-auto">
-                        {subItem.new && (
-                          <span
-                            className={`ml-auto ${
-                              isActive(subItem.path)
-                                ? "menu-dropdown-badge-active"
-                                : "menu-dropdown-badge-inactive"
-                            } menu-dropdown-badge`}
-                          >
-                            new
+                    />
+                  )}
+              </button>
+            ) : (
+              nav.path && (
+                <Link
+                  to={nav.path}
+                  className={`menu-item group ${
+                    isActive(nav.path)
+                      ? "menu-item-active"
+                      : "menu-item-inactive"
+                  }`}
+                >
+                  <span
+                    className={`menu-item-icon-size ${
+                      isActive(nav.path)
+                        ? "menu-item-icon-active"
+                        : "menu-item-icon-inactive"
+                    }`}
+                  >
+                    {nav.icon}
+                  </span>
+                  {(isExpanded || isHovered || isMobileOpen) && (
+                    <span className="menu-item-text">{nav.name}</span>
+                  )}
+                </Link>
+              )
+            )}
+            {filteredSubItems &&
+              (isExpanded || isHovered || isMobileOpen) &&
+              filteredSubItems.length > 0 && (
+                <div
+                  ref={(el) => {
+                    subMenuRefs.current[`${menuType}-${index}`] = el;
+                  }}
+                  className="overflow-hidden transition-all duration-300"
+                  style={{
+                    height:
+                      openSubmenu?.type === menuType &&
+                      openSubmenu?.index === index
+                        ? `${subMenuHeight[`${menuType}-${index}`]}px`
+                        : "0px",
+                  }}
+                >
+                  <ul className="mt-2 space-y-1 ml-9">
+                    {filteredSubItems.map((subItem) => (
+                      <li key={subItem.name}>
+                        <Link
+                          to={subItem.path}
+                          className={`menu-dropdown-item ${
+                            isActive(subItem.path)
+                              ? "menu-dropdown-item-active"
+                              : "menu-dropdown-item-inactive"
+                          }`}
+                        >
+                          {subItem.name}
+                          <span className="flex items-center gap-1 ml-auto">
+                            {subItem.new && (
+                              <span
+                                className={`ml-auto ${
+                                  isActive(subItem.path)
+                                    ? "menu-dropdown-badge-active"
+                                    : "menu-dropdown-badge-inactive"
+                                } menu-dropdown-badge`}
+                              >
+                                new
+                              </span>
+                            )}
+                            {subItem.pro && (
+                              <span
+                                className={`ml-auto ${
+                                  isActive(subItem.path)
+                                    ? "menu-dropdown-badge-active"
+                                    : "menu-dropdown-badge-inactive"
+                                } menu-dropdown-badge`}
+                              >
+                                pro
+                              </span>
+                            )}
                           </span>
-                        )}
-                        {subItem.pro && (
-                          <span
-                            className={`ml-auto ${
-                              isActive(subItem.path)
-                                ? "menu-dropdown-badge-active"
-                                : "menu-dropdown-badge-inactive"
-                            } menu-dropdown-badge`}
-                          >
-                            pro
-                          </span>
-                        )}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </li>
-      ))}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+          </li>
+        );
+      })}
     </ul>
   );
 

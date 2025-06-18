@@ -1,9 +1,11 @@
 import { SidebarProvider, useSidebar } from "../context/SidebarContext";
-import { Navigate, Outlet } from "react-router";
+import { Navigate, Outlet, useNavigate } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import AppHeader from "./AppHeader";
 import Backdrop from "./Backdrop";
 import AppSidebar from "./AppSidebar";
+import { useEffect, useState } from "react";
+import { validateToken } from "../utils/api";
 
 const LayoutContent: React.FC = () => {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
@@ -29,13 +31,49 @@ const LayoutContent: React.FC = () => {
 };
 
 const AppLayout: React.FC = () => {
-  const { token, user } = useAuth();
+  const { token, user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isValidToken, setIsValidToken] = useState(false);
 
-  console.log(token);
-  console.log(user);
+  useEffect(() => {
+    const validate = async () => {
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+      try {
+        const response = await validateToken(token);
+        console.log("Token validation response:", response);
+        if (response.success) {
+          setIsValidToken(true);
+          if (user?.role) {
+            const rolePath =
+              user.role.toLowerCase() === "admin"
+                ? "/"
+                : `/${user.role.toLowerCase()}s`;
+            if (location.pathname === "/") {
+              navigate(rolePath, { replace: true });
+            }
+          }
+        } else {
+          await logout();
+        }
+      } catch (error) {
+        console.error("Token validation failed:", error);
+        await logout();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    validate();
+  }, [token, user, logout, navigate]);
 
-  // Redirect if not authenticated
-  if (!token) {
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!token || !isValidToken) {
     return <Navigate to="/signin" replace />;
   }
 

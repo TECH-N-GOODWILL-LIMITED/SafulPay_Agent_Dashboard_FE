@@ -153,7 +153,6 @@ export default function SignInForm() {
                       name="phone"
                       placeholder="Enter phone number (e.g., 23298765432)"
                       value={phone}
-                      max={12}
                       onChange={(e) => {
                         setPhone(e.target.value);
                         setError("");

@@ -170,3 +170,85 @@ export const registerUser = async (
     return { success: false, error: `Error registering user: ${err}` };
   }
 };
+
+export const changeUserStatus = async (
+  accessToken: string,
+  userId: number,
+  status: number
+): Promise<ApiResponse<{ user: UserBio }>> => {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/changeUserStatus`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ userId, status }),
+      redirect: "follow",
+    });
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return { success: true, data: { user: data.data.user } };
+    } else {
+      return {
+        success: false,
+        error: data.message || "Failed to change user status",
+      };
+    }
+  } catch (err) {
+    return { success: false, error: `Error changing user status: ${err}` };
+  }
+};
+
+export const changeAgentStatus = async (
+  accessToken: string,
+  agentId: number,
+  status: number
+): Promise<ApiResponse<{ agent: Agent }>> => {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/agents/changeAgentStatus`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ master_id: agentId, status }),
+      redirect: "follow",
+    });
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return { success: true, data: { agent: data.data.agent } };
+    } else {
+      return {
+        success: false,
+        error: data.message || "Failed to change agent status",
+      };
+    }
+  } catch (err) {
+    return { success: false, error: `Error changing agent status: ${err}` };
+  }
+};
+
+export const validateToken = async (
+  accessToken: string
+): Promise<ApiResponse<{ valid: boolean }>> => {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/validate-token`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    const data = await response.json();
+    if (response.ok && data.status) {
+      return { success: true, data: { valid: true } };
+    } else {
+      return { success: false, error: data.message || "Invalid token" };
+    }
+  } catch (err) {
+    return { success: false, error: `Error validating token: ${err}` };
+  }
+};
