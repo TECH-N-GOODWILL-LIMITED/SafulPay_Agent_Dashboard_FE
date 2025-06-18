@@ -335,7 +335,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                       <Input
                         type="text"
                         value={currentUser?.firstName || " "}
-                        disabled={true}
+                        readOnly
                       />
                     </div>
 

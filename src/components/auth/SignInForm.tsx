@@ -229,7 +229,7 @@ export default function SignInForm() {
             ) : (
               <form onSubmit={handleLogIn}>
                 <div className="space-y-6">
-                  <div>
+                  <div className="relative">
                     <Label>
                       OTP <span className="text-error-500">*</span>
                     </Label>

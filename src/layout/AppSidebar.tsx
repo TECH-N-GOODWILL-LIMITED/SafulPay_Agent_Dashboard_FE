@@ -158,7 +158,7 @@ const AppSidebar: React.FC = () => {
     switch (role) {
       case "Admin":
         return subItems.filter((item) =>
-          ["All Users", "Accountants"].includes(item.name)
+          ["All Users", "Accountants", "Agents"].includes(item.name)
         );
       case "Accountant":
         return subItems.filter((item) =>
