@@ -15,7 +15,7 @@ type usersItem = UserBio | AgentWithRole;
 
 interface TableContentType {
   user: {
-    id: string;
+    id: number;
     image?: string;
     name?: string;
     role: string;
@@ -36,7 +36,7 @@ const Admin = () => {
   const tableData: TableContentType[] = filteredUsers?.map(
     (user: usersItem) => ({
       user: {
-        id: String(user.id),
+        id: user.id,
         image: "/images/user/user-07.jpg", // or actual image URL if available
         name: user.name,
         role: user.role,
@@ -45,8 +45,8 @@ const Admin = () => {
           user.status === 1
             ? "Active"
             : user.status === 2
-            ? "Pending"
-            : "Suspended",
+            ? "Suspended"
+            : "Pending",
       },
     })
   );

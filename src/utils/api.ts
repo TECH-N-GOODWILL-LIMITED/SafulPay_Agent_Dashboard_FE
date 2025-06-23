@@ -173,7 +173,7 @@ export const registerUser = async (
 
 export const changeUserStatus = async (
   accessToken: string,
-  userId: string,
+  userId: number,
   status: number
 ): Promise<ApiResponse<{ user: UserBio }>> => {
   try {
@@ -204,7 +204,7 @@ export const changeUserStatus = async (
 
 export const changeAgentStatus = async (
   accessToken: string,
-  agentId: string,
+  agentId: number,
   status: number
 ): Promise<ApiResponse<{ agent: Agent }>> => {
   try {
@@ -214,7 +214,7 @@ export const changeAgentStatus = async (
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({ master_id: String(agentId), status }),
+      body: JSON.stringify({ agent_id: String(agentId), status }),
       redirect: "follow",
     });
     const data = await response.json();

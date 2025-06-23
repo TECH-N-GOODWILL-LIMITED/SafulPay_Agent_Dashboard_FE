@@ -18,7 +18,7 @@ import { useAllUsers } from "../../../context/UsersContext";
 import { changeAgentStatus, changeUserStatus } from "../../../utils/api";
 
 interface User {
-  id: string;
+  id: number;
   image?: string;
   name?: string;
   firstName?: string;
@@ -79,12 +79,10 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
         return true;
       } else {
         setErrorMessage(response.error || `Failed to change status`);
-        console.error("Failed to change status:", response.error);
         return false;
       }
     } catch (err) {
-      setErrorMessage("An unexpected error occurred");
-      console.error("Error changing status:", err);
+      setErrorMessage(`An unexpected error occurred- ${err}`);
       return false;
     } finally {
       setIsActionLoading(false);

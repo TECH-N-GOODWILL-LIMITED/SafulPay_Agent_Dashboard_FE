@@ -53,8 +53,8 @@ const Riders: React.FC = () => {
           user.status === 1
             ? "Active"
             : user.status === 2
-            ? "Pending"
-            : "Suspended",
+            ? "Suspended"
+            : "Pending",
       },
     })
   );
