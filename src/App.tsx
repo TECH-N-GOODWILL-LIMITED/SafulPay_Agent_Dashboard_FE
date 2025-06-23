@@ -31,6 +31,7 @@ import Disbursement from "./pages/Disbursement.tsx/Disbursement";
 import Audit from "./pages/Audit/Audit";
 import Withdrawal from "./pages/Withdrawal/Withdrawal";
 import Deposit from "./pages/Deposit/Deposit";
+import OnboardAgent from "./pages/OnBoarding/OnboardAgent";
 
 export default function App() {
   return (
@@ -110,6 +111,10 @@ export default function App() {
 
           {/* Fallback Route */}
           <Route path="*" element={<NotFound />} />
+
+          {/* Agent Onboarding */}
+
+          <Route path="/addagent/:marketer_id" element={<OnboardAgent />} />
         </Routes>
       </Router>
     </>

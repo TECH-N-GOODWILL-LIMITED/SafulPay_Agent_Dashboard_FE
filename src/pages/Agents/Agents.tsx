@@ -10,7 +10,7 @@ import Alert from "../../components/ui/alert/Alert";
 
 interface TableContentType {
   user: {
-    id: string;
+    id: number;
     image?: string;
     name: string;
     businessName?: string;
@@ -39,7 +39,7 @@ const Agents: React.FC = () => {
 
   const tableData: TableContentType[] = allAgents.map((agent: Agent) => ({
     user: {
-      id: String(agent.id),
+      id: agent.id,
       image: agent.image || "/images/user/user-12.jpg", // fallback image
       name: agent.name || "N/A",
       businessName: agent.business_name,
@@ -50,8 +50,8 @@ const Agents: React.FC = () => {
         agent.status === "1"
           ? "Active"
           : agent.status === "2"
-          ? "Pending"
-          : "Suspended",
+          ? "Suspended"
+          : "Pending",
     },
   }));
 

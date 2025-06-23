@@ -1,7 +1,6 @@
 import { useEffect } from "react";
-import { useAllUsers } from "../../context/UsersContext";
+import { useAllUsers, usersItem } from "../../context/UsersContext";
 import { userRoles } from "../../utils/roles";
-import type { UserBio } from "../../types/types";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
@@ -35,22 +34,24 @@ const Accountants: React.FC = () => {
     filterByRole("Accountant");
   }, [filterByRole]);
 
-  const tableData: TableContentType[] = filteredUsers?.map((user: UserBio) => ({
-    user: {
-      id: user.id,
-      image: "/images/user/user-17.jpg", // or actual image URL if available
-      name: user.name,
-      role: user.role,
-      cih: 200000,
-      phone: user.phone,
-      status:
-        user.status === 1
-          ? "Active"
-          : user.status === 2
-          ? "Pending"
-          : "Suspended",
-    },
-  }));
+  const tableData: TableContentType[] = filteredUsers?.map(
+    (user: usersItem) => ({
+      user: {
+        id: user.id,
+        image: "/images/user/user-17.jpg", // or actual image URL if available
+        name: user.name,
+        role: user.role,
+        cih: 200000,
+        phone: user.phone,
+        status:
+          user.status === 1
+            ? "Active"
+            : user.status === 2
+            ? "Suspended"
+            : "Pending",
+      },
+    })
+  );
 
   if (loading) return <div>Loading...</div>;
   if (error)

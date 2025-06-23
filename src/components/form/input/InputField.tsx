@@ -19,6 +19,7 @@ interface InputProps {
     | "date"
     | "time"
     | "tel"
+    | "select"
     | string;
   id?: string;
   name?: string;
@@ -41,9 +42,10 @@ interface InputProps {
   inputMode?: "numeric" | "text" | "tel" | "email" | "url" | "none" | "search";
   pattern?: string;
   readOnly?: boolean;
+  selectOptions?: string[];
 }
 
-const InputField: FC<InputProps> = ({
+const Input: FC<InputProps> = ({
   type = "text",
   id,
   name,
@@ -59,17 +61,11 @@ const InputField: FC<InputProps> = ({
   error = false,
   hint,
   select = false,
-  options = [
-    { value: "Admin", label: "Admin" },
-    { value: "Agents", label: "Agents" },
-    { value: "Marketer", label: "Marketer" },
-    { value: "Rider", label: "Rider" },
-    { value: "Accountant", label: "Accountant" },
-  ],
   selectedCountries,
   inputMode,
   pattern,
   readOnly = false,
+  selectOptions,
 }) => {
   const availableCountries = selectedCountries
     ? countries.filter((c) => selectedCountries.includes(c.code))
@@ -261,25 +257,25 @@ const InputField: FC<InputProps> = ({
             </Dropdown>
           )}
         </div>
-      ) : select ? (
+      ) : type === "select" ? (
         <select
           id={id}
           name={name}
           value={value}
           onChange={onChange}
-          disabled={disabled || readOnly}
-          className={inputClasses}
+          disabled={disabled}
+          className={`cursor-pointer ${inputClasses}`}
         >
           <option value="" disabled>
             {placeholder || "Select option"}
           </option>
-          {options.map((option) => (
+          {selectOptions?.map((option) => (
             <option
-              key={option.value}
-              value={option.value}
+              key={option}
+              value={option}
               className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
             >
-              {option.label}
+              {option}
             </option>
           ))}
         </select>
@@ -319,4 +315,4 @@ const InputField: FC<InputProps> = ({
   );
 };
 
-export default InputField;
+export default Input;
