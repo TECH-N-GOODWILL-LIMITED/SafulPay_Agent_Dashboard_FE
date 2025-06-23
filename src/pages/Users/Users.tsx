@@ -9,7 +9,7 @@ import Alert from "../../components/ui/alert/Alert";
 
 interface TableContentType {
   user: {
-    id: number;
+    id: string;
     image?: string;
     name?: string;
     businessName: string;
@@ -39,7 +39,7 @@ const Users: React.FC = () => {
   const tableData: TableContentType[] = filteredUsers.map(
     (user: usersItem) => ({
       user: {
-        id: user.id,
+        id: String(user.id),
         image: "/images/user/user-17.jpg", // or actual image URL if available
         name: user.name,
         firstName: user.firstname,

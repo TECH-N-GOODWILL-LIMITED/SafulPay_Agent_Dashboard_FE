@@ -16,7 +16,8 @@ export const getResponseCookies = (): LoginResponseData | null => {
   const dataStr = Cookies.get("responseData");
   if (!dataStr) return null;
   try {
-    return JSON.parse(dataStr);
+    const data = JSON.parse(dataStr) as LoginResponseData;
+    return data;
   } catch {
     return null;
   }

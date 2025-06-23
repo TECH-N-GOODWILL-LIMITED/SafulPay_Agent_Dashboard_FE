@@ -153,7 +153,6 @@ export default function SignInForm() {
                       name="phone"
                       placeholder="Enter phone number (e.g., 23298765432)"
                       value={phone}
-                      max={12}
                       onChange={(e) => {
                         setPhone(e.target.value);
                         setError("");
@@ -230,7 +229,7 @@ export default function SignInForm() {
             ) : (
               <form onSubmit={handleLogIn}>
                 <div className="space-y-6">
-                  <div>
+                  <div className="relative">
                     <Label>
                       OTP <span className="text-error-500">*</span>
                     </Label>

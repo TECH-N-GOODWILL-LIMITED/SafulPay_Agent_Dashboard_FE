@@ -10,7 +10,7 @@ import Alert from "../../components/ui/alert/Alert";
 
 interface TableContentType {
   user: {
-    id: number;
+    id: string;
     image?: string;
     name: string;
     businessName?: string;
@@ -30,6 +30,7 @@ const tableHeader: string[] = [
 ];
 
 const Agents: React.FC = () => {
+  // ! call the fitlerByRole function to filter agents by role
   const { fetchAgents, allAgents, title, error, loading } = useAllUsers();
 
   useEffect(() => {
@@ -38,7 +39,7 @@ const Agents: React.FC = () => {
 
   const tableData: TableContentType[] = allAgents.map((agent: Agent) => ({
     user: {
-      id: agent.id,
+      id: String(agent.id),
       image: agent.image || "/images/user/user-12.jpg", // fallback image
       name: agent.name || "N/A",
       businessName: agent.business_name,

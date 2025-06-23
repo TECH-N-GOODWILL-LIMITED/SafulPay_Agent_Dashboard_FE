@@ -1,10 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  ReactNode,
-  useEffect,
-} from "react";
+import { createContext, useContext, useState, ReactNode } from "react";
 import { logOut } from "../utils/api";
 import {
   clearResponseCookies,
@@ -17,7 +11,7 @@ interface AuthContextType {
   user: UserBio | null;
   token: string | null;
   login: (data: LoginResponseData, keepLoggedIn: boolean) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,33 +25,29 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [responseData, setResponseDataState] =
-    useState<LoginResponseData | null>(() => {
-      return getResponseCookies();
-    });
-
-  useEffect(() => {
-    const data = getResponseCookies();
-    if (data && data !== responseData) {
-      setResponseDataState(data);
-    }
-  }, []);
+  const [responseData, setResponseData] = useState<LoginResponseData | null>(
+    getResponseCookies
+  );
 
   const user = responseData?.user || null;
   const token = responseData?.access_token || null;
 
   const login = (data: LoginResponseData, keepLoggedIn: boolean) => {
-    setResponseDataState(data);
+    setResponseData(data);
     setResponseCookies(data, keepLoggedIn);
   };
 
   const logout = async () => {
-    if (token) {
-      await logOut(token); // optional: handle response
+    try {
+      if (token) {
+        await logOut(token);
+      }
+    } catch (error) {
+      console.error("Logout API failed:", error);
+    } finally {
+      setResponseData(null);
+      clearResponseCookies();
     }
-
-    setResponseDataState(null);
-    clearResponseCookies();
   };
 
   return (

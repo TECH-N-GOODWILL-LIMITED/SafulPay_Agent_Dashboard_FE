@@ -170,3 +170,115 @@ export const registerUser = async (
     return { success: false, error: `Error registering user: ${err}` };
   }
 };
+
+export const changeUserStatus = async (
+  accessToken: string,
+  userId: string,
+  status: number
+): Promise<ApiResponse<{ user: UserBio }>> => {
+  try {
+    console.log(status, userId);
+    const response = await fetch(`${BASE_URL}/auth/changeUserStatus`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ id: Number(userId), status }),
+      redirect: "follow",
+    });
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return { success: true, data: { user: data.data.user } };
+    } else {
+      return {
+        success: false,
+        error: data.message || "Failed to change user status",
+      };
+    }
+  } catch (err) {
+    return { success: false, error: `Error changing user status: ${err}` };
+  }
+};
+
+export const changeAgentStatus = async (
+  accessToken: string,
+  agentId: string,
+  status: number
+): Promise<ApiResponse<{ agent: Agent }>> => {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/agents/changeAgentStatus`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ master_id: String(agentId), status }),
+      redirect: "follow",
+    });
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return { success: true, data: { agent: data.data.agent } };
+    } else {
+      return {
+        success: false,
+        error: data.message || "Failed to change agent status",
+      };
+    }
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: `Error changing agent status: ${err}` };
+  }
+};
+
+export const validateToken = async (
+  accessToken: string
+): Promise<ApiResponse<{ valid: boolean }>> => {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/validate-token`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    const data = await response.json();
+    if (response.ok && data.status) {
+      return { success: true, data: { valid: true } };
+    } else {
+      return { success: false, error: data.message || "Invalid token" };
+    }
+  } catch (err) {
+    return { success: false, error: `Error validating token: ${err}` };
+  }
+};
+
+// ! Check this out, to implement pagination in the future
+/**
+ * 
+ * 
+ * pagination
+: 
+{current_page: 1, per_page: 10, total: 9, last_page: 1, next_page_url: null, prev_page_url: null}
+current_page
+: 
+1
+last_page
+: 
+1
+next_page_url
+: 
+null
+per_page
+: 
+10
+prev_page_url
+: 
+null
+total
+: 
+9
+
+ */

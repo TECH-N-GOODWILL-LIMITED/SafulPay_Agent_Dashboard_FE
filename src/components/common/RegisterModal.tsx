@@ -8,6 +8,8 @@ import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Button from "../ui/button/Button";
 import Alert from "../ui/alert/Alert";
+import { DropdownItem } from "../ui/dropdown/DropdownItem";
+import { Dropdown } from "../ui/dropdown/Dropdown";
 
 interface RegisterModalProps {
   modalHeading: string;
@@ -33,10 +35,11 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
   const [error, setError] = useState<string | undefined>("");
   const [warnError, setWarnError] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
   const { token } = useAuth();
   const { fetchUsers } = useAllUsers();
 
-  const userOptions = userRoles?.filter((role) => role !== "Agent");
+  const userOptions = userRoles?.filter((role) => role !== "Agent") || [];
 
   const handlePhoneChange = (
     e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>
@@ -44,13 +47,11 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
     setPhone(e.target.value);
     setError("");
     setWarnError(false);
-    // setSuccessAlert("");
   };
 
-  const handleRoleChange = (
-    e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>
-  ) => {
-    setSelectedRole(e.target.value);
+  const handleRoleChange = (role: string) => {
+    setSelectedRole(role);
+    setIsRoleDropdownOpen(false);
   };
 
   const handleRegister = async () => {
@@ -66,9 +67,17 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
       return;
     }
 
-    const phoneNumber = filterPhoneNumber(phone);
-    if (phoneNumber.length !== 11) {
-      setAlertTitle("Invalid Phone Number Format");
+    let phoneNumber: string;
+    try {
+      phoneNumber = filterPhoneNumber(phone);
+      if (phoneNumber.length !== 11) {
+        setAlertTitle("Invalid Phone Number Format");
+        setWarnError(true);
+        return;
+      }
+    } catch (err) {
+      setAlertTitle("Invalid Phone Number");
+      setError((err as Error).message);
       setWarnError(true);
       return;
     }
@@ -80,13 +89,9 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
     const response = await registerUser(token, phoneNumber, selectedRole);
 
     if (response.success && response.data) {
-      // Registration succeeded
-      // response.data.user contains the new user
-      // Optionally, refresh user list
       await fetchUsers();
-      onClose(); // close modal
+      onClose();
     } else {
-      // Show error
       setAlertTitle("Registration Failed");
       setError(response.error || "Registration failed");
     }
@@ -106,15 +111,6 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
           </p>
         )}
       </div>
-      {/* {successAlert && (
-          <Alert
-            variant="success"
-            title={alertTitle}
-            message={successAlert}
-            showLink={false}
-          />
-        )} */}
-
       {warnError && (
         <Alert variant="warning" title={alertTitle} showLink={false}>
           <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -128,10 +124,9 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
           </div>
         </Alert>
       )}
-
       {error && (
         <Alert
-          variant={"error"}
+          variant="error"
           title={alertTitle}
           message={error}
           showLink={false}
@@ -149,7 +144,6 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
             <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
               Enter Information
             </h5>
-
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
               <div className="col-span-2 lg:col-span-1">
                 <Label>
@@ -159,25 +153,49 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
                   type="tel"
                   id="phone"
                   name="phone"
-                  placeholder="Enter phone number (e.g., 23298765432)"
                   value={phone}
-                  max={12}
                   onChange={handlePhoneChange}
                   error={warnError}
+                  selectedCountries={["SL"]}
                 />
               </div>
-
               <div className="relative col-span-2 lg:col-span-1">
                 <Label>
-                  Role<span className="text-error-500 ml-2">*</span>
+                  Role <span className="text-error-500 ml-2">*</span>
                 </Label>
-                <Input
-                  type="select"
-                  selectOptions={userOptions}
-                  value={selectedRole}
-                  onChange={handleRoleChange}
-                />
-                <ChevronDownIcon className="absolute bottom-1/5 right-3 text-gray-800 dark:text-white/90" />
+                <div
+                  className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent border-gray-300 shadow-theme-xs flex items-center justify-between cursor-pointer dark:border-gray-700 dark:text-white/90 ${
+                    error
+                      ? "border-error-500"
+                      : "focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
+                  }`}
+                  onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
+                >
+                  <span>{selectedRole || "Select Role"}</span>
+                  <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
+                </div>
+                <Dropdown
+                  isOpen={isRoleDropdownOpen}
+                  onClose={() => setIsRoleDropdownOpen(false)}
+                  className="w-full top-full left-0 mt-1 z-50 absolute top-[100]"
+                  search={false}
+                >
+                  {userOptions.length > 0 ? (
+                    userOptions.map((role) => (
+                      <DropdownItem
+                        key={role}
+                        onClick={() => handleRoleChange(role)}
+                        className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                      >
+                        {role}
+                      </DropdownItem>
+                    ))
+                  ) : (
+                    <div className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
+                      No roles available
+                    </div>
+                  )}
+                </Dropdown>
               </div>
             </div>
           </div>
