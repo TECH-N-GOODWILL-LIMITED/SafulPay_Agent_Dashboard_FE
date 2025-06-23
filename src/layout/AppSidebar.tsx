@@ -157,17 +157,11 @@ const AppSidebar: React.FC = () => {
     if (!subItems) return subItems;
     switch (role) {
       case "Admin":
-        return subItems.filter((item) =>
-          ["All Users", "Accountants", "Agents"].includes(item.name)
-        );
+        return subItems;
       case "Accountant":
-        return subItems.filter((item) =>
-          ["All Users", "Accountants"].includes(item.name)
-        );
+        return subItems.filter((item) => ["Accountants"].includes(item.name));
       case "Marketer":
-        return subItems.filter((item) =>
-          ["All Users", "Marketers"].includes(item.name)
-        );
+        return subItems.filter((item) => ["Marketers"].includes(item.name));
       default:
         return subItems;
     }

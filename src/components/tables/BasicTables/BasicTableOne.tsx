@@ -18,7 +18,7 @@ import { useAllUsers } from "../../../context/UsersContext";
 import { changeAgentStatus, changeUserStatus } from "../../../utils/api";
 
 interface User {
-  id: number;
+  id: string;
   image?: string;
   name?: string;
   firstName?: string;
@@ -165,7 +165,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
 
   const handleSuspend = async (): Promise<void> => {
     if (!currentUser || !token) return;
-    if (await changeStatus(currentUser, token, 3)) {
+    if (await changeStatus(currentUser, token, 2)) {
       closeModal();
     }
   };

@@ -173,17 +173,18 @@ export const registerUser = async (
 
 export const changeUserStatus = async (
   accessToken: string,
-  userId: number,
+  userId: string,
   status: number
 ): Promise<ApiResponse<{ user: UserBio }>> => {
   try {
+    console.log(status, userId);
     const response = await fetch(`${BASE_URL}/auth/changeUserStatus`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({ userId, status }),
+      body: JSON.stringify({ id: Number(userId), status }),
       redirect: "follow",
     });
     const data = await response.json();
@@ -203,7 +204,7 @@ export const changeUserStatus = async (
 
 export const changeAgentStatus = async (
   accessToken: string,
-  agentId: number,
+  agentId: string,
   status: number
 ): Promise<ApiResponse<{ agent: Agent }>> => {
   try {
@@ -213,7 +214,7 @@ export const changeAgentStatus = async (
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({ master_id: agentId, status }),
+      body: JSON.stringify({ master_id: String(agentId), status }),
       redirect: "follow",
     });
     const data = await response.json();
@@ -227,6 +228,7 @@ export const changeAgentStatus = async (
       };
     }
   } catch (err) {
+    console.log(err);
     return { success: false, error: `Error changing agent status: ${err}` };
   }
 };
@@ -252,3 +254,31 @@ export const validateToken = async (
     return { success: false, error: `Error validating token: ${err}` };
   }
 };
+
+// ! Check this out, to implement pagination in the future
+/**
+ * 
+ * 
+ * pagination
+: 
+{current_page: 1, per_page: 10, total: 9, last_page: 1, next_page_url: null, prev_page_url: null}
+current_page
+: 
+1
+last_page
+: 
+1
+next_page_url
+: 
+null
+per_page
+: 
+10
+prev_page_url
+: 
+null
+total
+: 
+9
+
+ */

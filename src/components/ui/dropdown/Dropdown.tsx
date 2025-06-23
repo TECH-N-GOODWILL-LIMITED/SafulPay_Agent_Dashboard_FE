@@ -59,7 +59,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
           />
         </div>
       )}
-      <div className="overflow-y-auto max-h-48">{children}</div>
+      <div className={search ? "overflow-y-auto max-h-48" : ""}>{children}</div>
     </div>
   );
 };
