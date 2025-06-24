@@ -63,8 +63,8 @@ const Marketers: React.FC = () => {
   return (
     <>
       <PageMeta
-        title="SafulPay Agency Dashboard | Finance just got better"
-        description="This is SafulPay Agency's Dashboard - Management system for SafulPay's Agency Platform"
+        title="Marketers | SafulPay Agency Dashboard - Finance just got better"
+        description="List of all agency marketers - Management system for SafulPay's Agency Platform"
       />
       <PageBreadcrumb pageTitle="Marketers" />
       <div className="space-y-6">

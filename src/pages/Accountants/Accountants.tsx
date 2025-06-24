@@ -62,8 +62,8 @@ const Accountants: React.FC = () => {
   return (
     <>
       <PageMeta
-        title="SafulPay Agency Dashboard | Finance just got better"
-        description="This is SafulPay Agency's Dashboard - Management system for SafulPay's Agency Platform"
+        title="Accountants | SafulPay Agency Dashboard - Finance just got better"
+        description="List of all agency accountants - Management system for SafulPay's Agency Platform"
       />
       <PageBreadcrumb pageTitle="Accountants" />
       <div className="space-y-6">
