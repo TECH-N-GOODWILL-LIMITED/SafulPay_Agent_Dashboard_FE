@@ -10,7 +10,6 @@ import Button from "../ui/button/Button";
 import Alert from "../ui/alert/Alert";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { Dropdown } from "../ui/dropdown/Dropdown";
-// import { Dropdown, DropdownItem } from "../ui/dropdown/Dropdown";
 
 interface RegisterAgentModalProps {
   modalHeading: string;
