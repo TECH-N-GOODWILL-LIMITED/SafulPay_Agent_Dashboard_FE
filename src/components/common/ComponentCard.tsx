@@ -5,6 +5,7 @@ import { useModal } from "../../hooks/useModal";
 import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import RegisterModal from "./RegisterModal";
+import RegisterAgentModal from "./RegisterAgentModal";
 
 interface ComponentCardProps {
   title: string;
@@ -30,6 +31,7 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
   userType = "",
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const { isOpen, openModal, closeModal } = useModal();
 
   function toggleDropdown() {
     setIsDropdownOpen(!isDropdownOpen);
@@ -39,7 +41,6 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
     if (onItemClick) {
       onItemClick(option);
     }
-
     setIsDropdownOpen(false);
   }
 
@@ -47,33 +48,24 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
     setIsDropdownOpen(false);
   }
 
-  const { isOpen, openModal, closeModal } = useModal();
-
   return (
     <div
       className={`rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] ${className}`}
     >
-      {/* Card Header */}
-      {/* <div className="px-6 py-5"> */}
       <div className="px-6 py-5 flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-base font-medium text-gray-800 dark:text-white/90">
           {title}
         </h3>
-
         {desc && (
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {desc}
           </p>
         )}
-
         {actionButton1 && (
           <div className="flex items-center gap-3">
-            {userType !== "Agent" && (
-              <Button size="sm" endIcon="✚" onClick={openModal}>
-                Add {userType}
-              </Button>
-            )}
-
+            <Button size="sm" endIcon="✚" onClick={openModal}>
+              Add {userType}
+            </Button>
             <div className="relative">
               <Button
                 onClick={toggleDropdown}
@@ -130,12 +122,6 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
                   >
                     View More
                   </DropdownItem>
-                  {/* <DropdownItem
-                  onItemClick={closeDropdown}
-                  className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-                >
-                  Delete
-                </DropdownItem> */}
                 </Dropdown>
               ) : (
                 <Dropdown
@@ -155,26 +141,26 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
                 </Dropdown>
               )}
             </div>
-            {/* 
-            <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
-              See all
-            </button> */}
           </div>
         )}
       </div>
-
-      {/* Card Body */}
       <div className="p-4 border-t border-gray-100 dark:border-gray-800 sm:p-6">
         <div className="space-y-6">{children}</div>
       </div>
-
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
-        <RegisterModal
-          modalHeading="Add a new user"
-          userRoles={userRoles}
-          selectRole={userType}
-          onClose={closeModal}
-        />
+        {userType === "Agent" ? (
+          <RegisterAgentModal
+            modalHeading="Add a new agent"
+            onClose={closeModal}
+          />
+        ) : (
+          <RegisterModal
+            modalHeading="Add a new user"
+            userRoles={userRoles}
+            selectRole={userType}
+            onClose={closeModal}
+          />
+        )}
       </Modal>
     </div>
   );

@@ -214,7 +214,6 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
               </TableCell>
             </TableRow>
           </TableHeader>
-
           {/* Table Body */}
           <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
             {tableContent.length > 0 ? (

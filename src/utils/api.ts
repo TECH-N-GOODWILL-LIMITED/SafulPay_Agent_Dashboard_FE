@@ -171,6 +171,34 @@ export const registerUser = async (
   }
 };
 
+export const addAgent = async (
+  accessToken: string,
+  formData: FormData
+): Promise<ApiResponse<{ agent: Agent }>> => {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/agents/onboardAgent`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: formData,
+      redirect: "follow",
+    });
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return { success: true, data: { agent: data.data } };
+    } else {
+      return {
+        success: false,
+        error: data.message || "Failed to onboard agent",
+      };
+    }
+  } catch (err) {
+    return { success: false, error: `Error onboarding agent: ${err}` };
+  }
+};
+
 export const changeUserStatus = async (
   accessToken: string,
   userId: number,
@@ -254,7 +282,6 @@ export const validateToken = async (
     return { success: false, error: `Error validating token: ${err}` };
   }
 };
-
 // ! Check this out, to implement pagination in the future
 /**
  * 
