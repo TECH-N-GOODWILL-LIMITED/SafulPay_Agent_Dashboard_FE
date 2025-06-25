@@ -359,14 +359,14 @@ export default function RegisterAgentForm() {
                 <Dropdown
                   isOpen={isIdTypeDropdownOpen}
                   onClose={() => setIsIdTypeDropdownOpen(false)}
-                  className="w-full top-full left-0 mt-1 z-50"
+                  className="w-full p-2"
                   search={false}
                 >
                   {idTypeOptions.map((type) => (
                     <DropdownItem
                       key={type}
                       onClick={() => handleIdTypeChange(type)}
-                      className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                      className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                     >
                       {type}
                     </DropdownItem>
@@ -454,14 +454,14 @@ export default function RegisterAgentForm() {
                 <Dropdown
                   isOpen={isModelDropdownOpen}
                   onClose={() => setIsModelDropdownOpen(false)}
-                  className="w-full top-full left-0 mt-1 z-50"
+                  className="w-full p-2"
                   search={false}
                 >
                   {modelOptions.map((option) => (
                     <DropdownItem
                       key={option}
                       onClick={() => handleModelChange(option)}
-                      className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                      className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                     >
                       {option}
                     </DropdownItem>
@@ -587,14 +587,14 @@ export default function RegisterAgentForm() {
                 <Dropdown
                   isOpen={isStatusDropdownOpen}
                   onClose={() => setIsStatusDropdownOpen(false)}
-                  className="w-full top-full left-0 mt-1 z-50"
+                  className="w-full p-2"
                   search={false}
                 >
                   {statusOptions.map((option) => (
                     <DropdownItem
                       key={option.value}
-                      onClick={() => handleStatusChange(option.value)}
-                      className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                      onItemClick={() => handleStatusChange(option.value)}
+                      className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                     >
                       {option.label}
                     </DropdownItem>
@@ -632,14 +632,14 @@ export default function RegisterAgentForm() {
                 <Dropdown
                   isOpen={isTypeDropdownOpen}
                   onClose={() => setIsTypeDropdownOpen(false)}
-                  className="w-full top-full left-0 mt-1 z-50"
+                  className="w-full p-2"
                   search={false}
                 >
                   {typeOptions.map((option) => (
                     <DropdownItem
                       key={option}
                       onClick={() => handleTypeChange(option)}
-                      className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                      className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                     >
                       {option}
                     </DropdownItem>

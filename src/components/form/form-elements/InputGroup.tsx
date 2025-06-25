@@ -38,7 +38,7 @@ export default function InputGroup() {
             placeholder="+1 (555) 000-0000"
             onChange={handlePhoneNumberChange}
           />
-        </div>{" "}
+        </div>
         <div>
           <Label>Phone</Label>
           <PhoneInput
