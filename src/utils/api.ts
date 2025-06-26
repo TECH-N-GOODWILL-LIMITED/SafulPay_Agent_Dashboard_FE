@@ -282,6 +282,34 @@ export const validateToken = async (
     return { success: false, error: `Error validating token: ${err}` };
   }
 };
+
+export const uploadToCloudinary = async (
+  file: File,
+  cloudName: string,
+  uploadPreset: string
+) => {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", uploadPreset);
+
+    const uploadResponse = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    const data = await uploadResponse.json();
+    if (data.secure_url) {
+      return { success: true, url: data.secure_url };
+    }
+    return { success: false, error: data.error?.message || "Upload failed" };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+};
 // ! Check this out, to implement pagination in the future
 /**
  * 
