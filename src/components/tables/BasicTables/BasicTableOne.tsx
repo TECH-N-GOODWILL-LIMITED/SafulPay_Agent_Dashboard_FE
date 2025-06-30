@@ -8,7 +8,6 @@ import {
   TableHeader,
   TableRow,
 } from "../../ui/table";
-
 import Badge from "../../ui/badge/Badge";
 import Button from "../../ui/button/Button";
 import Input from "../../form/input/InputField";
@@ -20,15 +19,25 @@ import { changeAgentStatus, changeUserStatus } from "../../../utils/api";
 interface User {
   id: number;
   image?: string;
-  name?: string;
-  firstName?: string;
-  lastName?: string;
+  name: string;
+  firstName: string;
+  lastName: string;
   businessName?: string;
+  username?: string;
   role?: string;
+  model?: string;
+  address?: string;
+  latitude?: string;
+  longitude?: string;
+  idType?: string;
+  idDocument?: string;
+  bizRegDocument?: string;
+  businessImage?: string;
   code?: string;
   cih?: number;
   residualAmount?: number;
   phone: string;
+  businessPhone?: string;
   status: string;
 }
 
@@ -55,6 +64,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
+
   const { isOpen, openModal, closeModal } = useModal();
   const { token } = useAuth();
   const { fetchUsers } = useAllUsers();
@@ -115,7 +125,14 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
           <>
             <Button
               size="sm"
-              className="bg-brand-accent"
+              variant={
+                !currentUser?.businessImage ||
+                !currentUser?.bizRegDocument ||
+                !currentUser.idDocument
+                  ? "primary"
+                  : "outline"
+              }
+              className="bg-brand-accent hover:bg-brand-accent-100! hover:text-white"
               onClick={handlers.decline}
               disabled={isActionLoading}
             >
@@ -123,6 +140,14 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
             </Button>
             <Button
               size="sm"
+              variant={
+                !currentUser?.businessImage ||
+                !currentUser?.bizRegDocument ||
+                !currentUser.idDocument
+                  ? "outline"
+                  : "primary"
+              }
+              className="hover:bg-brand-600! hover:text-white"
               onClick={handlers.approve}
               disabled={isActionLoading}
             >
@@ -219,8 +244,8 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
             {tableContent.length > 0 ? (
               tableContent.map((order) => (
                 <TableRow key={`${order.user.id}${order.user.role}`}>
-                  <TableCell className="px-5 py-4 sm:px-6 text-start">
-                    <div className="flex items-center gap-3">
+                  <TableCell className="px-5 py-4 sm:px-6 text-start truncate">
+                    <div className="flex items-center gap-3 truncate">
                       <div className="w-10 h-10 overflow-hidden rounded-full">
                         <img
                           width={40}
@@ -234,7 +259,10 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                           {order.user.name}
                         </span>
                         <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
-                          {order.user.businessName}
+                          {order.user.role === "Agent" ||
+                          order.user.role === "Merchant"
+                            ? order.user.businessName
+                            : order.user.username}
                         </span>
                       </div>
                     </div>
@@ -305,6 +333,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
             )}
           </TableBody>
         </Table>
+
         <Modal
           isOpen={isOpen}
           onClose={closeModal}
@@ -313,61 +342,170 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
           <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
             <div className="px-2 pr-14">
               <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-                Edit Personal Information
+                Personal Information
               </h4>
               <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-                Update your details to keep your profile up-to-date.
+                Update user details to keep their profile up-to-date.
               </p>
             </div>
-            <form className="flex flex-col">
+            <form className="flex flex-col max-h-[64vh]">
               <div className="custom-scrollbar h-full overflow-y-auto px-2 pb-3">
-                <div className="mt-7">
-                  <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
-                    Personal Information
-                  </h5>
+                <div className="">
+                  {currentUser?.role === "Agent" ||
+                  currentUser?.role === "Merchant" ? (
+                    <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
+                      <div className="col-span-2 lg:col-span-1">
+                        <Label>Full Name</Label>
+                        <Input type="text" value={currentUser.name} readOnly />
+                      </div>
 
-                  <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                    <div className="col-span-2 lg:col-span-1">
-                      <Label>First Name</Label>
-                      <Input
-                        type="text"
-                        value={currentUser?.firstName || " "}
-                        readOnly
-                      />
-                    </div>
+                      <div className="col-span-2 lg:col-span-1">
+                        <Label>Business Name / Username</Label>
+                        <Input
+                          type="text"
+                          value={`${currentUser.businessName} / ${currentUser.username}`}
+                          readOnly
+                        />
+                      </div>
 
-                    <div className="col-span-2 lg:col-span-1">
-                      <Label>Last Name</Label>
-                      <Input
-                        type="text"
-                        value={currentUser?.lastName || " "}
-                        readOnly
-                      />
-                    </div>
+                      <div className="col-span-2 lg:col-span-1">
+                        <Label>Phone / Business Phone</Label>
+                        <Input
+                          type="text"
+                          value={`${currentUser.phone} / ${currentUser.businessPhone}`}
+                          readOnly
+                        />
+                      </div>
 
-                    <div className="col-span-2 lg:col-span-1">
-                      <Label>Email Address</Label>
-                      <Input type="text" value={"example@email.com"} readOnly />
-                    </div>
+                      <div className="col-span-2 lg:col-span-1">
+                        <Label>Role / Model</Label>
+                        <Input
+                          type="text"
+                          value={`${currentUser.role} ${
+                            currentUser.role === "Agent"
+                              ? `/ ${currentUser.model} model`
+                              : ""
+                          }`}
+                          readOnly
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Label>Address</Label>
+                        <Input
+                          type="text"
+                          value={currentUser.address}
+                          readOnly
+                        />
+                      </div>
+                      <div className="col-span-2 lg:col-span-1">
+                        <Label>Latitude / Longitude</Label>
+                        <Input
+                          type="text"
+                          value={`${currentUser.latitude} / ${currentUser.longitude}`}
+                          readOnly
+                        />
+                      </div>
 
-                    <div className="col-span-2 lg:col-span-1">
-                      <Label>Phone</Label>
-                      <Input
-                        type="text"
-                        value={currentUser?.phone || " "}
-                        readOnly
-                      />
-                    </div>
+                      <div className="col-span-2 lg:col-span-1 truncate">
+                        <Label>ID Document</Label>
+                        {currentUser.idDocument ? (
+                          <a
+                            href={currentUser.idDocument}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-brand-500 hover:underline"
+                          >
+                            Click to view {currentUser.idType} document
+                          </a>
+                        ) : (
+                          <p className="text-brand-accent">No ID Document</p>
+                        )}
+                      </div>
 
-                    <div className="col-span-2">
-                      <Label>Role</Label>
-                      <Input
-                        type="text"
-                        value={currentUser?.role || " "}
-                        readOnly
-                      />
+                      <div className="col-span-2 lg:col-span-1 truncate">
+                        <Label>Registration Document</Label>
+                        {currentUser.bizRegDocument ? (
+                          <a
+                            href={currentUser.bizRegDocument}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-brand-500 hover:underline"
+                          >
+                            Click to view registration document
+                          </a>
+                        ) : (
+                          <p className="text-brand-accent">
+                            No Registration Document
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="col-span-2 lg:col-span-1 truncate">
+                        <Label>Business Place Image</Label>
+                        {currentUser.businessImage ? (
+                          <a
+                            href={currentUser.businessImage}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-brand-500 hover:underline"
+                          >
+                            Click to View Business Place Image
+                          </a>
+                        ) : (
+                          <p className="text-brand-accent">
+                            No Business Place Image
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
+                      <div className="col-span-2 lg:col-span-1">
+                        <Label>First Name</Label>
+                        <Input
+                          type="text"
+                          value={currentUser?.firstName || " "}
+                          readOnly
+                        />
+                      </div>
+
+                      <div className="col-span-2 lg:col-span-1">
+                        <Label>Last Name</Label>
+                        <Input
+                          type="text"
+                          value={currentUser?.lastName || " "}
+                          readOnly
+                        />
+                      </div>
+
+                      <div className="col-span-2 lg:col-span-1">
+                        <Label>Email Address</Label>
+                        <Input
+                          type="text"
+                          value={"example@email.com"}
+                          readOnly
+                        />
+                      </div>
+
+                      <div className="col-span-2 lg:col-span-1">
+                        <Label>Phone</Label>
+                        <Input
+                          type="text"
+                          value={currentUser?.phone || " "}
+                          readOnly
+                        />
+                      </div>
+
+                      <div className="col-span-2">
+                        <Label>Role</Label>
+                        <Input
+                          type="text"
+                          value={currentUser?.role || " "}
+                          readOnly
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               {errorMessage && (

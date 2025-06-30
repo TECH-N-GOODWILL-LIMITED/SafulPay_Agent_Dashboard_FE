@@ -8,14 +8,14 @@ import {
 } from "react";
 import { useAuth } from "./AuthContext";
 import { getAllUsers, getAllAgents } from "../utils/api";
-import type { Agent } from "../types/types";
-import type { UserBio } from "../types/types";
+import type { Agent, Users } from "../types/types";
+// import type { UserBio } from "../types/types";
 
 interface AgentWithRole extends Agent {
   role: string; // set to "Agent"
 }
 
-export type usersItem = UserBio | AgentWithRole;
+export type usersItem = Users | AgentWithRole;
 
 interface UsersContextType {
   // allUsers: UserBio[];
@@ -92,7 +92,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({
         ...userRes.data.users,
         ...agentRes.data.agents.map((agent) => ({
           ...agent,
-          role: "Agent",
+          role: agent.type,
         })),
       ];
 

@@ -1,8 +1,13 @@
-import type { Agent, ApiResponse, LoginResponseData } from "../types/types";
+import type {
+  Agent,
+  ApiResponse,
+  LoginResponseData,
+  Users,
+} from "../types/types";
 import type { LoginResponse } from "../types/types";
 import type { UserBio } from "../types/types";
 
-const BASE_URL = "https://test.techengood.com/api";
+const BASE_URL = import.meta.env.VITE_AGENCY_BASE_URL;
 
 export const requestOtp = async (
   phone: string
@@ -95,7 +100,7 @@ export const logOut = async (
 
 export const getAllUsers = async (
   accessToken: string
-): Promise<ApiResponse<{ users: UserBio[] }>> => {
+): Promise<ApiResponse<{ users: Users[] }>> => {
   try {
     const response = await fetch(`${BASE_URL}/auth/getAllUsers`, {
       method: "GET",
@@ -145,7 +150,7 @@ export const registerUser = async (
   accessToken: string,
   phone: string,
   role: string
-): Promise<ApiResponse<{ user: UserBio }>> => {
+): Promise<ApiResponse<{ user: Users }>> => {
   try {
     const response = await fetch(`${BASE_URL}/auth/register`, {
       method: "POST",
@@ -172,20 +177,19 @@ export const registerUser = async (
 };
 
 export const addAgent = async (
-  accessToken: string,
   formData: FormData
 ): Promise<ApiResponse<{ agent: Agent }>> => {
   try {
     const response = await fetch(`${BASE_URL}/auth/agents/onboardAgent`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/json",
       },
       body: formData,
       redirect: "follow",
     });
     const data = await response.json();
-
+    console.log(data);
     if (response.ok && data.status) {
       return { success: true, data: { agent: data.data } };
     } else {

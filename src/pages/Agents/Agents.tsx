@@ -8,21 +8,8 @@ import PageMeta from "../../components/common/PageMeta";
 import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
 import Alert from "../../components/ui/alert/Alert";
 
-interface TableContentType {
-  user: {
-    id: number;
-    image?: string;
-    name: string;
-    businessName?: string;
-    role: string;
-    residualAmount?: number;
-    phone: string;
-    status: string;
-  };
-}
-
 const tableHeader: string[] = [
-  "Name/Business Name",
+  "Name / Business Name",
   "Role",
   "Residual Amount",
   "Phone Number",
@@ -37,19 +24,31 @@ const Agents: React.FC = () => {
     fetchAgents();
   }, []);
 
-  const tableData: TableContentType[] = allAgents.map((agent: Agent) => ({
+  const tableData = allAgents.map((agent: Agent) => ({
     user: {
       id: agent.id,
       image: agent.image || "/images/user/user-12.jpg", // fallback image
       name: agent.name || "N/A",
-      businessName: agent.business_name,
-      role: "Agent", // or derive from marketer.role if available
+      firstName: agent.firstname,
+      lastName: agent.lastname,
+      businessName: agent.business_name || "No Business name",
+      username: agent.username || "No username",
+      role: agent.type,
+      model: agent.model,
       residualAmount: parseFloat(agent?.residual_amount) || 0.0,
-      phone: agent.phone || "No phone number",
+      phone: agent.phone || "No Phone number",
+      businessPhone: agent.business_phone || "No Business phone",
+      address: agent.address,
+      latitude: agent.latitude,
+      longitude: agent.longitude,
+      idType: agent.id_type,
+      idDocument: agent.id_document,
+      bizRegDocument: agent.bussiness_registration,
+      businessImage: agent.bussiness_image,
       status:
-        agent.status === "1"
+        agent.status === 1
           ? "Active"
-          : agent.status === "2"
+          : agent.status === 2
           ? "Suspended"
           : "Pending",
     },

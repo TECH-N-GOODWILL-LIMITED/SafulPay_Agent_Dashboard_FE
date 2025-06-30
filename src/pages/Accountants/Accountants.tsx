@@ -7,20 +7,8 @@ import PageMeta from "../../components/common/PageMeta";
 import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
 import Alert from "../../components/ui/alert/Alert";
 
-interface TableContentType {
-  user: {
-    id: number;
-    image?: string;
-    name: string;
-    role: string;
-    cih: number;
-    phone: string;
-    status: string;
-  };
-}
-
 const tableHeader: string[] = [
-  "Name",
+  "Name / Username",
   "Role",
   "Cash in hand",
   "Phone Number",
@@ -34,24 +22,25 @@ const Accountants: React.FC = () => {
     filterByRole("Accountant");
   }, [filterByRole]);
 
-  const tableData: TableContentType[] = filteredUsers?.map(
-    (user: usersItem) => ({
-      user: {
-        id: user.id,
-        image: "/images/user/user-17.jpg", // or actual image URL if available
-        name: user.name,
-        role: user.role,
-        cih: 200000,
-        phone: user.phone,
-        status:
-          user.status === 1
-            ? "Active"
-            : user.status === 2
-            ? "Suspended"
-            : "Pending",
-      },
-    })
-  );
+  const tableData = filteredUsers?.map((user: usersItem) => ({
+    user: {
+      id: user.id,
+      image: "/images/user/user-17.jpg", // or actual image URL if available
+      name: user.name,
+      firstName: user.firstname,
+      lastName: user.lastname,
+      username: user.username,
+      role: user.role,
+      cih: 200000,
+      phone: user.phone,
+      status:
+        user.status === 1
+          ? "Active"
+          : user.status === 2
+          ? "Suspended"
+          : "Pending",
+    },
+  }));
 
   if (loading) return <div>Loading...</div>;
   if (error)

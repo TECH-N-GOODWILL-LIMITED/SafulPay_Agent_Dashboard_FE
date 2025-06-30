@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Dropdown } from "../ui/dropdown/Dropdown";
-import { DropdownItem } from "../ui/dropdown/DropdownItem";
-import { useModal } from "../../hooks/useModal";
-import { Modal } from "../ui/modal";
+import { useNavigate } from "react-router";
+import { useAuth } from "../../context/AuthContext";
 import Button from "../ui/button/Button";
 import RegisterModal from "./RegisterModal";
-import RegisterAgentModal from "./RegisterAgentModal";
+import { useModal } from "../../hooks/useModal";
+import { Modal } from "../ui/modal";
+import { Dropdown } from "../ui/dropdown/Dropdown";
+import { DropdownItem } from "../ui/dropdown/DropdownItem";
 
 interface ComponentCardProps {
   title: string;
@@ -31,7 +32,12 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
   userType = "",
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const navigate = useNavigate();
+
   const { isOpen, openModal, closeModal } = useModal();
+
+  const { user } = useAuth();
+  const referralCode = user?.referral_code;
 
   function toggleDropdown() {
     setIsDropdownOpen(!isDropdownOpen);
@@ -46,6 +52,14 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
 
   function closeDropdown() {
     setIsDropdownOpen(false);
+  }
+
+  function handleAddUser() {
+    if (userType === "Agent") {
+      navigate(`/onboardagent/${referralCode}`);
+    } else {
+      openModal();
+    }
   }
 
   return (
@@ -63,9 +77,11 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
         )}
         {actionButton1 && (
           <div className="flex items-center gap-3">
-            <Button size="sm" endIcon="✚" onClick={openModal}>
-              Add {userType}
-            </Button>
+            {
+              <Button size="sm" endIcon="✚" onClick={handleAddUser}>
+                Add {userType}
+              </Button>
+            }
             <div className="relative">
               <Button
                 onClick={toggleDropdown}
@@ -148,19 +164,12 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
         <div className="space-y-6">{children}</div>
       </div>
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
-        {userType === "Agent" ? (
-          <RegisterAgentModal
-            modalHeading="Add a new agent"
-            onClose={closeModal}
-          />
-        ) : (
-          <RegisterModal
-            modalHeading="Add a new user"
-            userRoles={userRoles}
-            selectRole={userType}
-            onClose={closeModal}
-          />
-        )}
+        <RegisterModal
+          modalHeading="Add a new user"
+          userRoles={userRoles}
+          selectRole={userType}
+          onClose={closeModal}
+        />
       </Modal>
     </div>
   );

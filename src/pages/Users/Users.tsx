@@ -7,20 +7,8 @@ import PageMeta from "../../components/common/PageMeta";
 import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
 import Alert from "../../components/ui/alert/Alert";
 
-interface TableContentType {
-  user: {
-    id: number;
-    image?: string;
-    name?: string;
-    businessName: string;
-    role: string;
-    phone: string;
-    status: string;
-  };
-}
-
 const tableHeader: string[] = [
-  "Name/Business Name",
+  "Name / Username",
   "Role",
   "Phone Number",
   "Status",
@@ -36,26 +24,37 @@ const Users: React.FC = () => {
 
   const userOptions = [...userRoles, "All Users"];
 
-  const tableData: TableContentType[] = filteredUsers.map(
-    (user: usersItem) => ({
-      user: {
-        id: user.id,
-        image: "/images/user/user-17.jpg", // or actual image URL if available
-        name: user.name,
-        firstName: user.firstname,
-        lastName: user.lastname,
-        businessName: "", // add if your API provides it
-        role: user.role,
-        phone: user.phone,
-        status:
-          user.status === 1
-            ? "Active"
-            : user.status === 2
-            ? "Suspended"
-            : "Pending",
-      },
-    })
-  );
+  const tableData = filteredUsers.map((user: usersItem) => ({
+    user: {
+      id: user.id,
+      image: user.image || "/images/user/user-12.jpg", // fallback image
+      name: user.name || "N/A",
+      firstName: user.firstname,
+      lastName: user.lastname,
+      businessName: user.business_name || "No Business name",
+      username: user.username || "No username",
+      role:
+        user.role === "Agent" || user.role === "Merchant"
+          ? user.type
+          : user.role,
+      model: user.model,
+      phone: user.phone || "No Phone number",
+      businessPhone: user.business_phone || "No Business phone",
+      address: user.address,
+      latitude: user.latitude,
+      longitude: user.longitude,
+      idType: user.id_type,
+      idDocument: user.id_document,
+      bizRegDocument: user.bussiness_registration,
+      businessImage: user.bussiness_image,
+      status:
+        user.status === 1
+          ? "Active"
+          : user.status === 2
+          ? "Suspended"
+          : "Pending",
+    },
+  }));
 
   if (loading)
     return <div className="text-gray-500 dark:text-gray-400">Loading...</div>;
