@@ -113,8 +113,7 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
 
           {/* Agent Onboarding */}
-
-          <Route path="/addagent/:marketer_id" element={<OnboardAgent />} />
+          <Route path="/onboard-agent" element={<OnboardAgent />} />
         </Routes>
       </Router>
     </>

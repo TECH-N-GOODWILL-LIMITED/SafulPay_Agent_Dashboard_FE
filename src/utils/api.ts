@@ -171,6 +171,34 @@ export const registerUser = async (
   }
 };
 
+export const addAgent = async (
+  accessToken: string,
+  formData: FormData
+): Promise<ApiResponse<{ agent: Agent }>> => {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/agents/onboardAgent`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: formData,
+      redirect: "follow",
+    });
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return { success: true, data: { agent: data.data } };
+    } else {
+      return {
+        success: false,
+        error: data.message || "Failed to onboard agent",
+      };
+    }
+  } catch (err) {
+    return { success: false, error: `Error onboarding agent: ${err}` };
+  }
+};
+
 export const changeUserStatus = async (
   accessToken: string,
   userId: number,
@@ -255,6 +283,33 @@ export const validateToken = async (
   }
 };
 
+export const uploadToCloudinary = async (
+  file: File,
+  cloudName: string,
+  uploadPreset: string
+) => {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", uploadPreset);
+
+    const uploadResponse = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    const data = await uploadResponse.json();
+    if (data.secure_url) {
+      return { success: true, url: data.secure_url };
+    }
+    return { success: false, error: data.error?.message || "Upload failed" };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+};
 // ! Check this out, to implement pagination in the future
 /**
  * 

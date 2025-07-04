@@ -11,8 +11,8 @@ export default function UserProfiles() {
   return (
     <>
       <PageMeta
-        title="SafulPay Agency Dashboard | Finance just got better"
-        description="This is SafulPay Agency's Dashboard - Management system for SafulPay's Agency Platform"
+        title={`${user?.firstname}'s Profile | SafulPay Agency Dashboard - Finance just got better`}
+        description={`Profile details of ${user?.name} - Management system for SafulPay's Agency Platform`}
       />
       <PageBreadcrumb pageTitle="Profile" />
       <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] lg:p-6">
