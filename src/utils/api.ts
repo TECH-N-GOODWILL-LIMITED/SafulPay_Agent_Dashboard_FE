@@ -2,10 +2,12 @@ import type {
   Agent,
   ApiResponse,
   LoginResponseData,
+  UserBio,
+  LoginResponse,
   Users,
+  MarketerStats,
+  AuditLogData,
 } from "../types/types";
-import type { LoginResponse } from "../types/types";
-import type { UserBio } from "../types/types";
 
 const BASE_URL = import.meta.env.VITE_AGENCY_BASE_URL;
 
@@ -98,6 +100,33 @@ export const logOut = async (
   }
 };
 
+export const checkSession = async (
+  accessToken: string
+): Promise<ApiResponse<{ status: string; message?: string }>> => {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/checkSession`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      redirect: "follow",
+    });
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return {
+        success: true,
+        data: { status: data.status, message: data.message },
+      };
+    } else {
+      return { success: false, error: data.message || "Failed to logout user" };
+    }
+  } catch (err) {
+    return { success: false, error: `Error logging user out: ${err}` };
+  }
+};
+
 export const getAllUsers = async (
   accessToken: string
 ): Promise<ApiResponse<{ users: Users[] }>> => {
@@ -150,7 +179,7 @@ export const registerUser = async (
   accessToken: string,
   phone: string,
   role: string
-): Promise<ApiResponse<{ user: Users }>> => {
+): Promise<ApiResponse<{ user: UserBio }>> => {
   try {
     const response = await fetch(`${BASE_URL}/auth/register`, {
       method: "POST",
@@ -188,14 +217,19 @@ export const addAgent = async (
       body: formData,
       redirect: "follow",
     });
+
     const data = await response.json();
-    console.log(data);
+
     if (response.ok && data.status) {
       return { success: true, data: { agent: data.data } };
     } else {
       return {
         success: false,
-        error: data.message || "Failed to onboard agent",
+        error: data.errors.phone
+          ? data.errors.phone[0]
+          : data.errors.email
+          ? data.errors.email[0]
+          : data.message || "Failed to onboard agent",
       };
     }
   } catch (err) {
@@ -246,7 +280,7 @@ export const changeAgentStatus = async (
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({ agent_id: String(agentId), status }),
+      body: JSON.stringify({ agent_id: agentId, status }),
       redirect: "follow",
     });
     const data = await response.json();
@@ -265,25 +299,58 @@ export const changeAgentStatus = async (
   }
 };
 
-export const validateToken = async (
-  accessToken: string
-): Promise<ApiResponse<{ valid: boolean }>> => {
+export const getMarketersStats = async (): Promise<
+  ApiResponse<MarketerStats>
+> => {
   try {
-    const response = await fetch(`${BASE_URL}/auth/validate-token`, {
+    const response = await fetch(
+      `${BASE_URL}/auth/agents/dashboard/marketer-agent-stats`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        redirect: "follow",
+      }
+    );
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return { success: true, data };
+    } else {
+      return {
+        success: false,
+        error: data.message || "Error getting marketers statistics",
+      };
+    }
+  } catch (err) {
+    return { success: false, error: `Error fetching marketers stats: ${err}` };
+  }
+};
+
+export const getAuditLogs = async (): // accessToken: string
+Promise<ApiResponse<{ log: AuditLogData[] }>> => {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/logs/audit-logs`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
+        // Authorization: `Bearer ${accessToken}`,
       },
+      redirect: "follow",
     });
     const data = await response.json();
+
     if (response.ok && data.status) {
-      return { success: true, data: { valid: true } };
+      return { success: true, data: { log: data.data.data } };
     } else {
-      return { success: false, error: data.message || "Invalid token" };
+      return {
+        success: false,
+        error: data.message || "Error getting audit logs",
+      };
     }
   } catch (err) {
-    return { success: false, error: `Error validating token: ${err}` };
+    return { success: false, error: `Error fetching audit trail logs: ${err}` };
   }
 };
 

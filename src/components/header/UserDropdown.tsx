@@ -19,7 +19,7 @@ export default function UserDropdown() {
     setIsOpen(false);
   }
 
-  const { user, logout } = useAuth();
+  const { token, user, logout } = useAuth();
 
   const handleLogout = async () => {
     setLoading(true);
@@ -149,7 +149,11 @@ export default function UserDropdown() {
               fill=""
             />
           </svg>
-          {loading ? "Signing out..." : "Sign out"}
+          {!token
+            ? "Navigate to Login"
+            : loading
+            ? "Signing out..."
+            : "Sign out"}
         </Button>
       </Dropdown>
     </div>

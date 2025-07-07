@@ -25,35 +25,33 @@ const Users: React.FC = () => {
   const userOptions = [...userRoles, "All Users"];
 
   const tableData = filteredUsers.map((user: usersItem) => ({
-    user: {
-      id: user.id,
-      image: user.image || "/images/user/user-12.jpg", // fallback image
-      name: user.name || "N/A",
-      firstName: user.firstname,
-      lastName: user.lastname,
-      businessName: user.business_name || "No Business name",
-      username: user.username || "No username",
-      role:
-        user.role === "Agent" || user.role === "Merchant"
-          ? user.type
-          : user.role,
-      model: user.model,
-      phone: user.phone || "No Phone number",
-      businessPhone: user.business_phone || "No Business phone",
-      address: user.address,
-      latitude: user.latitude,
-      longitude: user.longitude,
-      idType: user.id_type,
-      idDocument: user.id_document,
-      bizRegDocument: user.bussiness_registration,
-      businessImage: user.bussiness_image,
-      status:
-        user.status === 1
-          ? "Active"
-          : user.status === 2
-          ? "Suspended"
-          : "Pending",
-    },
+    id: user.id,
+    image: user.image || "/images/user/user-12.jpg", // fallback image
+    name: user.name || "N/A",
+    firstName: user.firstname,
+    lastName: user.lastname,
+    businessName: user.business_name || "No Business name",
+    username: user.username || "No username",
+    role:
+      user.role === "Agent" || user.role === "Merchant" ? user.type : user.role,
+    model: user.model,
+    phone: user.phone || "No Phone number",
+    businessPhone: user.business_phone || "No Business phone",
+    address: user.address,
+    latitude: user.latitude,
+    longitude: user.longitude,
+    idType: user.id_type,
+    idDocument: user.id_document,
+    bizRegDocument: user.bussiness_registration,
+    businessImage: user.bussiness_image,
+    status:
+      user.status === 1
+        ? "Active"
+        : user.status === 2
+        ? "Suspended"
+        : user.status === 3
+        ? "Rejected"
+        : "Pending",
   }));
 
   if (loading)

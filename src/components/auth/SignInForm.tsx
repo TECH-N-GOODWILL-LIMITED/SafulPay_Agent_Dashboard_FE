@@ -1,18 +1,15 @@
 // import { useEffect, useRef, useState } from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { useAuth } from "../../context/AuthContext";
+import { requestOtp, verifyOtpAndLogin } from "../../utils/api";
+import { filterPhoneNumber } from "../../utils/utils";
 import { EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
 import Alert from "../ui/alert/Alert";
-
-import { filterPhoneNumber } from "../../utils/utils";
-// import { countries } from "../../utils/countries";
-// import type { countryType } from "../../types/types";
-import { useAuth } from "../../context/AuthContext";
-import { requestOtp, verifyOtpAndLogin } from "../../utils/api";
 
 export default function SignInForm() {
   const [showPin, setShowPin] = useState<boolean>(false);
@@ -47,6 +44,7 @@ export default function SignInForm() {
       return;
     }
 
+    setAlertTitle("");
     setError("");
     setWarnError(false);
     setSuccessAlert("");
@@ -80,6 +78,7 @@ export default function SignInForm() {
       return;
     }
 
+    setAlertTitle("");
     setError("");
     setWarnError(false);
     setSuccessAlert("");
@@ -90,6 +89,10 @@ export default function SignInForm() {
     if (response.success && response.data) {
       // Save user and token in context
       login(response.data, response.success);
+      setAlertTitle("Welcome!");
+      setSuccessAlert("Login successful, Redirecting...");
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       // Navigate to home or dashboard
       navigate("/");
     } else {
@@ -155,6 +158,7 @@ export default function SignInForm() {
                       value={phone}
                       onChange={(e) => {
                         setPhone(e.target.value);
+                        setAlertTitle("");
                         setError("");
                         setWarnError(false);
                         setSuccessAlert("");
@@ -189,6 +193,7 @@ export default function SignInForm() {
                         pattern="[0-9]*"
                         onChange={(e) => {
                           setPin(e.target.value);
+                          setAlertTitle("");
                           setError("");
                           setWarnError(false);
                           setSuccessAlert("");
@@ -237,18 +242,19 @@ export default function SignInForm() {
                       id="otp"
                       name="otp"
                       type="text"
+                      placeholder="Enter 6-digit OTP"
                       inputMode="numeric"
                       pattern="[0-9]*"
-                      placeholder="Enter 6-digit OTP"
                       value={otp}
                       max={6}
                       onChange={(e) => {
                         setOtp(e.target.value);
+                        setAlertTitle("");
                         setError("");
                         setWarnError(false);
                         setSuccessAlert("");
                       }}
-                      error={error.trim.length > 0}
+                      error={!!error && !pin}
                     />
 
                     {otp && (

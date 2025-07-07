@@ -32,6 +32,9 @@ import Audit from "./pages/Audit/Audit";
 import Withdrawal from "./pages/Withdrawal/Withdrawal";
 import Deposit from "./pages/Deposit/Deposit";
 import OnboardAgent from "./pages/OnBoarding/OnboardAgent";
+// import MarketersLeaderboard from "./pages/MarketersLeaderboard/MarketersLeaderboard";
+import MarketersLayout from "./layout/MarketersLayout";
+import MarketersLeaderboard from "./pages/MarketersLeaderboard/MarketersLeaderboard";
 
 export default function App() {
   return (
@@ -78,7 +81,7 @@ export default function App() {
             <Route path="/deposit" element={<Deposit />} />
 
             {/* Audit Log Page */}
-            <Route path="/audit" element={<Audit />} />
+            {/* <Route path="/audit" element={<Audit />} /> */}
 
             {/* Others Page */}
             <Route path="/profile" element={<UserProfiles />} />
@@ -113,10 +116,20 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
 
           {/* Agent Onboarding */}
-          <Route
-            path="/onboardagent/:marketer_ref"
-            element={<OnboardAgent />}
-          />
+
+          <Route element={<MarketersLayout />}>
+            <Route
+              path="/onboardagent/:marketer_ref"
+              element={<OnboardAgent />}
+            />
+            <Route
+              path="/marketers-leaderboard"
+              element={<MarketersLeaderboard />}
+            />
+
+            {/* Temporarily out of the protected route Log Page */}
+            <Route path="/audit" element={<Audit />} />
+          </Route>
         </Routes>
       </Router>
     </>

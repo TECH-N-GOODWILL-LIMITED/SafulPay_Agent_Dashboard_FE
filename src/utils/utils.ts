@@ -60,11 +60,18 @@ export const generateUserMetrics = (users: usersItem[]) => {
     return acc;
   }, {} as Record<string, number>);
 
+  const agentCounts =
+    roleCounts["Agent"] + roleCounts["Merchant"] + roleCounts["Super Agent"];
+
   return [
     { users: "Total Users", metric: totalUsers },
     { users: "Admins", metric: roleCounts["Admin"] || 0 },
     { users: "Marketers", metric: roleCounts["Marketer"] || 0 },
-    { users: "Agents", metric: roleCounts["Agent"] || 0 },
+    // NOTE: Fix this to perform additions for agents
+    {
+      users: "Agents",
+      metric: agentCounts || 0,
+    },
     { users: "Accountants", metric: roleCounts["Accountant"] || 0 },
     { users: "Riders", metric: roleCounts["Rider"] || 0 },
   ];

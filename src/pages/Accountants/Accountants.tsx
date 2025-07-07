@@ -23,23 +23,23 @@ const Accountants: React.FC = () => {
   }, [filterByRole]);
 
   const tableData = filteredUsers?.map((user: usersItem) => ({
-    user: {
-      id: user.id,
-      image: "/images/user/user-17.jpg", // or actual image URL if available
-      name: user.name,
-      firstName: user.firstname,
-      lastName: user.lastname,
-      username: user.username,
-      role: user.role,
-      cih: 200000,
-      phone: user.phone,
-      status:
-        user.status === 1
-          ? "Active"
-          : user.status === 2
-          ? "Suspended"
-          : "Pending",
-    },
+    id: user.id,
+    image: "/images/user/user-17.jpg", // or actual image URL if available
+    name: user.name,
+    firstName: user.firstname,
+    lastName: user.lastname,
+    username: user.username,
+    role: user.role,
+    cih: 200000,
+    phone: user.phone,
+    status:
+      user.status === 1
+        ? "Active"
+        : user.status === 2
+        ? "Suspended"
+        : user.status === 3
+        ? "Rejected"
+        : "Pending",
   }));
 
   if (loading) return <div>Loading...</div>;

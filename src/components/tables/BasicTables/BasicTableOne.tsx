@@ -14,9 +14,14 @@ import Input from "../../form/input/InputField";
 import Label from "../../form/Label";
 import { useAuth } from "../../../context/AuthContext";
 import { useAllUsers } from "../../../context/UsersContext";
-import { changeAgentStatus, changeUserStatus } from "../../../utils/api";
+import {
+  changeAgentStatus,
+  changeUserStatus,
+  checkSession,
+} from "../../../utils/api";
+import Alert from "../../ui/alert/Alert";
 
-interface User {
+interface TableContentItem {
   id: number;
   image?: string;
   name: string;
@@ -41,10 +46,6 @@ interface User {
   status: string;
 }
 
-interface TableContentItem {
-  user: User;
-}
-
 interface Order {
   tableHeading?: string[];
   tableContent: TableContentItem[];
@@ -56,30 +57,44 @@ interface Handlers {
   suspend?: () => void;
   approve?: () => void;
   reActivate?: () => void;
-  decline?: () => void;
+  reject?: () => void;
   save?: () => void;
 }
 
 const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<TableContentItem | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [alertTitle, setAlertTitle] = useState<string>("");
 
   const { isOpen, openModal, closeModal } = useModal();
-  const { token } = useAuth();
+  const { token, logout } = useAuth();
   const { fetchUsers } = useAllUsers();
 
   const showResidualAmount = tableHeading?.includes("Residual Amount");
 
   const changeStatus = async (
-    user: User,
+    user: TableContentItem,
     token: string,
     newStatus: number
   ): Promise<boolean> => {
     setIsActionLoading(true);
+
+    const sessionResponse = await checkSession(token);
+    if (!sessionResponse.success || !sessionResponse.data?.status) {
+      setAlertTitle("Session Expired");
+      setErrorMessage("Your session has expired. You will be logged out.");
+      setIsActionLoading(false);
+
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      await logout();
+      return false;
+    }
+
+    setAlertTitle("");
     setErrorMessage("");
     try {
-      const isAgent = user.role === "Agent";
+      const isAgent = user.role === "Agent" || user.role === "Merchant";
       const response = isAgent
         ? await changeAgentStatus(token, user.id, newStatus)
         : await changeUserStatus(token, user.id, newStatus);
@@ -88,10 +103,12 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
         await fetchUsers();
         return true;
       } else {
+        setAlertTitle("Validation Error");
         setErrorMessage(response.error || `Failed to change status`);
         return false;
       }
     } catch (err) {
+      setAlertTitle("Error");
       setErrorMessage(`An unexpected error occurred- ${err}`);
       return false;
     } finally {
@@ -116,7 +133,9 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
               onClick={handlers.suspend}
               disabled={isActionLoading}
             >
-              {isActionLoading ? "Suspending..." : "Suspend"}
+              {isActionLoading
+                ? "Suspending..."
+                : `Suspend ${currentUser?.role}`}
             </Button>
           </>
         );
@@ -133,10 +152,10 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                   : "outline"
               }
               className="bg-brand-accent hover:bg-brand-accent-100! hover:text-white"
-              onClick={handlers.decline}
+              onClick={handlers.reject}
               disabled={isActionLoading}
             >
-              {isActionLoading ? "Declining..." : "Decline"}
+              {isActionLoading ? "Declining..." : "Reject Application"}
             </Button>
             <Button
               size="sm"
@@ -151,11 +170,12 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
               onClick={handlers.approve}
               disabled={isActionLoading}
             >
-              {isActionLoading ? "Approving..." : "Approve"}
+              {isActionLoading ? "Approving..." : `Approve Application`}
             </Button>
           </>
         );
-      case "Suspended":
+
+      default:
         return (
           <>
             <Button size="sm" variant="outline" onClick={handlers.close}>
@@ -166,17 +186,18 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
               onClick={handlers.reActivate}
               disabled={isActionLoading}
             >
-              {isActionLoading ? "Reactivating..." : "Re-activate"}
+              {isActionLoading
+                ? "Reactivating..."
+                : `Re-activate ${currentUser?.role}`}
             </Button>
           </>
         );
-      default:
-        return null;
     }
   };
 
-  const handleOpenModal = (user: User) => {
+  const handleOpenModal = (user: TableContentItem) => {
     setCurrentUser(user);
+    setAlertTitle("");
     setErrorMessage("");
     openModal();
   };
@@ -207,10 +228,9 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
     }
   };
 
-  const handleDecline = async (): Promise<void> => {
+  const handleReject = async (): Promise<void> => {
     if (!currentUser || !token) return;
-    if (await changeStatus(currentUser, token, 4)) {
-      // Assuming 4 not sure about this, just added this just in case, cc @yero
+    if (await changeStatus(currentUser, token, 3)) {
       closeModal();
     }
   };
@@ -243,50 +263,49 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
           <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
             {tableContent.length > 0 ? (
               tableContent.map((order) => (
-                <TableRow key={`${order.user.id}${order.user.role}`}>
+                <TableRow key={`${order.id}${order.role}`}>
                   <TableCell className="px-5 py-4 sm:px-6 text-start truncate">
                     <div className="flex items-center gap-3 truncate">
                       <div className="w-10 h-10 overflow-hidden rounded-full">
                         <img
                           width={40}
                           height={40}
-                          src={order.user?.image}
-                          alt={order.user.name}
+                          src={order?.image}
+                          alt={order.name}
                         />
                       </div>
                       <div>
                         <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                          {order.user.name}
+                          {order.name}
                         </span>
                         <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
-                          {order.user.role === "Agent" ||
-                          order.user.role === "Merchant"
-                            ? order.user.businessName
-                            : order.user.username}
+                          {order.role === "Agent" || order.role === "Merchant"
+                            ? order.businessName
+                            : order.username}
                         </span>
                       </div>
                     </div>
                   </TableCell>
 
                   <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                    {order.user.role}
+                    {order.role}
                   </TableCell>
 
-                  {order.user.code && (
+                  {order.code && (
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      {order.user.code}
+                      {order.code}
                     </TableCell>
                   )}
 
                   {showResidualAmount && (
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      Le {order.user.residualAmount?.toFixed(2)}
+                      Le {order.residualAmount?.toFixed(2)}
                     </TableCell>
                   )}
 
-                  {order.user.cih && (
+                  {order.cih && (
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      {`Le ${order.user.cih}`}
+                      {`Le ${order.cih}`}
                     </TableCell>
                   )}
                   {/* {!order.user.code} ||
@@ -297,26 +316,26 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                   {order.user.code}
                 </TableCell> */}
                   <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                    {order.user.phone}
+                    {order.phone}
                   </TableCell>
 
                   <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                     <Badge
                       size="sm"
                       color={
-                        order.user.status === "Active"
+                        order.status === "Active"
                           ? "success"
-                          : order.user.status === "Pending"
+                          : order.status === "Pending"
                           ? "warning"
                           : "error"
                       }
                     >
-                      {order.user.status}
+                      {order.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
                     <button
-                      onClick={() => handleOpenModal(order.user)}
+                      onClick={() => handleOpenModal(order)}
                       className="hover:text-brand-500 dark:text-gray-400 dark:hover:text-gray-300"
                     >
                       Edit
@@ -509,16 +528,21 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                 </div>
               </div>
               {errorMessage && (
-                <p className="px-2 text-sm text-error-500">{errorMessage}</p>
+                <Alert
+                  variant="error"
+                  title={alertTitle}
+                  message={errorMessage}
+                  showLink={false}
+                />
               )}
-              <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
+              <div className="flex items-center gap-3 px-2 mt-6">
                 {currentUser &&
                   getActionButtons(currentUser.status, {
                     close: closeModal,
                     suspend: handleSuspend,
                     approve: handleApprove,
                     reActivate: handleReActivate,
-                    decline: handleDecline,
+                    reject: handleReject,
                     save: handleSave,
                   })}
               </div>

@@ -22,22 +22,20 @@ const Admin = () => {
   }, [filterByRole]);
 
   const tableData = filteredUsers?.map((user: usersItem) => ({
-    user: {
-      id: user.id,
-      image: "/images/user/user-07.jpg", // or actual image URL if available
-      name: user.name,
-      firstName: user.firstname,
-      lastName: user.lastname,
-      username: user.username,
-      role: user.role,
-      phone: user.phone,
-      status:
-        user.status === 1
-          ? "Active"
-          : user.status === 2
-          ? "Suspended"
-          : "Pending",
-    },
+    id: user.id,
+    image: "/images/user/user-07.jpg", // or actual image URL if available
+    name: user.name,
+    firstName: user.firstname,
+    lastName: user.lastname,
+    username: user.username,
+    role: user.role,
+    phone: user.phone,
+    status:
+      user.status === 1
+        ? "Active"
+        : user.status === 2
+        ? "Suspended"
+        : "Pending",
   }));
 
   if (loading)

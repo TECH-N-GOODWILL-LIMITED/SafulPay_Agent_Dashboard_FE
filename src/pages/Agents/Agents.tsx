@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useAllUsers } from "../../context/UsersContext";
+import { useAllUsers, usersItem } from "../../context/UsersContext";
 import { userRoles } from "../../utils/roles";
 import type { Agent } from "../../types/types";
 import ComponentCard from "../../components/common/ComponentCard";
@@ -18,40 +18,50 @@ const tableHeader: string[] = [
 
 const Agents: React.FC = () => {
   // ! call the fitlerByRole function to filter agents by role
-  const { fetchAgents, allAgents, title, error, loading } = useAllUsers();
+  const {
+    fetchAgents,
+    allAgents,
+    filterByRole,
+    filteredUsers,
+    title,
+    error,
+    loading,
+  } = useAllUsers();
 
   useEffect(() => {
-    fetchAgents();
+    // fetchAgents();
+    filterByRole("Agents");
   }, []);
 
-  const tableData = allAgents.map((agent: Agent) => ({
-    user: {
-      id: agent.id,
-      image: agent.image || "/images/user/user-12.jpg", // fallback image
-      name: agent.name || "N/A",
-      firstName: agent.firstname,
-      lastName: agent.lastname,
-      businessName: agent.business_name || "No Business name",
-      username: agent.username || "No username",
-      role: agent.type,
-      model: agent.model,
-      residualAmount: parseFloat(agent?.residual_amount) || 0.0,
-      phone: agent.phone || "No Phone number",
-      businessPhone: agent.business_phone || "No Business phone",
-      address: agent.address,
-      latitude: agent.latitude,
-      longitude: agent.longitude,
-      idType: agent.id_type,
-      idDocument: agent.id_document,
-      bizRegDocument: agent.bussiness_registration,
-      businessImage: agent.bussiness_image,
-      status:
-        agent.status === 1
-          ? "Active"
-          : agent.status === 2
-          ? "Suspended"
-          : "Pending",
-    },
+  const tableData = filteredUsers.map((agent: usersItem) => ({
+    id: agent.id,
+    image: agent.image || "/images/user/user-12.jpg", // fallback image
+    name: agent.name || "N/A",
+    firstName: agent.firstname,
+    lastName: agent.lastname,
+    businessName: agent.business_name || "No Business name",
+    username: agent.username || "No username",
+    role: agent.type,
+    model: agent.model,
+    // residualAmount: parseFloat(agent?.residual_amount) || 0.0,
+    residualAmount: agent?.residual_amount || 0.0,
+    phone: agent.phone || "No Phone number",
+    businessPhone: agent.business_phone || "No Business phone",
+    address: agent.address,
+    latitude: agent.latitude,
+    longitude: agent.longitude,
+    idType: agent.id_type,
+    idDocument: agent.id_document,
+    bizRegDocument: agent.bussiness_registration,
+    businessImage: agent.bussiness_image,
+    status:
+      agent.status === 1
+        ? "Active"
+        : agent.status === 2
+        ? "Suspended"
+        : agent.status === 3
+        ? "Rejected"
+        : "Pending",
   }));
 
   if (loading)
