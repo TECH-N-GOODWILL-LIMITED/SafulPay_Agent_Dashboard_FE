@@ -30,7 +30,7 @@ const Riders: React.FC = () => {
     lastName: user.lastname,
     username: user.username || "No username",
     role: user.role,
-    cih: 200000,
+    cih: user.threshold_cash_in_hand || 0.0,
     phone: user.phone,
     status:
       user.status === 1
@@ -42,13 +42,6 @@ const Riders: React.FC = () => {
         : "Pending",
   }));
 
-  if (loading)
-    return <div className="text-gray-500 dark:text-gray-400">Loading...</div>;
-  if (error)
-    return (
-      <Alert variant="error" title={title} message={error} showLink={false} />
-    );
-
   return (
     <>
       <PageMeta
@@ -56,18 +49,28 @@ const Riders: React.FC = () => {
         description="List of all agency riders - Management system for SafulPay's Agency Platform"
       />
       <PageBreadcrumb pageTitle="Riders" />
-      <div className="space-y-6">
-        <ComponentCard
-          title="Riders Table"
-          desc="Details of all Riders"
-          actionButton1="Filter"
-          userType="Rider"
-          userRoles={userRoles}
-          filterOptions={userRoles}
-        >
-          <BasicTableOne tableHeading={tableHeader} tableContent={tableData} />
-        </ComponentCard>
-      </div>
+
+      {error ? (
+        <Alert variant="error" title={title} message={error} showLink={false} />
+      ) : loading ? (
+        <div className="text-gray-500 dark:text-gray-400">Loading...</div>
+      ) : (
+        <div className="space-y-6">
+          <ComponentCard
+            title="Riders Table"
+            desc="Details of all Riders"
+            actionButton1="Filter"
+            userType="Rider"
+            userRoles={userRoles}
+            filterOptions={userRoles}
+          >
+            <BasicTableOne
+              tableHeading={tableHeader}
+              tableContent={tableData}
+            />
+          </ComponentCard>
+        </div>
+      )}
     </>
   );
 };

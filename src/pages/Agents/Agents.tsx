@@ -1,36 +1,29 @@
 import { useEffect } from "react";
 import { useAllUsers, usersItem } from "../../context/UsersContext";
-import { userRoles } from "../../utils/roles";
-import type { Agent } from "../../types/types";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
 import Alert from "../../components/ui/alert/Alert";
+import { AGENT_ROLE, MERCHANT_ROLE, SUPER_AGENT_ROLE } from "../../utils/roles";
 
 const tableHeader: string[] = [
   "Name / Business Name",
   "Role",
   "Residual Amount",
-  "Phone Number",
+  "Business Phone / Primary Phone",
+  "KYC Status",
   "Status",
 ];
 
 const Agents: React.FC = () => {
-  // ! call the fitlerByRole function to filter agents by role
-  const {
-    fetchAgents,
-    allAgents,
-    filterByRole,
-    filteredUsers,
-    title,
-    error,
-    loading,
-  } = useAllUsers();
+  const { filterByRole, filteredUsers, title, error, loading } = useAllUsers();
+
+  const vendors = [AGENT_ROLE, SUPER_AGENT_ROLE, MERCHANT_ROLE];
+  // const vendors = ["Agent", "Super Agent", "Merchant"];
 
   useEffect(() => {
-    // fetchAgents();
-    filterByRole("Agents");
+    filterByRole(vendors);
   }, []);
 
   const tableData = filteredUsers.map((agent: usersItem) => ({
@@ -43,7 +36,6 @@ const Agents: React.FC = () => {
     username: agent.username || "No username",
     role: agent.type,
     model: agent.model,
-    // residualAmount: parseFloat(agent?.residual_amount) || 0.0,
     residualAmount: agent?.residual_amount || 0.0,
     phone: agent.phone || "No Phone number",
     businessPhone: agent.business_phone || "No Business phone",
@@ -52,8 +44,8 @@ const Agents: React.FC = () => {
     longitude: agent.longitude,
     idType: agent.id_type,
     idDocument: agent.id_document,
-    bizRegDocument: agent.bussiness_registration,
-    businessImage: agent.bussiness_image,
+    bizRegDocument: agent.business_registration,
+    businessImage: agent.business_image,
     status:
       agent.status === 1
         ? "Active"
@@ -62,14 +54,21 @@ const Agents: React.FC = () => {
         : agent.status === 3
         ? "Rejected"
         : "Pending",
+    temp: agent.temp,
+    kycStatus: agent.temp === 1 ? "Completed" : "Incomplete",
   }));
 
-  if (loading)
-    return <div className="text-gray-500 dark:text-gray-400">Loading...</div>;
-  if (error)
+  if (error) {
     return (
-      <Alert variant="error" title={title} message={error} showLink={false} />
+      <>
+        <PageMeta
+          title="Error | SafulPay's Agency Dashboard - Finance just got better"
+          description="You are not authorized to view this page."
+        />
+        <Alert variant="error" title={title} message={error} />
+      </>
     );
+  }
 
   return (
     <>
@@ -77,16 +76,20 @@ const Agents: React.FC = () => {
         title="Agents | SafulPay Agency Dashboard - Finance just got better"
         description="List of all agency agents - Management system for SafulPay's Agency Platform"
       />
-      <PageBreadcrumb pageTitle="Agents" />
+      <PageBreadcrumb pageTitle="Agents & Merchants" />
+
+      {loading && (
+        <div className="text-gray-500 dark:text-gray-400">Loading...</div>
+      )}
+
       <div className="space-y-6">
         <ComponentCard
-          title="Agents Table"
-          desc="Details of all Agents"
+          title="Vendors Table"
+          desc="Details of all Merchants, Super Agents & Agents"
           actionButton1="Filter"
-          // onItemClick={filterByRole}
+          onItemClick={filterByRole}
           userType="Agent"
-          userRoles={userRoles}
-          filterOptions={userRoles}
+          filterOptions={vendors}
         >
           <BasicTableOne tableHeading={tableHeader} tableContent={tableData} />
         </ComponentCard>

@@ -1,4 +1,5 @@
-import OnboardAgentForm from "../../components/auth/OnboardAgentForm";
+// import OnboardAgentForm from "../../components/auth/OnboardAgentForm";
+import OnboardAgentForm from "../../components/auth/OnboardAgentForm.original";
 import GridShape from "../../components/common/GridShape";
 import PageMeta from "../../components/common/PageMeta";
 

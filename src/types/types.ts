@@ -16,7 +16,7 @@ export interface UserBio {
   image?: string;
   address?: string;
   referral_code: string;
-  country_code: string;
+  country_code?: string;
   role: string;
   status: number;
   created_at: string;
@@ -78,13 +78,13 @@ export interface Users {
   longitude?: string;
   id_type?: string;
   id_document?: string;
-  bussiness_registration?: string;
-  bussiness_image?: string;
+  business_registration?: string;
+  business_image?: string;
   referral_code: string;
   marketer_referralcode?: string;
   threshold_wallet_balance?: string;
-  threshold_cash_in_hand?: string;
-  residual_amount?: string;
+  threshold_cash_in_hand?: number;
+  residual_amount?: number;
   temp?: number;
   status: number;
   created_at: string;
@@ -104,8 +104,8 @@ export interface Agent {
   phone: string;
   email: string;
   image?: string;
-  type: "Agent" | "Merchant";
-  model?: "Target" | "Independent";
+  type: string | "Merchant" | "Super Agent" | "Agent";
+  model?: string | "Target" | "Independent";
   address: string;
   address_document: string;
   region?: string;
@@ -114,18 +114,22 @@ export interface Agent {
   longitude: string;
   id_type: string;
   id_document: string;
-  bussiness_registration: string;
-  bussiness_image: string;
+  business_registration: string;
+  business_image: string;
   referral_code: string;
   marketer_referralcode: string;
   threshold_wallet_balance: string;
-  threshold_cash_in_hand: string;
-  residual_amount?: string;
-  temp: number;
+  threshold_cash_in_hand: number;
+  residual_amount: number;
   status: number;
+  temp: number;
   created_at: string;
   updated_at: string;
   // marketer: Marketer | null;
+}
+
+export interface UpdatedAgentFields extends Partial<Agent> {
+  reason: string;
 }
 
 // export interface AgentResponse {

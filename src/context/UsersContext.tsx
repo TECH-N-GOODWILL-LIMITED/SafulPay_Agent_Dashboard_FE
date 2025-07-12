@@ -9,23 +9,21 @@ import {
 import { useAuth } from "./AuthContext";
 import { getAllUsers, getAllAgents } from "../utils/api";
 import type { Agent, Users } from "../types/types";
-// import type { UserBio } from "../types/types";
+import { ADMIN_ROLE } from "../utils/roles";
 
 interface AgentWithRole extends Agent {
-  role: string; // set to "Agent"
+  role: string;
 }
 
 export type usersItem = Users | AgentWithRole;
 
 interface UsersContextType {
-  // allUsers: UserBio[];
-  // filteredUsers: UserBio[];
   allAgents: Agent[];
   allUsers: usersItem[];
   filteredUsers: usersItem[];
   fetchUsers: () => Promise<void>;
   fetchAgents: () => Promise<void>;
-  filterByRole: (role: string) => void;
+  filterByRole: (role: string | string[]) => void;
   title: string;
   error?: string;
   loading: boolean;
@@ -42,8 +40,6 @@ export const useAllUsers = () => {
 export const UsersProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  //   const [userError, setUserError] = useState<string | null>(null);
-  //   const [agentError, setAgentError] = useState<string | null>(null);
   const [allUsers, setAllUsers] = useState<usersItem[]>([]);
   const [allAgents, setAllAgents] = useState<Agent[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<usersItem[]>([]);
@@ -51,7 +47,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({
   const [title, setTitle] = useState<string>("");
   const [error, setError] = useState<string>("");
 
-  const { token } = useAuth();
+  const { user, token } = useAuth();
 
   const fetchAgents = async () => {
     if (!token) {
@@ -82,6 +78,13 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({
       return;
     }
 
+    if (user?.role !== ADMIN_ROLE) {
+      setTitle("Unauthorized");
+      setError("You do not have permission to view this data.");
+      setLoading(false);
+      return;
+    }
+
     const [userRes, agentRes] = await Promise.all([
       getAllUsers(token),
       getAllAgents(token),
@@ -101,7 +104,6 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({
 
       setError("");
     } else {
-      // Handle errors separately
       if (!userRes.success && !agentRes.success) {
         setTitle("ERROR !!!");
         setError("Failed to fetch users and agents");
@@ -117,20 +119,23 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const filterByRole = useCallback(
-    (role: string) => {
+    (role: string | string[]) => {
       if (role === "All Users") return setFilteredUsers(allUsers);
 
-      const filtered = allUsers.filter((user) => user.role === role);
+      const rolesToFilter = Array.isArray(role) ? role : [role];
+      const filtered = allUsers.filter((user) =>
+        rolesToFilter.includes(user.role)
+      );
       setFilteredUsers(filtered);
     },
     [allUsers]
   );
 
   useEffect(() => {
-    if (token) {
+    if (token && user?.role === ADMIN_ROLE) {
       fetchUsers();
     }
-  }, [token]);
+  }, [token, user]);
 
   return (
     <UsersContext.Provider

@@ -20,6 +20,8 @@ interface AuthContextType {
   logout: () => Promise<void>;
   isLoggedIn: boolean | null;
   setSessionValidity: (valid: boolean) => void;
+  onboardingUser: UserBio | null;
+  setOnboardingUser: (user: UserBio | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,6 +39,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [responseData, setResponseData] = useState<LoginResponseData | null>(
     getResponseCookies
   );
+  const [onboardingUser, setOnboardingUser] = useState<UserBio | null>(null);
 
   const user = responseData?.user || null;
   const token = responseData?.access_token || null;
@@ -85,6 +88,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         logout,
         isLoggedIn,
         setSessionValidity: (valid: boolean) => setIsLoggedIn(valid),
+        onboardingUser,
+        setOnboardingUser,
       }}
     >
       {children}

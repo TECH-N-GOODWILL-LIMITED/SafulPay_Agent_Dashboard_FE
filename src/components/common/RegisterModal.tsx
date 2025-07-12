@@ -8,6 +8,7 @@ import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Button from "../ui/button/Button";
 import Alert from "../ui/alert/Alert";
+import { AGENT_ROLE, MERCHANT_ROLE, SUPER_AGENT_ROLE } from "../../utils/roles";
 
 interface RegisterModalProps {
   modalHeading: string;
@@ -36,7 +37,13 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
   const { token } = useAuth();
   const { fetchUsers } = useAllUsers();
 
-  const userOptions = userRoles?.filter((role) => role !== "Agent") || [];
+  const userOptions =
+    userRoles?.filter(
+      (role) =>
+        role !== AGENT_ROLE &&
+        role !== SUPER_AGENT_ROLE &&
+        role !== MERCHANT_ROLE
+    ) || [];
 
   const handlePhoneChange = (
     e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>

@@ -1,4 +1,8 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router";
+import { Suspense } from "react";
+import ProtectedRoute from "./components/common/ProtectedRoute";
+import Unauthorized from "./pages/OtherPage/Unauthorized";
+import { ADMIN_ROLE, MARKETER_ROLE, ACCOUNTANT_ROLE } from "./utils/roles";
 import SignIn from "./pages/AuthPages/SignIn";
 import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
@@ -9,8 +13,6 @@ import Alerts from "./pages/UiElements/Alerts";
 import Badges from "./pages/UiElements/Badges";
 import Avatars from "./pages/UiElements/Avatars";
 import Buttons from "./pages/UiElements/Buttons";
-// import LineChart from "./pages/Charts/LineChart";
-// import BarChart from "./pages/Charts/BarChart";
 import Calendar from "./pages/Calendar";
 import BasicTables from "./pages/Tables/BasicTables";
 import FormElements from "./pages/Forms/FormElements";
@@ -32,105 +34,127 @@ import Audit from "./pages/Audit/Audit";
 import Withdrawal from "./pages/Withdrawal/Withdrawal";
 import Deposit from "./pages/Deposit/Deposit";
 import OnboardAgent from "./pages/OnBoarding/OnboardAgent";
-// import MarketersLeaderboard from "./pages/MarketersLeaderboard/MarketersLeaderboard";
-import MarketersLayout from "./layout/MarketersLayout";
+import EditAgent from "./pages/Agents/EditAgent";
 import MarketersLeaderboard from "./pages/MarketersLeaderboard/MarketersLeaderboard";
+import MyAgents from "./pages/Agents/MyAgents";
 
 export default function App() {
   return (
     <>
       <Router>
         <ScrollToTop />
-        <Routes>
-          {/* Dashboard Layout */}
-          <Route element={<AppLayout />}>
-            <Route index path="/" element={<Home />} />
+        <Suspense
+          fallback={
+            <div>
+              <h1>I love bread</h1>
+              Loading...
+            </div>
+          }
+        >
+          <Routes>
+            {/* Dashboard Layout */}
+            <Route element={<AppLayout />}>
+              {/* Agents Page */}
+              <Route
+                element={
+                  <ProtectedRoute
+                    allowedRoles={[MARKETER_ROLE, ACCOUNTANT_ROLE, ADMIN_ROLE]}
+                  />
+                }
+              >
+                <Route index path="/" element={<Home />} />
+                <Route path="/agents" element={<Agents />} />
+                <Route path="/profile" element={<UserProfiles />} />
+              </Route>
 
-            {/* Admin Create Account Page */}
-            <Route path="/users" element={<Users />} />
+              {/* Admin, All Users Create Account Page */}
+              <Route element={<ProtectedRoute allowedRoles={[ADMIN_ROLE]} />}>
+                <Route path="/users" element={<Users />} />
+                <Route path="/admin" element={<Admin />} />
+                <Route path="/audit" element={<Audit />} />
+              </Route>
 
-            {/* Admin Page */}
-            <Route path="/admin" element={<Admin />} />
+              {/* Marketers Page */}
+              <Route
+                element={
+                  <ProtectedRoute allowedRoles={[MARKETER_ROLE, ADMIN_ROLE]} />
+                }
+              >
+                {/* <Route element={<MarketersLayout />}> */}
+                <Route path="/marketers" element={<Marketers />} />
+                <Route path="/editagent/:id" element={<EditAgent />} />
+                {/* </Route> */}
+              </Route>
 
-            {/* Marketers Page */}
-            <Route path="/marketers" element={<Marketers />} />
+              {/* Accountants, Riders Page and financial pages*/}
+              <Route
+                element={
+                  <ProtectedRoute
+                    allowedRoles={[ACCOUNTANT_ROLE, ADMIN_ROLE]}
+                  />
+                }
+              >
+                <Route path="/accountants" element={<Accountants />} />
+                <Route path="/riders" element={<Riders />} />
+                <Route path="/recollections" element={<Recollections />} />
+                <Route path="/disbursement" element={<Disbursement />} />
+                <Route path="/transactions" element={<Transactions />} />
+                <Route path="/withdrawal" element={<Withdrawal />} />
+                <Route path="/deposit" element={<Deposit />} />
+              </Route>
 
-            {/* Agents Page */}
-            <Route path="/agents" element={<Agents />} />
+              <Route
+                element={
+                  <ProtectedRoute allowedRoles={[MARKETER_ROLE, ADMIN_ROLE]} />
+                }
+              >
+                <Route path="/myagents" element={<MyAgents />} />
+              </Route>
 
-            {/* Riders Page */}
-            <Route path="/riders" element={<Riders />} />
+              {/* Open pages */}
+              <Route
+                path="/onboardagent/:marketer_ref"
+                element={<OnboardAgent />}
+              />
+              <Route
+                path="/marketers-leaderboard"
+                element={<MarketersLeaderboard />}
+              />
 
-            {/* Accountants Page */}
-            <Route path="/accountants" element={<Accountants />} />
+              {/* Others Page */}
 
-            {/* Recollections Page */}
-            <Route path="/recollections" element={<Recollections />} />
+              <Route path="/calendar" element={<Calendar />} />
+              <Route path="/blank" element={<Blank />} />
 
-            {/* FIX THE COMPONENTS */}
-            {/* Disbursement Page */}
-            <Route path="/disbursement" element={<Disbursement />} />
+              {/* Forms */}
+              <Route path="/form-elements" element={<FormElements />} />
 
-            {/* Transactions Log Page */}
-            <Route path="/transactions" element={<Transactions />} />
+              {/* Tables */}
+              <Route path="/basic-tables" element={<BasicTables />} />
 
-            {/* Withdrawals Log Page */}
-            <Route path="/withdrawal" element={<Withdrawal />} />
+              {/* Ui Elements */}
+              <Route path="/alerts" element={<Alerts />} />
+              <Route path="/avatars" element={<Avatars />} />
+              <Route path="/badge" element={<Badges />} />
+              <Route path="/buttons" element={<Buttons />} />
+              <Route path="/images" element={<Images />} />
+              <Route path="/videos" element={<Videos />} />
 
-            {/* Deposit Log Page */}
-            <Route path="/deposit" element={<Deposit />} />
-
-            {/* Audit Log Page */}
-            {/* <Route path="/audit" element={<Audit />} /> */}
-
-            {/* Others Page */}
-            <Route path="/profile" element={<UserProfiles />} />
-            <Route path="/calendar" element={<Calendar />} />
-            <Route path="/blank" element={<Blank />} />
-
-            {/* Forms */}
-            <Route path="/form-elements" element={<FormElements />} />
-
-            {/* Tables */}
-            <Route path="/basic-tables" element={<BasicTables />} />
-
-            {/* Ui Elements */}
-            <Route path="/alerts" element={<Alerts />} />
-            <Route path="/avatars" element={<Avatars />} />
-            <Route path="/badge" element={<Badges />} />
-            <Route path="/buttons" element={<Buttons />} />
-            <Route path="/images" element={<Images />} />
-            <Route path="/videos" element={<Videos />} />
-
-            {/* Charts */}
-            {/* <Route path="/line-chart" element={<LineChart />} />
+              {/* Charts */}
+              {/* <Route path="/line-chart" element={<LineChart />} />
             <Route path="/bar-chart" element={<BarChart />} /> */}
-          </Route>
+            </Route>
 
-          {/* Auth Layout */}
-          <Route path="/signin" element={<SignIn />} />
-          <Route path="/signup" element={<SignUp />} />
-          <Route path="/forgotpin" element={<ForgotPin />} />
+            {/* Auth Layout */}
+            <Route path="/signin" element={<SignIn />} />
+            <Route path="/signup" element={<SignUp />} />
+            <Route path="/forgotpin" element={<ForgotPin />} />
+            <Route path="/unauthorized" element={<Unauthorized />} />
 
-          {/* Fallback Route */}
-          <Route path="*" element={<NotFound />} />
-
-          {/* Agent Onboarding */}
-
-          <Route element={<MarketersLayout />}>
-            <Route
-              path="/onboardagent/:marketer_ref"
-              element={<OnboardAgent />}
-            />
-            <Route
-              path="/marketers-leaderboard"
-              element={<MarketersLeaderboard />}
-            />
-
-            {/* Temporarily out of the protected route Log Page */}
-            <Route path="/audit" element={<Audit />} />
-          </Route>
-        </Routes>
+            {/* Fallback Route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </Router>
     </>
   );

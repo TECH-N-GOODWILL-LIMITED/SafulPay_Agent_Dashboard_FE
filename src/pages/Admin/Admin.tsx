@@ -23,7 +23,7 @@ const Admin = () => {
 
   const tableData = filteredUsers?.map((user: usersItem) => ({
     id: user.id,
-    image: "/images/user/user-07.jpg", // or actual image URL if available
+    image: user.image || "/images/user/user-07.jpg",
     name: user.name,
     firstName: user.firstname,
     lastName: user.lastname,
@@ -38,13 +38,6 @@ const Admin = () => {
         : "Pending",
   }));
 
-  if (loading)
-    return <div className="text-gray-500 dark:text-gray-400">Loading...</div>;
-  if (error)
-    return (
-      <Alert variant="error" title={title} message={error} showLink={false} />
-    );
-
   return (
     <>
       <PageMeta
@@ -52,18 +45,28 @@ const Admin = () => {
         description="List of all agency admins - Management system for SafulPay's Agency Platform"
       />
       <PageBreadcrumb pageTitle="Admins" />
-      <div className="space-y-6">
-        <ComponentCard
-          title="Admins Table"
-          desc="Details of all Admins"
-          actionButton1="Filter"
-          userType="Admin"
-          userRoles={userRoles}
-          filterOptions={userRoles}
-        >
-          <BasicTableOne tableHeading={tableHeader} tableContent={tableData} />
-        </ComponentCard>
-      </div>
+
+      {error ? (
+        <Alert variant="error" title={title} message={error} showLink={false} />
+      ) : loading ? (
+        <div className="text-gray-500 dark:text-gray-400">Loading...</div>
+      ) : (
+        <div className="space-y-6">
+          <ComponentCard
+            title="Admins Table"
+            desc="Details of all Admins"
+            actionButton1="Filter"
+            userType="Admin"
+            userRoles={userRoles}
+            filterOptions={userRoles}
+          >
+            <BasicTableOne
+              tableHeading={tableHeader}
+              tableContent={tableData}
+            />
+          </ComponentCard>
+        </div>
+      )}
     </>
   );
 };

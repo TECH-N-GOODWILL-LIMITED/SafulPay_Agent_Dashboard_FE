@@ -10,27 +10,27 @@ import Alert from "../../components/ui/alert/Alert";
 const tableHeader: string[] = [
   "Name / Username",
   "Role",
-  "Cash in hand",
+  "Code",
   "Phone Number",
   "Status",
 ];
 
-const Accountants: React.FC = () => {
+const Marketers: React.FC = () => {
   const { title, error, loading, filteredUsers, filterByRole } = useAllUsers();
 
   useEffect(() => {
-    filterByRole("Accountant");
+    filterByRole("Marketer");
   }, [filterByRole]);
 
   const tableData = filteredUsers?.map((user: usersItem) => ({
     id: user.id,
-    image: "/images/user/user-17.jpg", // or actual image URL if available
+    image: "/images/user/user-12.jpg", // or actual image URL if available
     name: user.name,
     firstName: user.firstname,
     lastName: user.lastname,
     username: user.username,
     role: user.role,
-    cih: user.threshold_cash_in_hand || 0.0,
+    code: user.referral_code,
     phone: user.phone,
     status:
       user.status === 1
@@ -45,10 +45,10 @@ const Accountants: React.FC = () => {
   return (
     <>
       <PageMeta
-        title="Accountants | SafulPay Agency Dashboard - Finance just got better"
-        description="List of all agency accountants - Management system for SafulPay's Agency Platform"
+        title="Marketers | SafulPay Agency Dashboard - Finance just got better"
+        description="List of all agency marketers - Management system for SafulPay's Agency Platform"
       />
-      <PageBreadcrumb pageTitle="Accountants" />
+      <PageBreadcrumb pageTitle="Marketers" />
 
       {error ? (
         <Alert variant="error" title={title} message={error} showLink={false} />
@@ -57,10 +57,10 @@ const Accountants: React.FC = () => {
       ) : (
         <div className="space-y-6">
           <ComponentCard
-            title="Accountants Table"
-            desc="Details of all Accountants"
-            actionButton1="Filter"
-            userType="Accountant"
+            title="Marketers Table"
+            desc="Details of all Marketers"
+            actionButton1="Filter By"
+            userType="Marketer"
             userRoles={userRoles}
             filterOptions={userRoles}
           >
@@ -75,4 +75,4 @@ const Accountants: React.FC = () => {
   );
 };
 
-export default Accountants;
+export default Marketers;

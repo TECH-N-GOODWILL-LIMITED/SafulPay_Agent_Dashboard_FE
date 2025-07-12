@@ -18,8 +18,6 @@ const LeaderboardTable: React.FC<Order> = ({ tableContent, tableHeading }) => {
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
       <div className="max-w-full overflow-x-auto">
         <Table>
-          {/* Table Header */}
-
           <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
             <TableRow>
               {tableHeading?.map((head) => (
@@ -35,24 +33,29 @@ const LeaderboardTable: React.FC<Order> = ({ tableContent, tableHeading }) => {
           </TableHeader>
 
           <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-            {tableContent ? (
+            {tableContent && tableContent.length !== 0 ? (
               tableContent.map((item) => {
-                const lastWeekTotal =
-                  item.weekly_agents[0].agents_this_week || 0;
-                const currentTotal = item.total_agents || 0;
-                const totalDiffPercent =
-                  lastWeekTotal > 0
-                    ? (lastWeekTotal / (currentTotal - lastWeekTotal)) * 100
-                    : 0;
-
-                const lastWeekAgents =
-                  item.weekly_agents[1].agents_this_week || 0;
                 const thisWeekAgents =
                   item.weekly_agents[0].agents_this_week || 0;
-                const weeklyDiffPercent =
-                  lastWeekAgents > 0
-                    ? ((thisWeekAgents - lastWeekAgents) / lastWeekAgents) * 100
-                    : 0;
+                const lastWeekAgents =
+                  item.weekly_agents[1].agents_this_week || 0;
+                const currentTotal = item.total_agents || 0;
+                const previousTotal = currentTotal - thisWeekAgents;
+
+                let totalDiffPercent = 0;
+                if (previousTotal > 0) {
+                  totalDiffPercent = (thisWeekAgents / previousTotal) * 100;
+                } else if (thisWeekAgents > 0) {
+                  totalDiffPercent = 100;
+                }
+
+                let weeklyDiffPercent = 0;
+                if (lastWeekAgents > 0) {
+                  weeklyDiffPercent =
+                    ((thisWeekAgents - lastWeekAgents) / lastWeekAgents) * 100;
+                } else if (thisWeekAgents > 0) {
+                  weeklyDiffPercent = 100;
+                }
 
                 const showTotalBadge = totalDiffPercent !== 0;
                 const showWeeklyBadge = weeklyDiffPercent !== 0;
@@ -90,9 +93,19 @@ const LeaderboardTable: React.FC<Order> = ({ tableContent, tableHeading }) => {
                         {showTotalBadge && (
                           <Badge
                             size="sm"
-                            color={totalDiffPercent > 0 ? "success" : "error"}
+                            color={
+                              totalDiffPercent > 0
+                                ? "success"
+                                : totalDiffPercent < 0
+                                ? "error"
+                                : "primary"
+                            }
                           >
-                            {totalDiffPercent > 0 ? "↑" : "↓"}
+                            {totalDiffPercent > 0
+                              ? `+${totalDiffPercent.toFixed(1)}%`
+                              : totalDiffPercent < 0
+                              ? `${totalDiffPercent.toFixed(1)}%`
+                              : `0%`}
                           </Badge>
                         )}
                       </div>
@@ -113,9 +126,19 @@ const LeaderboardTable: React.FC<Order> = ({ tableContent, tableHeading }) => {
                         {showWeeklyBadge && (
                           <Badge
                             size="sm"
-                            color={weeklyDiffPercent > 0 ? "success" : "error"}
+                            color={
+                              weeklyDiffPercent > 0
+                                ? "success"
+                                : weeklyDiffPercent < 0
+                                ? "error"
+                                : "primary"
+                            }
                           >
-                            {weeklyDiffPercent > 0 ? "↑" : "↓"}
+                            {weeklyDiffPercent > 0
+                              ? `+${weeklyDiffPercent.toFixed(1)}%`
+                              : weeklyDiffPercent < 0
+                              ? `${weeklyDiffPercent.toFixed(1)}%`
+                              : `0%`}
                           </Badge>
                         )}
                       </div>

@@ -6,11 +6,12 @@ import { AuditLogData } from "../../types/types";
 import { getAuditLogs } from "../../utils/api";
 import Alert from "../../components/ui/alert/Alert";
 import LogTable from "../../components/tables/BasicTables/LogTable";
+import { useAuth } from "../../context/AuthContext";
 
 const tableHeader: string[] = [
   "Action type",
-  "Description",
   "Reason",
+  "Brief",
   // "Weekly referred agents",
   "Performed by",
   "time",
@@ -22,10 +23,14 @@ const Audit: React.FC = () => {
   const [alertTitle, setAlertTitle] = useState<string>("");
   const [error, setError] = useState<string>("");
 
+  const { token } = useAuth();
+
   useEffect(() => {
     const fetchData = async () => {
+      if (!token) return;
+
       setLoading(true);
-      const response = await getAuditLogs();
+      const response = await getAuditLogs(token);
       if (response.success && response.data) {
         setTableData(response.data.log);
       } else {
@@ -40,15 +45,6 @@ const Audit: React.FC = () => {
 
   if (loading)
     return <div className="text-gray-500 dark:text-gray-400">Loading...</div>;
-  if (error)
-    return (
-      <Alert
-        variant="error"
-        title={alertTitle}
-        message={error}
-        showLink={false}
-      />
-    );
 
   return (
     <>
@@ -56,11 +52,14 @@ const Audit: React.FC = () => {
         title="Audit Log | SafulPay Agency Dashboard - Finance just got better"
         description="Log of every action performed by users - Management system for SafulPay's Agency Platform"
       />
-      <PageBreadcrumb pageTitle="Marketers Leaderboard" />
-
-      <ComponentCard title="Audit Log">
-        <LogTable tableHeading={tableHeader} tableContent={tableData} />
-      </ComponentCard>
+      <PageBreadcrumb pageTitle="Audit Log" />
+      {error ? (
+        <Alert variant="error" title={alertTitle} message={error} />
+      ) : (
+        <ComponentCard title="Log Table">
+          <LogTable tableHeading={tableHeader} tableContent={tableData} />
+        </ComponentCard>
+      )}
     </>
   );
 };

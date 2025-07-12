@@ -67,7 +67,6 @@ export const generateUserMetrics = (users: usersItem[]) => {
     { users: "Total Users", metric: totalUsers },
     { users: "Admins", metric: roleCounts["Admin"] || 0 },
     { users: "Marketers", metric: roleCounts["Marketer"] || 0 },
-    // NOTE: Fix this to perform additions for agents
     {
       users: "Agents",
       metric: agentCounts || 0,

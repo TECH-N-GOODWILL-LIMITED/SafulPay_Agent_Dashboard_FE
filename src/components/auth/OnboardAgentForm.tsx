@@ -1,7 +1,15 @@
-import { useState } from "react";
-import { useParams } from "react-router";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router";
 import { useDropzone } from "react-dropzone";
-import { addAgent, uploadToCloudinary } from "../../utils/api";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import {
+  addAgent,
+  checkUserExist,
+  getUserByReferralCode,
+  uploadToCloudinary,
+} from "../../utils/api";
 import { useAllUsers } from "../../context/UsersContext";
 import { filterPhoneNumber } from "../../utils/utils";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
@@ -14,41 +22,95 @@ import { useModal } from "../../hooks/useModal";
 import { Modal } from "../ui/modal";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
-import { ChevronDownIcon, EnvelopeIcon, UserIcon } from "../../icons";
+import {
+  ChevronDownIcon,
+  EnvelopeIcon,
+  TrashBinIcon,
+  UserIcon,
+} from "../../icons";
+import { useAuth } from "../../context/AuthContext";
+import { ADMIN_ROLE, MARKETER_ROLE } from "../../utils/roles";
+
+const schema = yup.object().shape({
+  firstName: yup.string().required("First Name is required"),
+  lastName: yup.string().required("Last Name is required"),
+  middleName: yup.string().notRequired(),
+  userName: yup
+    .string()
+    .required("Username is required")
+    .max(12, "Username cannot exceed 12 characters"),
+  businessName: yup.string().required("Business Name is required"),
+  businessPhone: yup.string().required("Business Phone is required"),
+  phone: yup.string().required("Phone is required"),
+  email: yup.string().email("Invalid email format").notRequired(),
+  agentType: yup.string().required("Agency Type is required"),
+  model: yup.string().when("agentType", {
+    is: (agentType: string) =>
+      agentType === "Agent" || agentType === "Super Agent",
+    then: (schema) =>
+      schema.required("Agency Model is required for Agent/Super Agent"),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+  idType: yup.string().when("idImageUrl", {
+    is: (idImageUrl: string) => !!idImageUrl,
+    then: (schema) =>
+      schema.required("ID Type is required when ID Image is uploaded"),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+  businessAddress: yup.string().required("Address is required"),
+  district: yup.string().required("District is required"),
+  region: yup.string().notRequired(),
+  latitude: yup
+    .number()
+    .typeError("Latitude must be a number")
+    .min(-90, "Latitude must be between -90 and 90")
+    .max(90, "Latitude must be between -90 and 90")
+    .required("Latitude is required"),
+  longitude: yup
+    .number()
+    .typeError("Longitude must be a number")
+    .min(-180, "Longitude must be between -180 and 180")
+    .max(180, "Longitude must be between -180 and 180")
+    .required("Longitude is required"),
+  idImageUrl: yup.string().notRequired(),
+  businessImageUrl: yup.string().required("Business Place Image is required"),
+  addressDocumentUrl: yup.string().when("agentType", {
+    is: (agentType: string) =>
+      agentType === "Merchant" || agentType === "Super Agent",
+    then: (schema) =>
+      schema.required(
+        "Proof of Address Document is required for Merchant/Super Agent"
+      ),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+  businessRegDocumentUrl: yup
+    .string()
+    .required("Business Registration Document is required"),
+});
 
 export default function OnboardAgentForm() {
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(schema),
+    mode: "onBlur", // Validate on blur
+  });
+
+  const agentType = watch("agentType");
+  const idImageUrl = watch("idImageUrl");
+
+  const [refLoading, setRefLoading] = useState(true);
+  const [refError, setRefError] = useState<string | null>(null);
   const [alertTitle, setAlertTitle] = useState<string>("");
-  const [error, setError] = useState<string>("");
   const [warnError, setWarnError] = useState<boolean>(false);
+  const [Error, setError] = useState<string | null>(null);
   const [successAlert, setSuccessAlert] = useState<string>("");
-  const [firstName, setFirstName] = useState<string>("");
-  const [middleName, setMiddleName] = useState<string>("");
-  const [lastName, setLastName] = useState<string>("");
-  const [userName, setUserName] = useState<string>("");
-  const [businessName, setBusinessName] = useState<string>("");
-  const [businessPhone, setBusinessPhone] = useState<string>("");
-  const [phone, setPhone] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
-  const [agentType, setAgentType] = useState<string>("");
-  const [model, setModel] = useState<string>("");
-  const [idType, setIdType] = useState<string>("");
-  const [businessAddress, setBusinessAddress] = useState<string>("");
-  const [district, setDistrict] = useState<string>("");
-  const [region, setRegion] = useState<string>("");
-  const [latitude, setLatitude] = useState<string>("");
-  const [longitude, setLongitude] = useState<string>("");
-  const [idImage, setIdImage] = useState<File | null>(null);
-  const [idImageUrl, setIdImageUrl] = useState<string>("");
-  const [businessImage, setBusinessImage] = useState<File | null>(null);
-  const [businessImageUrl, setBusinessImageUrl] = useState<string>("");
-  const [addressDocument, setAddressDocument] = useState<File | null>(null);
-  const [addressDocumentUrl, setAddressDocumentUrl] = useState<string>("");
-  const [businessRegDocument, setBusinessRegDocument] = useState<File | null>(
-    null
-  );
-  const [businessRegDocumentUrl, setBusinessRegDocumentUrl] =
-    useState<string>("");
-  const [isTemp, setIsTemp] = useState<number>(0);
+  const [userExistError, setUserExistError] = useState<string | null>(null);
+  const [showRefErrorAlert, setShowRefErrorAlert] = useState<boolean>(false);
   const [missingUrl, setMissingUrl] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [geoLoading, setGeoLoading] = useState<boolean>(false);
@@ -60,12 +122,70 @@ export default function OnboardAgentForm() {
     useState<boolean>(false);
   const [isDistrictDropdownOpen, setIsDistrictDropdownOpen] =
     useState<boolean>(false);
-  const { marketer_ref } = useParams();
+
+  const navigate = useNavigate();
+
+  const { marketer_ref } = useParams<{ marketer_ref: string }>();
   const marketer = marketer_ref && marketer_ref.toString().toUpperCase();
+
+  const { fetchUsers } = useAllUsers();
+  const { setOnboardingUser } = useAuth();
 
   const { isOpen, openModal, closeModal } = useModal();
 
-  const { fetchUsers } = useAllUsers();
+  useEffect(() => {
+    const validateReferralCode = async () => {
+      if (!marketer) {
+        setAlertTitle("Error!");
+        setRefError("Referral code missing.");
+        setRefLoading(false);
+        setShowRefErrorAlert(true);
+        setTimeout(() => {
+          navigate("/unauthorized");
+        }, 5000); // 5 seconds delay
+        return;
+      }
+
+      try {
+        const response = await getUserByReferralCode(marketer);
+        if (response.success && response.data) {
+          const fetchedUser = response.data.user;
+
+          if (
+            fetchedUser.role === ADMIN_ROLE ||
+            fetchedUser.role === MARKETER_ROLE
+          ) {
+            setOnboardingUser(fetchedUser);
+          } else {
+            setAlertTitle("Error!");
+            setRefError("Unauthorized role.");
+            setShowRefErrorAlert(true);
+            setTimeout(() => {
+              navigate("/unauthorized");
+            }, 5000); // 5 seconds delay
+          }
+        } else {
+          setAlertTitle("Error!");
+          setRefError(response.error || "Invalid referral code.");
+          setShowRefErrorAlert(true);
+          setTimeout(() => {
+            navigate("/unauthorized");
+          }, 5000); // 5 seconds delay
+        }
+      } catch (err) {
+        setAlertTitle("Error!");
+        setRefError(`Error validating referral code: ${err}`);
+        setShowRefErrorAlert(true);
+        setTimeout(() => {
+          navigate("/unauthorized");
+        }, 5000); // 5 seconds delay
+      } finally {
+        setRefLoading(false);
+      }
+    };
+
+    validateReferralCode();
+  }, [marketer, navigate, setOnboardingUser]);
 
   const typeOptions = ["Merchant", "Agent", "Super Agent"];
   const modelOptions = ["Target", "Independent"];
@@ -118,31 +238,31 @@ export default function OnboardAgentForm() {
       setUploadLoading(false);
       if (result.success) {
         if (type === "idImage") {
-          setIdImage(file);
-          setIdImageUrl(result.url);
+          setValue("idImageUrl", result.url);
         }
         if (type === "businessRegDocument") {
-          setBusinessRegDocument(file);
-          setBusinessRegDocumentUrl(result.url);
+          setValue("businessRegDocumentUrl", result.url);
         }
         if (type === "businessImage") {
-          setBusinessImage(file);
-          setBusinessImageUrl(result.url);
+          setValue("businessImageUrl", result.url);
         }
         if (type === "addressDocument") {
-          setAddressDocument(file);
-          setAddressDocumentUrl(result.url);
+          setValue("addressDocumentUrl", result.url);
         }
 
         setSuccessAlert("File uploaded successfully!");
       } else {
-        setAlertTitle("Upload Failed");
         if (result.error.includes("Upload preset not found")) {
-          setError(
-            "Cloudinary upload preset 'agent_uploads_unsigned' not found. Please create it in your Cloudinary dashboard."
-          );
+          setFormError("root.uploadError", {
+            type: "manual",
+            message:
+              "Cloudinary upload preset 'agent_uploads_unsigned' not found. Please create it in your Cloudinary dashboard.",
+          });
         } else {
-          setError(result.error || "Failed to upload file to Cloudinary");
+          setFormError("root.uploadError", {
+            type: "manual",
+            message: result.error || "Failed to upload file to Cloudinary",
+          });
         }
       }
     }
@@ -216,53 +336,6 @@ export default function OnboardAgentForm() {
     },
   });
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-    setter: React.Dispatch<React.SetStateAction<string>>
-  ) => {
-    setter(e.target.value.trim());
-    setAlertTitle("");
-    setError("");
-    setWarnError(false);
-    setSuccessAlert("");
-  };
-
-  const handleTypeChange = (type: string) => {
-    setAgentType(type);
-    setAlertTitle("");
-    setError("");
-    setWarnError(false);
-    setSuccessAlert("");
-    setIsTypeDropdownOpen(false);
-  };
-
-  const handleModelChange = (model: string) => {
-    setModel(model);
-    setAlertTitle("");
-    setError("");
-    setWarnError(false);
-    setSuccessAlert("");
-    setIsModelDropdownOpen(false);
-  };
-
-  const handleIdTypeChange = (type: string) => {
-    setIdType(type);
-    setAlertTitle("");
-    setError("");
-    setWarnError(false);
-    setSuccessAlert("");
-    setIsIdTypeDropdownOpen(false);
-  };
-
-  const handleDistrictChange = (district: string) => {
-    setDistrict(district);
-    setAlertTitle("");
-    setError("");
-    setWarnError(false);
-    setSuccessAlert("");
-    setIsDistrictDropdownOpen(false);
-  };
-
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
       setAlertTitle("Geolocation Not Supported");
@@ -278,132 +351,51 @@ export default function OnboardAgentForm() {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const lat = position.coords.latitude.toFixed(8);
-        const lon = position.coords.longitude.toFixed(8);
+        const lat = position.coords.latitude.toFixed(6);
+        const lon = position.coords.longitude.toFixed(6);
 
-        setLatitude(lat);
-        setLongitude(lon);
+        setValue("latitude", parseFloat(lat));
+        setValue("longitude", parseFloat(lon));
         setGeoLoading(false);
       },
       (err) => {
         setGeoLoading(false);
-        setAlertTitle("Geolocation Error");
-        switch (err.code) {
-          case err.PERMISSION_DENIED:
-            setError("Permission to access location was denied.");
-            break;
-          case err.POSITION_UNAVAILABLE:
-            setError("Location information is unavailable.");
-            break;
-          case err.TIMEOUT:
-            setError("The request to get location timed out.");
-            break;
-          default:
-            setError("An error occurred while fetching location.");
-        }
+        setFormError("root.geolocationError", {
+          type: "manual",
+          message: `Geolocation Error: ${err.message}`,
+        });
       },
       { timeout: 10000, maximumAge: 60000 }
     );
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAlertTitle("");
-    setError("");
-    setWarnError(false);
-    setSuccessAlert("");
-    setIsTemp(0);
-
-    if (
-      !firstName ||
-      !lastName ||
-      !userName ||
-      !businessName ||
-      !businessPhone ||
-      !phone ||
-      !agentType ||
-      ((agentType === "Agent" || agentType === "Super Agent") && !model) ||
-      !businessAddress ||
-      !district ||
-      !latitude ||
-      !longitude
-    ) {
-      setAlertTitle("Fill all required fields");
-      setError("Please complete all required fields");
+  const handlePhoneBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
+    const phoneNumber = e.target.value;
+    if (!phoneNumber) {
+      setUserExistError(null);
       return;
     }
 
-    if (idImageUrl && !idType) {
-      setAlertTitle("Fill all required fields");
-      setError("Select ID Type");
-      return;
-    }
-
-    //NOTE: ADD ERROR FOR IF REFFERAL CODE DOES NOT MATCH ANY USER/MARKETER
-    if (!marketer) {
-      setAlertTitle("Invalid ID");
-      setError("Marketer not found");
-      return;
-    }
-
-    let phoneNumber: string;
     try {
-      phoneNumber = filterPhoneNumber(phone);
-      if (phoneNumber.length !== 11) {
-        setAlertTitle("Invalid Phone Number Format");
-        setWarnError(true);
+      const formattedPhoneNumber = filterPhoneNumber(phoneNumber);
+      if (formattedPhoneNumber.length !== 11) {
+        setUserExistError(
+          "Invalid phone number format. Please use 232XXXXXXXX format."
+        );
         return;
       }
-      setPhone(phoneNumber);
+      const response = await checkUserExist(formattedPhoneNumber);
+      if (response.success) {
+        setUserExistError("User already registered on SafulPay.");
+      } else {
+        setUserExistError(null); // User not found, which is good for onboarding
+      }
     } catch (err) {
-      setAlertTitle("Invalid Phone Number");
-      setError((err as Error).message);
-      setWarnError(true);
-      return;
+      setUserExistError("Error checking user existence.");
     }
-
-    const lat = parseFloat(latitude);
-    const lon = parseFloat(longitude);
-
-    if (
-      isNaN(lat) ||
-      isNaN(lon) ||
-      lat < -90 ||
-      lat > 90 ||
-      lon < -180 ||
-      lon > 180
-    ) {
-      setAlertTitle("Invalid Input Values");
-      setError(
-        "Ensure latitude (-90 to 90) and longitude (-180 to 180) are valid numbers"
-      );
-      return;
-    }
-
-    const missingUrls: string[] = [];
-
-    if (!idImageUrl) missingUrls.push("ID document");
-    if (!businessRegDocumentUrl)
-      missingUrls.push("Business registration document");
-    if (!businessImageUrl) missingUrls.push("Business image");
-    if (
-      (agentType === "Merchant" || agentType === "Super Agent") &&
-      !addressDocumentUrl
-    ) {
-      missingUrls.push("Proof of address document");
-    }
-
-    if (missingUrls.length > 0) {
-      setMissingUrl(missingUrls);
-      openModal();
-      return;
-    }
-
-    setIsTemp(1);
-    await registerAgent();
   };
 
-  const registerAgent = async () => {
+  const onSubmit = async (data: any, isTemp: number) => {
     setLoading(true);
     setAlertTitle("");
     setError("");
@@ -411,30 +403,31 @@ export default function OnboardAgentForm() {
     setSuccessAlert("");
 
     const formData = new FormData();
-    formData.append("firstname", firstName);
-    formData.append("lastname", lastName);
-    if (middleName) formData.append("middlename", middleName);
-    formData.append("username", userName);
-    formData.append("business_name", businessName);
-    formData.append("business_phone", businessPhone);
-    formData.append("phone", phone);
-    if (email) formData.append("email", email);
-    formData.append("type", agentType);
-    if (model) formData.append("model", model);
-    formData.append("address", businessAddress);
-    formData.append("district", district);
-    if (region) formData.append("region", region);
-    formData.append("latitude", latitude);
-    formData.append("longitude", longitude);
-    if (businessImageUrl) formData.append("business_image", businessImageUrl);
-    if (addressDocumentUrl) {
-      formData.append("address_document", addressDocumentUrl);
+    formData.append("firstname", data.firstName);
+    formData.append("lastname", data.lastName);
+    if (data.middleName) formData.append("middlename", data.middleName);
+    formData.append("username", data.userName);
+    formData.append("business_name", data.businessName);
+    formData.append("business_phone", data.businessPhone);
+    formData.append("phone", data.phone);
+    if (data.email) formData.append("email", data.email);
+    formData.append("type", data.agentType);
+    if (data.model) formData.append("model", data.model);
+    formData.append("address", data.businessAddress);
+    formData.append("district", data.district);
+    if (data.region) formData.append("region", data.region);
+    formData.append("latitude", data.latitude);
+    formData.append("longitude", data.longitude);
+    if (data.businessImageUrl)
+      formData.append("business_image", data.businessImageUrl);
+    if (data.addressDocumentUrl) {
+      formData.append("address_document", data.addressDocumentUrl);
     }
-    if (businessRegDocumentUrl) {
-      formData.append("business_registration", businessRegDocumentUrl);
+    if (data.businessRegDocumentUrl) {
+      formData.append("business_registration", data.businessRegDocumentUrl);
     }
-    if (idType) formData.append("id_type", idType);
-    if (idImageUrl) formData.append("id_document", idImageUrl);
+    if (data.idType) formData.append("id_type", data.idType);
+    if (data.idImageUrl) formData.append("id_document", data.idImageUrl);
     if (marketer) formData.append("marketer_referralcode", marketer);
     formData.append("temp", isTemp.toString());
 
@@ -443,32 +436,34 @@ export default function OnboardAgentForm() {
     if (response.success && response.data) {
       await fetchUsers();
       setAlertTitle("Successful");
-      setSuccessAlert(`${agentType} registered successfully!`);
+      setSuccessAlert(`${data.agentType} registered successfully!`);
 
-      setFirstName("");
-      setLastName("");
-      setMiddleName("");
-      setUserName("");
-      setBusinessName("");
-      setBusinessPhone("");
-      setPhone("");
-      setEmail("");
-      setAgentType("");
-      setModel("");
-      setBusinessAddress("");
-      setDistrict("");
-      setRegion("");
-      setLatitude("");
-      setLongitude("");
-      setBusinessImageUrl("");
-      setAddressDocumentUrl("");
-      setBusinessRegDocumentUrl("");
-      setIdType("");
-      setIdImageUrl("");
-      setIsTemp(0);
+      // Reset form fields
+      setValue("firstName", "");
+      setValue("lastName", "");
+      setValue("middleName", "");
+      setValue("userName", "");
+      setValue("businessName", "");
+      setValue("businessPhone", "");
+      setValue("phone", "");
+      setValue("email", "");
+      setValue("agentType", "");
+      setValue("model", "");
+      setValue("businessAddress", "");
+      setValue("district", "");
+      setValue("region", "");
+      setValue("latitude", 0);
+      setValue("longitude", 0);
+      setValue("businessImageUrl", "");
+      setValue("addressDocumentUrl", "");
+      setValue("businessRegDocumentUrl", "");
+      setValue("idType", "");
+      setValue("idImageUrl", "");
     } else {
-      setAlertTitle("Registration Failed");
-      setError(response.error || "Agent registration failed");
+      setFormError("root.apiError", {
+        type: "manual",
+        message: response.error || "Agent registration failed",
+      });
     }
 
     setLoading(false);
@@ -477,39 +472,94 @@ export default function OnboardAgentForm() {
   const handleProceedWithoutDocuments = async () => {
     setMissingUrl([]);
     closeModal();
-    await registerAgent();
+    await onSubmit(watch(), 1);
   };
+
+  if (refLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen text-gray-500 dark:text-gray-400">
+        Validating referral code...
+      </div>
+    );
+  }
+
+  if (showRefErrorAlert && refError)
+    return <Alert variant="error" title={alertTitle} message={refError} />;
 
   return (
     <>
       <PageBreadcrumb pageTitle="Register Agent & Merchant" />
+
       <form
-        onSubmit={handleRegister}
+        onSubmit={handleSubmit((data) => onSubmit(data, 0))}
         className="grid grid-cols-1 gap-6 xl:grid-cols-2"
       >
         <Modal isOpen={isOpen} onClose={closeModal} className="max-w-xl m-4">
-          <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
-            <p className="">
-              {missingUrl.length}{" "}
-              {missingUrl.length > 1 ? "documents" : "document"} (
-              <span className="text-brand-accent">{missingUrl.join(", ")}</span>
-              ) missing.
-            </p>
-            <p className="mt-5 font-semibold text-xl">
-              Do you want to proceed without uploading?
-            </p>
-            <div className="flex items-center gap-3 px-2 mt-6 justify-end">
-              <Button size="sm" variant="outline" onClick={closeModal}>
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleProceedWithoutDocuments}
-                disabled={loading}
-              >
-                {loading ? "Registering" : "Proceed"}
-              </Button>
+          <div className="relative w-full rounded-3xl bg-white  dark:bg-gray-900  max-w-[600px] p-5 lg:p-10">
+            <div>
+              <div className="text-center">
+                <div className="relative flex items-center justify-center z-1 mb-7">
+                  <svg
+                    className="fill-warning-50 dark:fill-warning-500/15"
+                    width={90}
+                    height={90}
+                    viewBox="0 0 90 90"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M34.364 6.85053C38.6205 -2.28351 51.3795 -2.28351 55.636 6.85053C58.0129 11.951 63.5594 14.6722 68.9556 13.3853C78.6192 11.0807 86.5743 21.2433 82.2185 30.3287C79.7862 35.402 81.1561 41.5165 85.5082 45.0122C93.3019 51.2725 90.4628 63.9451 80.7747 66.1403C75.3648 67.3661 71.5265 72.2695 71.5572 77.9156C71.6123 88.0265 60.1169 93.6664 52.3918 87.3184C48.0781 83.7737 41.9219 83.7737 37.6082 87.3184C29.8831 93.6664 18.3877 88.0266 18.4428 77.9156C18.4735 72.2695 14.6352 67.3661 9.22531 66.1403C-0.462787 63.9451 -3.30193 51.2725 4.49185 45.0122C8.84391 41.5165 10.2138 35.402 7.78151 30.3287C3.42572 21.2433 11.3808 11.0807 21.0444 13.3853C26.4406 14.6722 31.9871 11.951 34.364 6.85053Z"
+                      fill=""
+                      fillOpacity=""
+                    />
+                  </svg>
+                  <span className="absolute -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2">
+                    <svg
+                      className="fill-warning-600 dark:fill-orange-400"
+                      width={38}
+                      height={38}
+                      viewBox="0 0 38 38"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        clipRule="evenodd"
+                        d="M32.1445 19.0002C32.1445 26.2604 26.2589 32.146 18.9987 32.146C11.7385 32.146 5.85287 26.2604 5.85287 19.0002C5.85287 11.7399 11.7385 5.85433 18.9987 5.85433C26.2589 5.85433 32.1445 11.7399 32.1445 19.0002ZM18.9987 35.146C27.9158 35.146 35.1445 27.9173 35.1445 19.0002C35.1445 10.0831 27.9158 2.85433 18.9987 2.85433C10.0816 2.85433 2.85287 10.0831 2.85287 19.0002C2.85287 27.9173 10.0816 35.146 18.9987 35.146ZM21.0001 26.0855C21.0001 24.9809 20.1047 24.0855 19.0001 24.0855L18.9985 24.0855C17.894 24.0855 16.9985 24.9809 16.9985 26.0855C16.9985 27.19 17.894 28.0855 18.9985 28.0855L19.0001 28.0855C20.1047 28.0855 21.0001 27.19 21.0001 26.0855ZM18.9986 10.1829C19.827 10.1829 20.4986 10.8545 20.4986 11.6829L20.4986 20.6707C20.4986 21.4992 19.827 22.1707 18.9986 22.1707C18.1701 22.1707 17.4986 21.4992 17.4986 20.6707L17.4986 11.6829C17.4986 10.8545 18.1701 10.1829 18.9986 10.1829Z"
+                        fill=""
+                      />
+                    </svg>
+                  </span>
+                </div>
+                <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90 sm:text-title-sm">
+                  Warning Alert!
+                </h4>
+
+                <p className="text-sm leading-6 text-gray-500 dark:text-gray-400">
+                  {missingUrl.length}{" "}
+                  {missingUrl.length > 1 ? "documents" : "document"} (
+                  <span className="text-brand-accent">
+                    {missingUrl.join(", ")}
+                  </span>
+                  ) missing.
+                </p>
+
+                <p className="mt-5 font-medium text-xl text-gray-800 dark:text-white/9">
+                  Do you want to proceed without uploading?
+                </p>
+
+                <div className="flex items-center justify-center w-full gap-3 mt-8">
+                  <Button variant="outline" onClick={closeModal}>
+                    Close
+                  </Button>
+                  <Button
+                    onClick={handleProceedWithoutDocuments}
+                    disabled={loading}
+                  >
+                    {loading ? "Registering..." : "Proceed"}
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </Modal>
@@ -523,11 +573,11 @@ export default function OnboardAgentForm() {
                 <Input
                   type="text"
                   id="firstName"
-                  name="firstName"
+                  // name="firstName"
                   placeholder="Enter first name"
-                  value={firstName}
-                  onChange={(e) => handleInputChange(e, setFirstName)}
-                  error={!!error && !firstName}
+                  {...register("firstName")}
+                  error={!!errors.firstName}
+                  hint={errors.firstName?.message}
                 />
               </div>
 
@@ -538,11 +588,11 @@ export default function OnboardAgentForm() {
                 <Input
                   type="text"
                   id="lastName"
-                  name="lastName"
+                  // name="lastName"
                   placeholder="Enter last name"
-                  value={lastName}
-                  onChange={(e) => handleInputChange(e, setLastName)}
-                  error={!!error && !lastName}
+                  {...register("lastName")}
+                  error={!!errors.lastName}
+                  hint={errors.lastName?.message}
                 />
               </div>
 
@@ -551,11 +601,9 @@ export default function OnboardAgentForm() {
                 <Input
                   type="text"
                   id="middleName"
-                  name="middeleName"
+                  // name="middleName"
                   placeholder="Enter middle name"
-                  value={middleName}
-                  onChange={(e) => handleInputChange(e, setMiddleName)}
-                  //   error={!!error && !middleName}
+                  {...register("middleName")}
                 />
               </div>
 
@@ -566,13 +614,11 @@ export default function OnboardAgentForm() {
                 <Input
                   type="text"
                   id="userName"
-                  name="username"
+                  // name="userName"
                   placeholder="Enter username"
-                  value={userName}
-                  max={12}
-                  onChange={(e) => handleInputChange(e, setUserName)}
-                  error={!!error && !userName}
-                  hint="max length 12"
+                  {...register("userName")}
+                  error={!!errors.userName}
+                  hint={errors.userName?.message || "max length 12"}
                 />
               </div>
 
@@ -583,11 +629,11 @@ export default function OnboardAgentForm() {
                 <Input
                   type="text"
                   id="businessName"
-                  name="business_name"
+                  // name="businessName"
                   placeholder="Enter business name"
-                  value={businessName}
-                  onChange={(e) => handleInputChange(e, setBusinessName)}
-                  error={!!error && !businessName}
+                  {...register("businessName")}
+                  error={!!errors.businessName}
+                  hint={errors.businessName?.message}
                 />
               </div>
 
@@ -598,10 +644,10 @@ export default function OnboardAgentForm() {
                 <Input
                   type="tel"
                   id="businessPhone"
-                  name="businessPhone"
-                  value={businessPhone}
-                  onChange={(e) => handleInputChange(e, setBusinessPhone)}
-                  error={warnError || (!!error && !businessPhone)}
+                  // name="businessPhone"
+                  {...register("businessPhone")}
+                  error={!!errors.businessPhone}
+                  hint={errors.businessPhone?.message}
                   selectedCountries={["SL"]}
                 />
               </div>
@@ -613,12 +659,12 @@ export default function OnboardAgentForm() {
                 <Input
                   type="tel"
                   id="phone"
-                  name="phone"
-                  // placeholder="e.g (76 123 456)"
-                  value={phone}
-                  onChange={(e) => handleInputChange(e, setPhone)}
-                  error={warnError || (!!error && !phone)}
+                  // name="phone"
+                  {...register("phone")}
+                  onBlur={handlePhoneBlur}
+                  error={!!errors.phone || !!userExistError}
                   selectedCountries={["SL"]}
+                  hint={errors.phone?.message || userExistError || ""}
                 />
               </div>
 
@@ -628,11 +674,12 @@ export default function OnboardAgentForm() {
                   <Input
                     type="email"
                     id="email"
-                    name="email"
+                    // name="email"
                     placeholder="info@gmail.com"
-                    value={email}
-                    onChange={(e) => handleInputChange(e, setEmail)}
+                    {...register("email")}
                     className="pl-[62px]"
+                    error={!!errors.email}
+                    hint={errors.email?.message}
                   />
                   <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none left-4 top-1/2 dark:text-gray-400">
                     <EnvelopeIcon className="size-6" />
@@ -646,7 +693,7 @@ export default function OnboardAgentForm() {
                 </Label>
                 <div
                   className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
-                    !!error && !agentType
+                    !!errors.agentType
                       ? "border-error-500"
                       : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                   }`}
@@ -661,6 +708,11 @@ export default function OnboardAgentForm() {
                   )}
                   <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
                 </div>
+                {errors.agentType && (
+                  <p className="text-error-500 text-sm mt-1">
+                    {errors.agentType.message}
+                  </p>
+                )}
                 <Dropdown
                   isOpen={isTypeDropdownOpen}
                   onClose={() => setIsTypeDropdownOpen(false)}
@@ -670,7 +722,10 @@ export default function OnboardAgentForm() {
                   {typeOptions.map((option) => (
                     <DropdownItem
                       key={option}
-                      onItemClick={() => handleTypeChange(option)}
+                      onItemClick={() => {
+                        setValue("agentType", option);
+                        setIsTypeDropdownOpen(false);
+                      }}
                       className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                     >
                       {option}
@@ -686,14 +741,14 @@ export default function OnboardAgentForm() {
                   </Label>
                   <div
                     className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
-                      !!error && !model
+                      !!errors.model
                         ? "border-error-500"
                         : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                     }`}
                     onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
                   >
-                    {model ? (
-                      <span> {model}</span>
+                    {watch("model") ? (
+                      <span> {watch("model")}</span>
                     ) : (
                       <span className="text-gray-400 dark:text-white/30">
                         Select Model
@@ -701,6 +756,11 @@ export default function OnboardAgentForm() {
                     )}
                     <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
                   </div>
+                  {errors.model && (
+                    <p className="text-error-500 text-sm mt-1">
+                      {errors.model.message}
+                    </p>
+                  )}
                   <Dropdown
                     isOpen={isModelDropdownOpen}
                     onClose={() => setIsModelDropdownOpen(false)}
@@ -710,7 +770,10 @@ export default function OnboardAgentForm() {
                     {modelOptions.map((option) => (
                       <DropdownItem
                         key={option}
-                        onItemClick={() => handleModelChange(option)}
+                        onItemClick={() => {
+                          setValue("model", option);
+                          setIsModelDropdownOpen(false);
+                        }}
                         className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                       >
                         {option}
@@ -733,10 +796,10 @@ export default function OnboardAgentForm() {
                 <Input
                   type="text"
                   id="businessAddress"
-                  name="address"
-                  value={businessAddress}
-                  onChange={(e) => handleInputChange(e, setBusinessAddress)}
-                  error={!!error && !businessAddress}
+                  // name="businessAddress"
+                  {...register("businessAddress")}
+                  error={!!errors.businessAddress}
+                  hint={errors.businessAddress?.message}
                 />
               </div>
 
@@ -746,7 +809,7 @@ export default function OnboardAgentForm() {
                 </Label>
                 <div
                   className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
-                    !!error && !district
+                    !!errors.district
                       ? "border-error-500"
                       : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                   }`}
@@ -754,8 +817,8 @@ export default function OnboardAgentForm() {
                     setIsDistrictDropdownOpen(!isDistrictDropdownOpen)
                   }
                 >
-                  {district ? (
-                    <span> {district}</span>
+                  {watch("district") ? (
+                    <span> {watch("district")}</span>
                   ) : (
                     <span className="text-gray-400 dark:text-white/30">
                       Select District
@@ -763,6 +826,11 @@ export default function OnboardAgentForm() {
                   )}
                   <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
                 </div>
+                {errors.district && (
+                  <p className="text-error-500 text-sm mt-1">
+                    {errors.district.message}
+                  </p>
+                )}
                 <Dropdown
                   isOpen={isDistrictDropdownOpen}
                   onClose={() => setIsDistrictDropdownOpen(false)}
@@ -772,7 +840,10 @@ export default function OnboardAgentForm() {
                   {districtOptions.map((option) => (
                     <DropdownItem
                       key={option}
-                      onItemClick={() => handleDistrictChange(option)}
+                      onItemClick={() => {
+                        setValue("district", option);
+                        setIsDistrictDropdownOpen(false);
+                      }}
                       className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                     >
                       {option}
@@ -789,10 +860,8 @@ export default function OnboardAgentForm() {
                 <Input
                   type="text"
                   id="region"
-                  name="region"
-                  value={region}
-                  onChange={(e) => handleInputChange(e, setRegion)}
-                  //   error={!!error && !region}
+                  // name="region"
+                  {...register("region")}
                 />
               </div>
 
@@ -807,10 +876,13 @@ export default function OnboardAgentForm() {
                     pattern="[0-9]*"
                     id="latitude"
                     name="latitude"
-                    value={!geoLoading ? latitude : "Fetching Location..."}
-                    onChange={(e) => handleInputChange(e, setLatitude)}
+                    value={
+                      !geoLoading ? watch("latitude") : "Fetching Location..."
+                    }
+                    {...register("latitude")}
                     disabled={geoLoading}
-                    error={!!error && !latitude}
+                    error={!!errors.latitude}
+                    hint={errors.latitude?.message}
                   />
                 </div>
 
@@ -823,11 +895,14 @@ export default function OnboardAgentForm() {
                     inputMode="numeric"
                     pattern="[0-9]*"
                     id="longitude"
-                    name="longitude"
-                    value={!geoLoading ? longitude : "Fetching Location..."}
-                    onChange={(e) => handleInputChange(e, setLongitude)}
+                    // name="longitude"
+                    value={
+                      !geoLoading ? watch("longitude") : "Fetching Location..."
+                    }
+                    {...register("longitude")}
                     disabled={geoLoading}
-                    error={!!error && !longitude}
+                    error={!!errors.longitude}
+                    hint={errors.longitude?.message}
                   />
                 </div>
 
@@ -860,7 +935,7 @@ export default function OnboardAgentForm() {
                 </Label>
                 <div
                   className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
-                    !!error && !businessImageUrl
+                    !!errors.businessImageUrl
                       ? "border-error-500"
                       : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                   }`}
@@ -881,7 +956,7 @@ export default function OnboardAgentForm() {
                     />
                     <div
                       className={`dz-message flex flex-col items-center upload ${
-                        businessImageUrl && "opacity-40"
+                        watch("businessImageUrl") && "opacity-40"
                       }`}
                     >
                       <div className="mb-[22px] flex justify-center">
@@ -911,28 +986,46 @@ export default function OnboardAgentForm() {
                         browse
                       </span>
                       <span className="font-medium underline text-theme-sm text-brand-500 truncate">
-                        {businessImage
-                          ? businessImage.name
+                        {watch("businessImageUrl")
+                          ? watch("businessImageUrl").split("/").pop()
                           : uploadLoading
                           ? "Uploading..."
                           : "Browse File"}
                       </span>
                     </div>
-                    {businessImageUrl && (
-                      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
-                        <img
-                          src={businessImageUrl}
-                          alt="Uploaded ID Image Preview"
-                          className="object-contain h-full mx-auto"
-                        />
-                      </div>
+                    {watch("businessImageUrl") && (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setValue("businessImageUrl", "");
+                          }}
+                          className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8"
+                          title="delete uploaded file"
+                        >
+                          <TrashBinIcon color="#e4e7ec" />
+                        </button>
+
+                        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
+                          <img
+                            src={watch("businessImageUrl")}
+                            alt="Uploaded ID Image Preview"
+                            className="object-contain h-full mx-auto"
+                          />
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
-                {businessImageUrl && (
+                {errors.businessImageUrl && (
+                  <p className="text-error-500 text-sm mt-1">
+                    {errors.businessImageUrl.message}
+                  </p>
+                )}
+                {watch("businessImageUrl") && (
                   <div className="mt-2">
                     <a
-                      href={businessImageUrl}
+                      href={watch("businessImageUrl")}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-brand-500 hover:underline"
@@ -950,7 +1043,7 @@ export default function OnboardAgentForm() {
                 </Label>
                 <div
                   className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
-                    !!error && !addressDocumentUrl
+                    !!errors.addressDocumentUrl
                       ? "border-error-500"
                       : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                   }`}
@@ -971,7 +1064,7 @@ export default function OnboardAgentForm() {
                     />
                     <div
                       className={`dz-message flex flex-col items-center upload ${
-                        addressDocumentUrl && "opacity-40"
+                        watch("addressDocumentUrl") && "opacity-40"
                       }`}
                     >
                       <div className="mb-[22px] flex justify-center">
@@ -1001,28 +1094,45 @@ export default function OnboardAgentForm() {
                         browse
                       </span>
                       <span className="font-medium underline text-theme-sm text-brand-500 truncate">
-                        {addressDocument
-                          ? addressDocument.name
+                        {watch("addressDocumentUrl")
+                          ? watch("addressDocumentUrl").split("/").pop()
                           : uploadLoading
                           ? "Uploading..."
                           : "Browse File"}
                       </span>
                     </div>
-                    {addressDocumentUrl && (
-                      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
-                        <img
-                          src={addressDocumentUrl}
-                          alt="Uploaded ID Image Preview"
-                          className="object-contain h-full mx-auto"
-                        />
-                      </div>
+                    {watch("addressDocumentUrl") && (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setValue("addressDocumentUrl", "");
+                          }}
+                          className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8"
+                          title="delete uploaded file"
+                        >
+                          <TrashBinIcon color="#e4e7ec" />
+                        </button>
+                        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
+                          <img
+                            src={watch("addressDocumentUrl")}
+                            alt="Uploaded ID Image Preview"
+                            className="object-contain h-full mx-auto"
+                          />
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
-                {addressDocumentUrl && (
+                {errors.addressDocumentUrl && (
+                  <p className="text-error-500 text-sm mt-1">
+                    {errors.addressDocumentUrl.message}
+                  </p>
+                )}
+                {watch("addressDocumentUrl") && (
                   <div className="mt-2">
                     <a
-                      href={addressDocumentUrl}
+                      href={watch("addressDocumentUrl")}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-brand-500 hover:underline"
@@ -1044,7 +1154,7 @@ export default function OnboardAgentForm() {
               </Label>
               <div
                 className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
-                  !!error && !businessRegDocumentUrl
+                  !!errors.businessRegDocumentUrl
                     ? "border-error-500"
                     : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                 }`}
@@ -1065,7 +1175,7 @@ export default function OnboardAgentForm() {
                   />
                   <div
                     className={`dz-message flex flex-col items-center ${
-                      businessRegDocumentUrl && "opacity-40"
+                      watch("businessRegDocumentUrl") && "opacity-40"
                     }`}
                   >
                     <div className="mb-[22px] flex justify-center">
@@ -1095,28 +1205,45 @@ export default function OnboardAgentForm() {
                       here or browse
                     </span>
                     <span className="font-medium underline text-theme-sm text-brand-500 truncate">
-                      {businessRegDocument
-                        ? businessRegDocument.name
+                      {watch("businessRegDocumentUrl")
+                        ? watch("businessRegDocumentUrl").split("/").pop()
                         : uploadLoading
                         ? "Uploading..."
                         : "Browse File"}
                     </span>
                   </div>
-                  {businessRegDocumentUrl && (
-                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
-                      <img
-                        src={businessRegDocumentUrl}
-                        alt="Document Preview"
-                        className="object-cover h-full mx-auto"
-                      />
-                    </div>
+                  {watch("businessRegDocumentUrl") && (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setValue("businessRegDocumentUrl", "");
+                        }}
+                        className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8"
+                        title="delete uploaded file"
+                      >
+                        <TrashBinIcon color="#e4e7ec" />
+                      </button>
+                      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
+                        <img
+                          src={watch("businessRegDocumentUrl")}
+                          alt="Document Preview"
+                          className="object-cover h-full mx-auto"
+                        />
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
-              {businessRegDocumentUrl && (
+              {errors.businessRegDocumentUrl && (
+                <p className="text-error-500 text-sm mt-1">
+                  {errors.businessRegDocumentUrl.message}
+                </p>
+              )}
+              {watch("businessRegDocumentUrl") && (
                 <div className="mt-2">
                   <a
-                    href={businessRegDocumentUrl}
+                    href={watch("businessRegDocumentUrl")}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-brand-500 hover:underline"
@@ -1133,14 +1260,14 @@ export default function OnboardAgentForm() {
               </Label>
               <div
                 className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
-                  !!error && !idType
+                  !!errors.idType
                     ? "border-error-500"
                     : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                 }`}
                 onClick={() => setIsIdTypeDropdownOpen(!isIdTypeDropdownOpen)}
               >
-                {idType ? (
-                  <span> {idType}</span>
+                {watch("idType") ? (
+                  <span> {watch("idType")}</span>
                 ) : (
                   <span className="text-gray-400 dark:text-white/30">
                     Select ID Type
@@ -1148,6 +1275,11 @@ export default function OnboardAgentForm() {
                 )}
                 <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
               </div>
+              {errors.idType && (
+                <p className="text-error-500 text-sm mt-1">
+                  {errors.idType.message}
+                </p>
+              )}
               <Dropdown
                 isOpen={isIdTypeDropdownOpen}
                 onClose={() => setIsIdTypeDropdownOpen(false)}
@@ -1157,7 +1289,10 @@ export default function OnboardAgentForm() {
                 {idTypeOptions.map((option) => (
                   <DropdownItem
                     key={option}
-                    onItemClick={() => handleIdTypeChange(option)}
+                    onItemClick={() => {
+                      setValue("idType", option);
+                      setIsIdTypeDropdownOpen(false);
+                    }}
                     className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                   >
                     {option}
@@ -1172,7 +1307,7 @@ export default function OnboardAgentForm() {
               </Label>
               <div
                 className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
-                  !!error && !idImageUrl
+                  !!errors.idImageUrl
                     ? "border-error-500"
                     : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                 }`}
@@ -1220,24 +1355,41 @@ export default function OnboardAgentForm() {
                       here or browse
                     </span>
                     <span className="font-medium underline text-theme-sm text-brand-500 truncate">
-                      {idImage
-                        ? idImage.name
+                      {idImageUrl
+                        ? idImageUrl.split("/").pop()
                         : uploadLoading
                         ? "Uploading..."
                         : "Browse File"}
                     </span>
                   </div>
                   {idImageUrl && (
-                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
-                      <img
-                        src={idImageUrl}
-                        alt="Uploaded ID Image Preview"
-                        className="object-cover h-full mx-auto"
-                      />
-                    </div>
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setValue("idImageUrl", "");
+                        }}
+                        className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8"
+                        title="delete uploaded file"
+                      >
+                        <TrashBinIcon color="#e4e7ec" />
+                      </button>
+                      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
+                        <img
+                          src={idImageUrl}
+                          alt="Uploaded ID Image Preview"
+                          className="object-cover h-full mx-auto"
+                        />
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
+              {errors.idImageUrl && (
+                <p className="text-error-500 text-sm mt-1">
+                  {errors.idImageUrl.message}
+                </p>
+              )}
               {idImageUrl && (
                 <div className="mt-2">
                   <a
@@ -1252,36 +1404,34 @@ export default function OnboardAgentForm() {
               )}
             </div>
 
-            {error && (
-              <Alert
-                variant="error"
-                title={alertTitle}
-                message={error}
-                showLink={false}
-              />
-            )}
-            {warnError && (
-              <Alert variant="warning" title={alertTitle} showLink={false}>
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  <p>Phone number must be a Sierra Leone line</p>
-                  <p>Ensure to type number in this format.</p>
-                  <ul className="list-disc mt-2 ml-4">
-                    <li>23230249005</li>
-                    <li>30249005</li>
-                    <li>030249005</li>
-                  </ul>
-                </div>
-              </Alert>
-            )}
             {successAlert && (
               <Alert
                 variant="success"
-                title={alertTitle}
+                title="Successful"
                 message={successAlert}
-                showLink={false}
               />
             )}
-
+            {errors.root?.apiError && (
+              <Alert
+                variant="error"
+                title="Registration Failed"
+                message={errors.root.apiError.message}
+              />
+            )}
+            {errors.root?.geolocationError && (
+              <Alert
+                variant="error"
+                title="Geolocation Error"
+                message={errors.root.geolocationError.message}
+              />
+            )}
+            {errors.root?.uploadError && (
+              <Alert
+                variant="error"
+                title="Upload Failed"
+                message={errors.root.uploadError.message}
+              />
+            )}
             <div className="col-span-2">
               <Button
                 className="w-full"

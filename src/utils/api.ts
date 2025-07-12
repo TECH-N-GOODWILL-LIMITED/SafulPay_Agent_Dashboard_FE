@@ -127,6 +127,36 @@ export const checkSession = async (
   }
 };
 
+export const checkUserExist = async (
+  phone: string
+): Promise<ApiResponse<{ status: string; message?: string }>> => {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/checkUserExist`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ phone }),
+      redirect: "follow",
+    });
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return {
+        success: true,
+        data: { status: data.status, message: data.message },
+      };
+    } else {
+      return {
+        success: false,
+        error: data.message || "Failed to check user existence ",
+      };
+    }
+  } catch (err) {
+    return { success: false, error: `Error checking user existence: ${err}` };
+  }
+};
+
 export const getAllUsers = async (
   accessToken: string
 ): Promise<ApiResponse<{ users: Users[] }>> => {
@@ -175,6 +205,128 @@ export const getAllAgents = async (
   }
 };
 
+export const getAllMarketers = async (
+  accessToken: string
+): Promise<ApiResponse<{ total: number; marketers: UserBio[] }>> => {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/getAllMarketers`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      redirect: "follow",
+    });
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return {
+        success: true,
+        data: { total: data.total_marketers, marketers: data.data.marketers },
+      };
+    } else {
+      return {
+        success: false,
+        error: data.message || "Failed to get marketers",
+      };
+    }
+  } catch (err) {
+    return { success: false, error: `Error retrieving marketers: ${err}` };
+  }
+};
+
+export const getAllAgentsByReferral = async (
+  accessToken: string,
+  ref: string
+): Promise<ApiResponse<{ total: number; user: UserBio; agents: Agent[] }>> => {
+  try {
+    const response = await fetch(
+      `${BASE_URL}/auth/agents/getAllAgentByReferrals/${ref}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        redirect: "follow",
+      }
+    );
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return {
+        success: true,
+        data: {
+          total: data.data.total,
+          user: data.data.user_info,
+          agents: data.data.agent_info,
+        },
+      };
+    } else {
+      return { success: false, error: data.message || "Failed to get agents" };
+    }
+  } catch (err) {
+    return { success: false, error: `Error retrieving agents: ${err}` };
+  }
+};
+
+export const getAgentById = async (
+  accessToken: string,
+  agentId: string
+): Promise<ApiResponse<{ agent: Agent }>> => {
+  try {
+    const response = await fetch(
+      `${BASE_URL}/auth/agents/getAgentById/${agentId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        redirect: "follow",
+      }
+    );
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return { success: true, data: { agent: data.data } };
+    } else {
+      return { success: false, error: data.message || "Failed to get agent" };
+    }
+  } catch (err) {
+    return { success: false, error: `Error retrieving agent: ${err}` };
+  }
+};
+
+export const getUserByReferralCode = async (
+  ref: string
+): Promise<ApiResponse<{ user: UserBio }>> => {
+  try {
+    const response = await fetch(
+      `${BASE_URL}/auth/getUserByReferralCode/${ref}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        redirect: "follow",
+      }
+    );
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return { success: true, data: { user: data.data.user } };
+    } else {
+      return {
+        success: false,
+        error: data.message || "Failed to get user information",
+      };
+    }
+  } catch (err) {
+    return { success: false, error: `Error retrieving user info: ${err}` };
+  }
+};
+
 export const registerUser = async (
   accessToken: string,
   phone: string,
@@ -197,7 +349,9 @@ export const registerUser = async (
     } else {
       return {
         success: false,
-        error: data.errors.phone || "Failed to register user",
+        error: data.errors.phone
+          ? data.errors.phone[0]
+          : data.message || "Failed to onboard agent",
       };
     }
   } catch (err) {
@@ -237,10 +391,47 @@ export const addAgent = async (
   }
 };
 
+export const updateAgentInfo = async (
+  accessToken: string,
+  agentId: string,
+  updatedFields: Partial<Agent>,
+  reason: string
+): Promise<ApiResponse<{ agent: Agent }>> => {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/agents/updateAgent`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ agent_id: agentId, ...updatedFields, reason }),
+      redirect: "follow",
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return { success: true, data: { agent: data.data } };
+    } else {
+      return {
+        success: false,
+        error: data.errors.phone
+          ? data.errors.phone[0]
+          : data.errors.email
+          ? data.errors.email[0]
+          : data.message || "Failed to update agent",
+      };
+    }
+  } catch (err) {
+    return { success: false, error: `Error updating agent: ${err}` };
+  }
+};
+
 export const changeUserStatus = async (
   accessToken: string,
   userId: number,
-  status: number
+  status: number,
+  reason: string
 ): Promise<ApiResponse<{ user: UserBio }>> => {
   try {
     console.log(status, userId);
@@ -250,7 +441,7 @@ export const changeUserStatus = async (
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({ id: Number(userId), status }),
+      body: JSON.stringify({ id: Number(userId), status, reason }),
       redirect: "follow",
     });
     const data = await response.json();
@@ -271,7 +462,8 @@ export const changeUserStatus = async (
 export const changeAgentStatus = async (
   accessToken: string,
   agentId: number,
-  status: number
+  status: number,
+  reason: string
 ): Promise<ApiResponse<{ agent: Agent }>> => {
   try {
     const response = await fetch(`${BASE_URL}/auth/agents/changeAgentStatus`, {
@@ -280,7 +472,7 @@ export const changeAgentStatus = async (
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({ agent_id: agentId, status }),
+      body: JSON.stringify({ agent_id: agentId, status, reason }),
       redirect: "follow",
     });
     const data = await response.json();
@@ -328,14 +520,15 @@ export const getMarketersStats = async (): Promise<
   }
 };
 
-export const getAuditLogs = async (): // accessToken: string
-Promise<ApiResponse<{ log: AuditLogData[] }>> => {
+export const getAuditLogs = async (
+  accessToken: string
+): Promise<ApiResponse<{ log: AuditLogData[] }>> => {
   try {
     const response = await fetch(`${BASE_URL}/auth/logs/audit-logs`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        // Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
       redirect: "follow",
     });

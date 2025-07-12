@@ -10,28 +10,32 @@ interface StatsProp {
 const StatsCard: React.FC<StatsProp> = ({ statsData }) => {
   const [selected, setSelected] = useState("weekly");
 
-  let percentageIncrease = 0;
   let percentageReffered = 0;
-  let percentageThisWeek = 0;
-
-  if (statsData?.total_agents_per_week[0].total_agents) {
-    percentageIncrease =
-      (statsData?.total_agents_per_week[0].total_agents /
-        (statsData.total_agents -
-          statsData?.total_agents_per_week[0].total_agents)) *
-      100;
-  }
 
   if (statsData?.total_agents_by_marketers) {
     percentageReffered =
       (statsData?.total_agents_by_marketers / statsData?.total_agents) * 100;
   }
 
-  if (statsData?.total_agents_per_week[0].total_agents) {
-    percentageThisWeek =
-      (statsData?.total_agents_per_week[0].total_agents /
-        statsData?.total_agents_per_week[1].total_agents) *
-      100;
+  const agentsThisWeek = statsData?.total_agents_per_week[0]?.total_agents || 0;
+  const agentsLastWeek = statsData?.total_agents_per_week[1]?.total_agents || 0;
+  const totalAgents = statsData?.total_agents || 0;
+  const totalAgentsAsOfLastWeek = totalAgents - agentsThisWeek;
+
+  let totalAgentsPercentageIncrease = 0;
+  if (totalAgentsAsOfLastWeek > 0) {
+    totalAgentsPercentageIncrease =
+      (agentsThisWeek / totalAgentsAsOfLastWeek) * 100;
+  } else if (agentsThisWeek > 0) {
+    totalAgentsPercentageIncrease = 100;
+  }
+
+  let vsLastWeekPercentageChange = 0;
+  if (agentsLastWeek > 0) {
+    vsLastWeekPercentageChange =
+      ((agentsThisWeek - agentsLastWeek) / agentsLastWeek) * 100;
+  } else if (agentsThisWeek > 0) {
+    vsLastWeekPercentageChange = 100;
   }
 
   return (
@@ -121,15 +125,18 @@ const StatsCard: React.FC<StatsProp> = ({ statsData }) => {
             <div className="flex items-end gap-1">
               <Badge
                 color={
-                  percentageIncrease > 0
+                  totalAgentsPercentageIncrease > 0
                     ? "success"
-                    : percentageIncrease < 0
+                    : totalAgentsPercentageIncrease < 0
                     ? "error"
                     : "primary"
                 }
-              >{`${percentageIncrease.toFixed(1)}%`}</Badge>
+              >
+                {totalAgentsPercentageIncrease > 0 ? "+" : ""}
+                {`${totalAgentsPercentageIncrease.toFixed(1)}%`}
+              </Badge>
               <span className="text-gray-500 text-theme-xs dark:text-gray-400">
-                Vs last week
+                Vs total last week
               </span>
             </div>
           </div>
@@ -145,7 +152,7 @@ const StatsCard: React.FC<StatsProp> = ({ statsData }) => {
             <div className="flex items-end gap-1">
               <Badge>{`${percentageReffered.toFixed(1)}%`}</Badge>
               <span className="text-gray-500 text-theme-xs dark:text-gray-400">
-                Vs total agents
+                of total agents
               </span>
             </div>
           </div>
@@ -157,18 +164,21 @@ const StatsCard: React.FC<StatsProp> = ({ statsData }) => {
             </span>
             <div className="mt-2 flex items-end justify-between gap-3">
               <h4 className="text-title-xs sm:text-title-sm font-bold text-gray-800 dark:text-white/90">
-                {statsData?.total_agents_per_week[0].total_agents}
+                {statsData?.total_agents_per_week[0]?.total_agents || 0}
               </h4>
               <div className="flex items-end gap-1">
                 <Badge
                   color={
-                    percentageThisWeek > 0
+                    vsLastWeekPercentageChange > 0
                       ? "success"
-                      : percentageThisWeek < 0
+                      : vsLastWeekPercentageChange < 0
                       ? "error"
                       : "primary"
                   }
-                >{`${percentageThisWeek.toFixed(1)}%`}</Badge>
+                >
+                  {vsLastWeekPercentageChange > 0 ? "+" : ""}
+                  {`${vsLastWeekPercentageChange.toFixed(1)}%`}
+                </Badge>
                 <span className="text-gray-500 text-theme-xs dark:text-gray-400">
                   Vs last week
                 </span>
@@ -182,7 +192,7 @@ const StatsCard: React.FC<StatsProp> = ({ statsData }) => {
           </span>
           <div className="mt-2 flex items-end gap-3">
             <h4 className="text-title-xs sm:text-title-sm font-bold text-gray-800 dark:text-white/90">
-              {statsData?.total_agents_per_week[1].total_agents}
+              {statsData?.total_agents_per_week[1]?.total_agents || 0}
             </h4>
           </div>
         </div>

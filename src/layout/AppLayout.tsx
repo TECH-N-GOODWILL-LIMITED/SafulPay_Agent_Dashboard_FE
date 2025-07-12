@@ -1,10 +1,13 @@
 import { SidebarProvider, useSidebar } from "../context/SidebarContext";
-import { Navigate, Outlet } from "react-router";
+// import { Navigate, Outlet } from "react-router";
+import { Outlet } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import AppHeader from "./AppHeader";
 import Backdrop from "./Backdrop";
 import AppSidebar from "./AppSidebar";
+import { MyAgentsProvider } from "../context/MyAgentsContext";
 import { useRevalidateSessionOnRouteChange } from "../hooks/validateSessionOnRouteChange";
+import { MarketersProvider } from "../context/MarketersContext";
 
 const LayoutContent: React.FC = () => {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
@@ -34,15 +37,20 @@ const AppLayout: React.FC = () => {
   useRevalidateSessionOnRouteChange();
 
   console.log(user);
+  console.log(token);
 
   // Redirect if not authenticated
-  if (!token) {
-    return <Navigate to="/signin" replace />;
-  }
+  // if (!token || user?.role === "Rider") {
+  //   return <Navigate to="/signin" replace />;
+  // }
 
   return (
     <SidebarProvider>
-      <LayoutContent />
+      <MyAgentsProvider>
+        <MarketersProvider>
+          <LayoutContent />
+        </MarketersProvider>
+      </MyAgentsProvider>
     </SidebarProvider>
   );
 };

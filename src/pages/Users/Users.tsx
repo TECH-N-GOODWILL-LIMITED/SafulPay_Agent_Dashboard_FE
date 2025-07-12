@@ -42,8 +42,9 @@ const Users: React.FC = () => {
     longitude: user.longitude,
     idType: user.id_type,
     idDocument: user.id_document,
-    bizRegDocument: user.bussiness_registration,
-    businessImage: user.bussiness_image,
+    bizRegDocument: user.business_registration,
+    businessImage: user.business_image,
+    temp: user.temp,
     status:
       user.status === 1
         ? "Active"
@@ -54,13 +55,6 @@ const Users: React.FC = () => {
         : "Pending",
   }));
 
-  if (loading)
-    return <div className="text-gray-500 dark:text-gray-400">Loading...</div>;
-  if (error)
-    return (
-      <Alert variant="error" title={title} message={error} showLink={false} />
-    );
-
   return (
     <>
       <PageMeta
@@ -68,19 +62,29 @@ const Users: React.FC = () => {
         description="List of all agency users - Management system for SafulPay's Agency Platform"
       />
       <PageBreadcrumb pageTitle="Users" />
-      <div className="space-y-6">
-        <ComponentCard
-          title="Users Table"
-          desc="Details of all users with various account types"
-          actionButton1="Filter"
-          onItemClick={filterByRole}
-          userType="User"
-          userRoles={userRoles}
-          filterOptions={userOptions}
-        >
-          <BasicTableOne tableHeading={tableHeader} tableContent={tableData} />
-        </ComponentCard>
-      </div>
+
+      {error ? (
+        <Alert variant="error" title={title} message={error} showLink={false} />
+      ) : loading ? (
+        <div className="text-gray-500 dark:text-gray-400">Loading...</div>
+      ) : (
+        <div className="space-y-6">
+          <ComponentCard
+            title="Users Table"
+            desc="Details of all users with various account types"
+            actionButton1="Filter"
+            onItemClick={filterByRole}
+            userType="User"
+            userRoles={userRoles}
+            filterOptions={userOptions}
+          >
+            <BasicTableOne
+              tableHeading={tableHeader}
+              tableContent={tableData}
+            />
+          </ComponentCard>
+        </div>
+      )}
     </>
   );
 };

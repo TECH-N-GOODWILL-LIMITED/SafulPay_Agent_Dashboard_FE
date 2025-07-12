@@ -29,8 +29,6 @@ const LogTable: React.FC<Order> = ({ tableContent, tableHeading }) => {
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
       <div className="max-w-full overflow-x-auto">
         <Table>
-          {/* Table Header */}
-
           <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
             <TableRow>
               {tableHeading?.map((head) => (
@@ -50,15 +48,15 @@ const LogTable: React.FC<Order> = ({ tableContent, tableHeading }) => {
               tableContent.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                    {item.description}
+                    {item.action}
                   </TableCell>
 
-                  <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                  <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400 max-w-80 overflow-clip break-words ">
                     {item.reason}
                   </TableCell>
 
                   <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                    {item.action}
+                    {item.description}
                   </TableCell>
 
                   <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
