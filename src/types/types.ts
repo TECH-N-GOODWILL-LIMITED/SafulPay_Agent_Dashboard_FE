@@ -81,7 +81,7 @@ export interface Users {
   business_registration?: string;
   business_image?: string;
   referral_code: string;
-  marketer_referralcode?: string;
+  ref_by?: string;
   threshold_wallet_balance?: string;
   threshold_cash_in_hand?: number;
   residual_amount?: number;
@@ -117,7 +117,7 @@ export interface Agent {
   business_registration: string;
   business_image: string;
   referral_code: string;
-  marketer_referralcode: string;
+  ref_by: string;
   threshold_wallet_balance: string;
   threshold_cash_in_hand: number;
   residual_amount: number;

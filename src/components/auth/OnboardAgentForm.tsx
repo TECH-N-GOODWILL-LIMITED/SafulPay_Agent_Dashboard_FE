@@ -526,7 +526,7 @@ export default function OnboardAgentForm() {
       if (finalData.idType) formData.append("id_type", finalData.idType);
       if (finalData.idImageUrl)
         formData.append("id_document", finalData.idImageUrl);
-      if (marketer) formData.append("marketer_referralcode", marketer);
+      if (marketer) formData.append("ref_by", marketer);
       formData.append("temp", tempValue.toString());
 
       const response = await addAgent(formData);
