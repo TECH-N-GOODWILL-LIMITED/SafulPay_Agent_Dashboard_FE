@@ -33,10 +33,10 @@ import Disbursement from "./pages/Disbursement.tsx/Disbursement";
 import Audit from "./pages/Audit/Audit";
 import Withdrawal from "./pages/Withdrawal/Withdrawal";
 import Deposit from "./pages/Deposit/Deposit";
-import OnboardAgent from "./pages/OnBoarding/OnboardAgent";
 import EditAgent from "./pages/Agents/EditAgent";
 import MarketersLeaderboard from "./pages/MarketersLeaderboard/MarketersLeaderboard";
 import MyAgents from "./pages/Agents/MyAgents";
+import OnboardAgentForm from "./components/auth/OnboardAgentForm";
 
 export default function App() {
   return (
@@ -114,7 +114,7 @@ export default function App() {
               {/* Open pages */}
               <Route
                 path="/onboardagent/:marketer_ref"
-                element={<OnboardAgent />}
+                element={<OnboardAgentForm />}
               />
               <Route
                 path="/marketers-leaderboard"

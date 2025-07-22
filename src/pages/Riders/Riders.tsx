@@ -1,11 +1,17 @@
-import { useEffect } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAllUsers, usersItem } from "../../context/UsersContext";
-import { userRoles } from "../../utils/roles";
-import ComponentCard from "../../components/common/ComponentCard";
+import { userRoles, RIDER_ROLE } from "../../utils/roles";
+import ComponentCard, {
+  ActionButtonConfig,
+  FilterConfig,
+} from "../../components/common/ComponentCard";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
 import Alert from "../../components/ui/alert/Alert";
+import { useModal } from "../../hooks/useModal";
+import { Modal } from "../../components/ui/modal";
+import RegisterModal from "../../components/common/RegisterModal";
 
 const tableHeader: string[] = [
   "Name / Username",
@@ -16,31 +22,65 @@ const tableHeader: string[] = [
 ];
 
 const Riders: React.FC = () => {
+  const [filterStatus, setFilterStatus] = useState<string>("All");
   const { title, error, loading, filteredUsers, filterByRole } = useAllUsers();
+  const { isOpen, openModal, closeModal } = useModal();
+
+  const statusOptions = ["All", "Pending", "Active", "Suspended", "Rejected"];
 
   useEffect(() => {
-    filterByRole("Rider");
+    filterByRole(RIDER_ROLE);
   }, [filterByRole]);
 
-  const tableData = filteredUsers?.map((user: usersItem) => ({
-    id: user.id,
-    image: "/images/user/user-20.jpg",
-    name: user.name,
-    firstName: user.firstname,
-    lastName: user.lastname,
-    username: user.username || "No username",
-    role: user.role,
-    cih: user.threshold_cash_in_hand || 0.0,
-    phone: user.phone,
-    status:
-      user.status === 1
-        ? "Active"
-        : user.status === 2
-        ? "Suspended"
-        : user.status === 3
-        ? "Rejected"
-        : "Pending",
-  }));
+  const actionButton: ActionButtonConfig = {
+    label: "Add Rider",
+    icon: "✚",
+    onClick: openModal,
+  };
+
+  const filters: FilterConfig[] = [
+    {
+      label: `Status: ${filterStatus}`,
+      options: statusOptions,
+      onSelect: (status) => setFilterStatus(status),
+      value: filterStatus,
+    },
+  ];
+
+  const tableData = useMemo(() => {
+    const filteredRiders = filteredUsers.filter((rider: usersItem) => {
+      const status =
+        rider.status === 1
+          ? "Active"
+          : rider.status === 2
+          ? "Suspended"
+          : rider.status === 3
+          ? "Rejected"
+          : "Pending";
+      const statusMatch = filterStatus === "All" || status === filterStatus;
+      return statusMatch;
+    });
+
+    return filteredRiders.map((rider: usersItem) => ({
+      id: rider.id,
+      image: "/images/user/user-20.jpg",
+      name: rider.name,
+      firstName: rider.firstname,
+      lastName: rider.lastname,
+      username: rider.username || "No username",
+      role: rider.role,
+      cih: rider.threshold_cash_in_hand || 0.0,
+      phone: rider.phone,
+      status:
+        rider.status === 1
+          ? "Active"
+          : rider.status === 2
+          ? "Suspended"
+          : rider.status === 3
+          ? "Rejected"
+          : "Pending",
+    }));
+  }, [filteredUsers, filterStatus]);
 
   return (
     <>
@@ -59,10 +99,8 @@ const Riders: React.FC = () => {
           <ComponentCard
             title="Riders Table"
             desc="Details of all Riders"
-            actionButton1="Filter"
-            userType="Rider"
-            userRoles={userRoles}
-            filterOptions={userRoles}
+            actionButton={actionButton}
+            filters={filters}
           >
             <BasicTableOne
               tableHeading={tableHeader}
@@ -71,6 +109,14 @@ const Riders: React.FC = () => {
           </ComponentCard>
         </div>
       )}
+      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
+        <RegisterModal
+          modalHeading="Add a new user"
+          userRoles={userRoles}
+          selectRole="Rider"
+          onClose={closeModal}
+        />
+      </Modal>
     </>
   );
 };

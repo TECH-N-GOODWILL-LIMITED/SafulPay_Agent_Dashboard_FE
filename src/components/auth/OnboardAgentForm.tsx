@@ -1,18 +1,19 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useDropzone } from "react-dropzone";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import {
   addAgent,
   checkUserExist,
+  checkPhoneType,
   getUserByReferralCode,
   uploadToCloudinary,
 } from "../../utils/api";
 import { useAllUsers } from "../../context/UsersContext";
 import { filterPhoneNumber } from "../../utils/utils";
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+import PageBreadcrumb from "../common/PageBreadCrumb";
 import ComponentCard from "../common/ComponentCard";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
@@ -31,86 +32,67 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { ADMIN_ROLE, MARKETER_ROLE } from "../../utils/roles";
 
-const schema = yup.object().shape({
-  firstName: yup.string().required("First Name is required"),
-  lastName: yup.string().required("Last Name is required"),
-  middleName: yup.string().notRequired(),
+const phoneRegExp =
+  /^(232|\+232|0)?(25|30|31|32|33|34|40|44|50|55|66|72|73|74|75|76|77|78|79|80|88|90|99)\d{6}$/;
+
+const validationSchema = yup.object().shape({
+  firstName: yup.string().required("First name is required"),
+  lastName: yup.string().required("Last name is required"),
+  middleName: yup.string(),
   userName: yup
     .string()
     .required("Username is required")
     .max(12, "Username cannot exceed 12 characters"),
-  businessName: yup.string().required("Business Name is required"),
-  businessPhone: yup.string().required("Business Phone is required"),
-  phone: yup.string().required("Phone is required"),
-  email: yup.string().email("Invalid email format").notRequired(),
-  agentType: yup.string().required("Agency Type is required"),
-  model: yup.string().when("agentType", {
-    is: (agentType: string) =>
-      agentType === "Agent" || agentType === "Super Agent",
-    then: (schema) =>
-      schema.required("Agency Model is required for Agent/Super Agent"),
-    otherwise: (schema) => schema.notRequired(),
-  }),
-  idType: yup.string().when("idImageUrl", {
-    is: (idImageUrl: string) => !!idImageUrl,
-    then: (schema) =>
-      schema.required("ID Type is required when ID Image is uploaded"),
-    otherwise: (schema) => schema.notRequired(),
-  }),
-  businessAddress: yup.string().required("Address is required"),
-  district: yup.string().required("District is required"),
-  region: yup.string().notRequired(),
-  latitude: yup
-    .number()
-    .typeError("Latitude must be a number")
-    .min(-90, "Latitude must be between -90 and 90")
-    .max(90, "Latitude must be between -90 and 90")
-    .required("Latitude is required"),
-  longitude: yup
-    .number()
-    .typeError("Longitude must be a number")
-    .min(-180, "Longitude must be between -180 and 180")
-    .max(180, "Longitude must be between -180 and 180")
-    .required("Longitude is required"),
-  idImageUrl: yup.string().notRequired(),
-  businessImageUrl: yup.string().required("Business Place Image is required"),
-  addressDocumentUrl: yup.string().when("agentType", {
-    is: (agentType: string) =>
-      agentType === "Merchant" || agentType === "Super Agent",
-    then: (schema) =>
-      schema.required(
-        "Proof of Address Document is required for Merchant/Super Agent"
-      ),
-    otherwise: (schema) => schema.notRequired(),
-  }),
-  businessRegDocumentUrl: yup
+  businessName: yup.string().required("Business name is required"),
+  businessPhone: yup
     .string()
-    .required("Business Registration Document is required"),
+    .required("Business phone is required")
+    .matches(phoneRegExp, "Invalid Sierra Leone phone number"),
+  phone: yup
+    .string()
+    .required("Phone is required")
+    .matches(phoneRegExp, "Invalid Sierra Leone phone number"),
+  email: yup.string().email("Invalid email format"),
+  agentType: yup.string().required("Agency type is required"),
+  model: yup.string().when("agentType", {
+    is: (val: string) => val === "Agent" || val === "Super Agent",
+    then: (schema) => schema.required("Agency model is required"),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+  businessAddress: yup.string().required("Business address is required"),
+  district: yup.string().required("District is required"),
+  region: yup.string(),
+  latitude: yup.string().required("Latitude is required"),
+  longitude: yup.string().required("Longitude is required"),
+  idType: yup.string().when("idImageUrl", {
+    is: (val: string) => !!val,
+    then: (schema) =>
+      schema.required("ID Type is required when ID image is uploaded"),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+  idImageUrl: yup.string(),
+  businessImageUrl: yup.string(),
+  addressDocumentUrl: yup.string(),
+  businessRegDocumentUrl: yup.string(),
 });
 
+type FormData = yup.InferType<typeof validationSchema>;
+
 export default function OnboardAgentForm() {
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm({
-    resolver: yupResolver(schema),
-    mode: "onBlur", // Validate on blur
-  });
-
-  const agentType = watch("agentType");
-  const idImageUrl = watch("idImageUrl");
-
   const [refLoading, setRefLoading] = useState(true);
   const [refError, setRefError] = useState<string | null>(null);
   const [alertTitle, setAlertTitle] = useState<string>("");
-  const [warnError, setWarnError] = useState<boolean>(false);
-  const [Error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string>("");
   const [successAlert, setSuccessAlert] = useState<string>("");
   const [userExistError, setUserExistError] = useState<string | null>(null);
-  const [showRefErrorAlert, setShowRefErrorAlert] = useState<boolean>(false);
+
+  const [idImage, setIdImage] = useState<File | null>(null);
+  const [businessImage, setBusinessImage] = useState<File | null>(null);
+  const [addressDocument, setAddressDocument] = useState<File | null>(null);
+  const [businessRegDocument, setBusinessRegDocument] = useState<File | null>(
+    null
+  );
+
   const [missingUrl, setMissingUrl] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [geoLoading, setGeoLoading] = useState<boolean>(false);
@@ -122,6 +104,48 @@ export default function OnboardAgentForm() {
     useState<boolean>(false);
   const [isDistrictDropdownOpen, setIsDistrictDropdownOpen] =
     useState<boolean>(false);
+
+  const {
+    handleSubmit,
+    control,
+    setValue,
+    watch,
+    trigger,
+    reset,
+    setError: setFormError,
+    formState: { errors, dirtyFields },
+  } = useForm({
+    resolver: yupResolver(validationSchema),
+    mode: "onBlur",
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      middleName: "",
+      userName: "",
+      businessName: "",
+      businessPhone: "",
+      phone: "",
+      email: "",
+      agentType: "",
+      model: "",
+      idType: "",
+      businessAddress: "",
+      district: "",
+      region: "",
+      latitude: "",
+      longitude: "",
+      idImageUrl: "",
+      businessImageUrl: "",
+      addressDocumentUrl: "",
+      businessRegDocumentUrl: "",
+    },
+  });
+
+  const agentType = watch("agentType");
+  const idImageUrl = watch("idImageUrl");
+  const businessImageUrl = watch("businessImageUrl");
+  const addressDocumentUrl = watch("addressDocumentUrl");
+  const businessRegDocumentUrl = watch("businessRegDocumentUrl");
 
   const navigate = useNavigate();
 
@@ -139,10 +163,9 @@ export default function OnboardAgentForm() {
         setAlertTitle("Error!");
         setRefError("Referral code missing.");
         setRefLoading(false);
-        setShowRefErrorAlert(true);
         setTimeout(() => {
           navigate("/unauthorized");
-        }, 5000); // 5 seconds delay
+        }, 2000);
         return;
       }
 
@@ -158,27 +181,30 @@ export default function OnboardAgentForm() {
             setOnboardingUser(fetchedUser);
           } else {
             setAlertTitle("Error!");
-            setRefError("Unauthorized role.");
-            setShowRefErrorAlert(true);
+            setRefError("Unauthorized role. \n Redirecting...");
             setTimeout(() => {
               navigate("/unauthorized");
-            }, 5000); // 5 seconds delay
+            }, 2000);
           }
         } else {
           setAlertTitle("Error!");
-          setRefError(response.error || "Invalid referral code.");
-          setShowRefErrorAlert(true);
+          setRefError(
+            response.error
+              ? `${response.error}. \n Redirecting...`
+              : `Invalid referral code. \n Redirecting...`
+          );
           setTimeout(() => {
             navigate("/unauthorized");
-          }, 5000); // 5 seconds delay
+          }, 2000);
         }
       } catch (err) {
         setAlertTitle("Error!");
-        setRefError(`Error validating referral code: ${err}`);
-        setShowRefErrorAlert(true);
+        setRefError(
+          `Error validating referral code: ${err}. \n Redirecting...`
+        );
         setTimeout(() => {
           navigate("/unauthorized");
-        }, 5000); // 5 seconds delay
+        }, 2000);
       } finally {
         setRefLoading(false);
       }
@@ -214,7 +240,7 @@ export default function OnboardAgentForm() {
     "Western Area Rural",
   ];
 
-  const onDrop = async (
+  const onDrop = (
     acceptedFiles: File[],
     type:
       | "idImage"
@@ -224,46 +250,24 @@ export default function OnboardAgentForm() {
   ) => {
     const file = acceptedFiles[0];
     if (file) {
-      setUploadLoading(true);
-      setAlertTitle("");
-      setError("");
-      setSuccessAlert("");
-      setWarnError(false);
-
-      const result = await uploadToCloudinary(
-        file,
-        import.meta.env.VITE_CLOUDINARY_CLOUD_NAME,
-        "safulpayAgencyKYC"
-      );
-      setUploadLoading(false);
-      if (result.success) {
-        if (type === "idImage") {
-          setValue("idImageUrl", result.url);
-        }
-        if (type === "businessRegDocument") {
-          setValue("businessRegDocumentUrl", result.url);
-        }
-        if (type === "businessImage") {
-          setValue("businessImageUrl", result.url);
-        }
-        if (type === "addressDocument") {
-          setValue("addressDocumentUrl", result.url);
-        }
-
-        setSuccessAlert("File uploaded successfully!");
-      } else {
-        if (result.error.includes("Upload preset not found")) {
-          setFormError("root.uploadError", {
-            type: "manual",
-            message:
-              "Cloudinary upload preset 'agent_uploads_unsigned' not found. Please create it in your Cloudinary dashboard.",
-          });
-        } else {
-          setFormError("root.uploadError", {
-            type: "manual",
-            message: result.error || "Failed to upload file to Cloudinary",
-          });
-        }
+      const previewUrl = URL.createObjectURL(file);
+      if (type === "idImage") {
+        setIdImage(file);
+        setValue("idImageUrl", previewUrl, { shouldValidate: true });
+      }
+      if (type === "businessRegDocument") {
+        setBusinessRegDocument(file);
+        setValue("businessRegDocumentUrl", previewUrl, {
+          shouldValidate: true,
+        });
+      }
+      if (type === "businessImage") {
+        setBusinessImage(file);
+        setValue("businessImageUrl", previewUrl, { shouldValidate: true });
+      }
+      if (type === "addressDocument") {
+        setAddressDocument(file);
+        setValue("addressDocumentUrl", previewUrl, { shouldValidate: true });
       }
     }
   };
@@ -274,6 +278,7 @@ export default function OnboardAgentForm() {
     isDragActive: isBusinessImageDragActive,
   } = useDropzone({
     onDrop: (files) => onDrop(files, "businessImage"),
+    disabled: loading || uploadLoading,
     accept: {
       "application/pdf": [],
       "application/msword": [],
@@ -291,6 +296,7 @@ export default function OnboardAgentForm() {
     isDragActive: isAddressDocumentDragActive,
   } = useDropzone({
     onDrop: (files) => onDrop(files, "addressDocument"),
+    disabled: loading || uploadLoading,
     accept: {
       "application/pdf": [],
       "application/msword": [],
@@ -308,6 +314,7 @@ export default function OnboardAgentForm() {
     isDragActive: isIdImageDragActive,
   } = useDropzone({
     onDrop: (files) => onDrop(files, "idImage"),
+    disabled: loading || uploadLoading,
     accept: {
       "application/pdf": [],
       "application/msword": [],
@@ -325,6 +332,7 @@ export default function OnboardAgentForm() {
     isDragActive: isRegDocumentDragActive,
   } = useDropzone({
     onDrop: (files) => onDrop(files, "businessRegDocument"),
+    disabled: loading || uploadLoading,
     accept: {
       "application/pdf": [],
       "application/msword": [],
@@ -346,7 +354,6 @@ export default function OnboardAgentForm() {
     setGeoLoading(true);
     setAlertTitle("");
     setError("");
-    setWarnError(false);
     setSuccessAlert("");
 
     navigator.geolocation.getCurrentPosition(
@@ -354,125 +361,231 @@ export default function OnboardAgentForm() {
         const lat = position.coords.latitude.toFixed(6);
         const lon = position.coords.longitude.toFixed(6);
 
-        setValue("latitude", parseFloat(lat));
-        setValue("longitude", parseFloat(lon));
+        setValue("latitude", lat, { shouldValidate: true });
+        setValue("longitude", lon, { shouldValidate: true });
         setGeoLoading(false);
       },
       (err) => {
         setGeoLoading(false);
-        setFormError("root.geolocationError", {
-          type: "manual",
-          message: `Geolocation Error: ${err.message}`,
-        });
+        setAlertTitle("Geolocation Error");
+        switch (err.code) {
+          case err.PERMISSION_DENIED:
+            setError("Permission to access location was denied.");
+            break;
+          case err.POSITION_UNAVAILABLE:
+            setError("Location information is unavailable.");
+            break;
+          case err.TIMEOUT:
+            setError("The request to get location timed out.");
+            break;
+          default:
+            setError("An error occurred while fetching location.");
+        }
       },
       { timeout: 10000, maximumAge: 60000 }
     );
   };
 
-  const handlePhoneBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
+  const handlePhoneBlur = async (
+    e: React.FocusEvent<HTMLInputElement>,
+    field: "phone" | "businessPhone"
+  ) => {
     const phoneNumber = e.target.value;
-    if (!phoneNumber) {
-      setUserExistError(null);
-      return;
-    }
+    if (!phoneNumber) return;
 
-    try {
-      const formattedPhoneNumber = filterPhoneNumber(phoneNumber);
-      if (formattedPhoneNumber.length !== 11) {
-        setUserExistError(
-          "Invalid phone number format. Please use 232XXXXXXXX format."
-        );
+    const isValid = await trigger(field);
+    if (!isValid) return;
+
+    const formattedPhoneNumber = filterPhoneNumber(phoneNumber);
+
+    if (field === "phone") {
+      const phoneTypeResponse = await checkPhoneType(formattedPhoneNumber);
+      if (phoneTypeResponse.success && phoneTypeResponse.data?.type) {
+        if (phoneTypeResponse.data.type === "phone") {
+          setFormError("phone", {
+            type: "manual",
+            message: "This number is already registered as a personal phone.",
+          });
+        } else if (phoneTypeResponse.data.type === "business_phone") {
+          setFormError("phone", {
+            type: "manual",
+            message: "This number is already registered as a business phone.",
+          });
+        }
         return;
       }
-      const response = await checkUserExist(formattedPhoneNumber);
-      if (response.success) {
-        setUserExistError("User already registered on SafulPay.");
-      } else {
-        setUserExistError(null); // User not found, which is good for onboarding
+
+      const userExistResponse = await checkUserExist(formattedPhoneNumber);
+      if (!userExistResponse.success) {
+        setFormError("phone", {
+          type: "manual",
+          message: "User not found. Advice to register on SafulPay app",
+        });
       }
-    } catch (err) {
-      setUserExistError("Error checking user existence.");
+    } else if (field === "businessPhone") {
+      const userExistResponse = await checkUserExist(formattedPhoneNumber);
+      if (userExistResponse.success) {
+        setFormError("businessPhone", {
+          type: "manual",
+          message: "User exists. Cannot use this line for business.",
+        });
+        return;
+      }
+
+      const phoneTypeResponse = await checkPhoneType(formattedPhoneNumber);
+      if (phoneTypeResponse.success && phoneTypeResponse.data?.type) {
+        if (phoneTypeResponse.data.type === "phone") {
+          setFormError("businessPhone", {
+            type: "manual",
+            message: "This number is already registered as a personal phone.",
+          });
+        } else if (phoneTypeResponse.data.type === "business_phone") {
+          setFormError("businessPhone", {
+            type: "manual",
+            message: "This number is already registered as a business phone.",
+          });
+        }
+      }
     }
   };
 
-  const onSubmit = async (data: any, isTemp: number) => {
+  const processRegistration = async (data: FormData, tempValue: number) => {
     setLoading(true);
-    setAlertTitle("");
+    setUploadLoading(true);
+    setAlertTitle("Uploading files...");
     setError("");
-    setWarnError(false);
     setSuccessAlert("");
 
-    const formData = new FormData();
-    formData.append("firstname", data.firstName);
-    formData.append("lastname", data.lastName);
-    if (data.middleName) formData.append("middlename", data.middleName);
-    formData.append("username", data.userName);
-    formData.append("business_name", data.businessName);
-    formData.append("business_phone", data.businessPhone);
-    formData.append("phone", data.phone);
-    if (data.email) formData.append("email", data.email);
-    formData.append("type", data.agentType);
-    if (data.model) formData.append("model", data.model);
-    formData.append("address", data.businessAddress);
-    formData.append("district", data.district);
-    if (data.region) formData.append("region", data.region);
-    formData.append("latitude", data.latitude);
-    formData.append("longitude", data.longitude);
-    if (data.businessImageUrl)
-      formData.append("business_image", data.businessImageUrl);
-    if (data.addressDocumentUrl) {
-      formData.append("address_document", data.addressDocumentUrl);
+    try {
+      const filesToUpload: {
+        key: keyof FormData;
+        file: File | null;
+      }[] = [
+        { key: "idImageUrl", file: idImage },
+        { key: "businessImageUrl", file: businessImage },
+        { key: "addressDocumentUrl", file: addressDocument },
+        { key: "businessRegDocumentUrl", file: businessRegDocument },
+      ];
+
+      const updatedData = { ...data };
+
+      for (const { key, file } of filesToUpload) {
+        if (
+          file &&
+          !updatedData[key]?.startsWith("https://res.cloudinary.com")
+        ) {
+          const result = await uploadToCloudinary(
+            file,
+            import.meta.env.VITE_CLOUDINARY_CLOUD_NAME,
+            "safulpayAgencyKYC"
+          );
+          if (result.success) {
+            setValue(key, result.url, { shouldValidate: true });
+            updatedData[key] = result.url;
+            if (key === "idImageUrl") setIdImage(null);
+            if (key === "businessImageUrl") setBusinessImage(null);
+            if (key === "addressDocumentUrl") setAddressDocument(null);
+            if (key === "businessRegDocumentUrl") setBusinessRegDocument(null);
+          } else {
+            throw new Error(`Failed to upload ${file.name}: ${result.error}`);
+          }
+        }
+      }
+
+      setUploadLoading(false);
+      setAlertTitle("Registering agent...");
+
+      const finalData = updatedData;
+
+      const formData = new FormData();
+      formData.append("firstname", finalData.firstName);
+      formData.append("lastname", finalData.lastName);
+      if (finalData.middleName)
+        formData.append("middlename", finalData.middleName);
+      formData.append("username", finalData.userName);
+      formData.append("business_name", finalData.businessName);
+      formData.append("business_phone", finalData.businessPhone);
+      formData.append("phone", finalData.phone);
+      if (finalData.email) formData.append("email", finalData.email);
+      formData.append("type", finalData.agentType);
+      if (finalData.model) formData.append("model", finalData.model);
+      formData.append("address", finalData.businessAddress);
+      formData.append("district", finalData.district);
+      if (finalData.region) formData.append("region", finalData.region);
+      formData.append("latitude", finalData.latitude);
+      formData.append("longitude", finalData.longitude);
+      if (finalData.businessImageUrl)
+        formData.append("business_image", finalData.businessImageUrl);
+      if (finalData.addressDocumentUrl)
+        formData.append("address_document", finalData.addressDocumentUrl);
+      if (finalData.businessRegDocumentUrl)
+        formData.append(
+          "business_registration",
+          finalData.businessRegDocumentUrl
+        );
+      if (finalData.idType) formData.append("id_type", finalData.idType);
+      if (finalData.idImageUrl)
+        formData.append("id_document", finalData.idImageUrl);
+      if (marketer) formData.append("marketer_referralcode", marketer);
+      formData.append("temp", tempValue.toString());
+
+      const response = await addAgent(formData);
+
+      if (response.success && response.data) {
+        await fetchUsers();
+        setAlertTitle("Successful");
+        setSuccessAlert(`${finalData.agentType} registered successfully!`);
+        reset();
+        setIdImage(null);
+        setBusinessImage(null);
+        setAddressDocument(null);
+        setBusinessRegDocument(null);
+        setUserExistError(null);
+      } else {
+        setAlertTitle("Registration Failed");
+        setError(response.error || "Agent registration failed");
+      }
+    } catch (err) {
+      setAlertTitle("Operation Failed");
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+      setUploadLoading(false);
     }
-    if (data.businessRegDocumentUrl) {
-      formData.append("business_registration", data.businessRegDocumentUrl);
-    }
-    if (data.idType) formData.append("id_type", data.idType);
-    if (data.idImageUrl) formData.append("id_document", data.idImageUrl);
-    if (marketer) formData.append("marketer_referralcode", marketer);
-    formData.append("temp", isTemp.toString());
+  };
 
-    const response = await addAgent(formData);
-
-    if (response.success && response.data) {
-      await fetchUsers();
-      setAlertTitle("Successful");
-      setSuccessAlert(`${data.agentType} registered successfully!`);
-
-      // Reset form fields
-      setValue("firstName", "");
-      setValue("lastName", "");
-      setValue("middleName", "");
-      setValue("userName", "");
-      setValue("businessName", "");
-      setValue("businessPhone", "");
-      setValue("phone", "");
-      setValue("email", "");
-      setValue("agentType", "");
-      setValue("model", "");
-      setValue("businessAddress", "");
-      setValue("district", "");
-      setValue("region", "");
-      setValue("latitude", 0);
-      setValue("longitude", 0);
-      setValue("businessImageUrl", "");
-      setValue("addressDocumentUrl", "");
-      setValue("businessRegDocumentUrl", "");
-      setValue("idType", "");
-      setValue("idImageUrl", "");
-    } else {
-      setFormError("root.apiError", {
-        type: "manual",
-        message: response.error || "Agent registration failed",
-      });
+  const onSubmitHandler = async (data: FormData) => {
+    if (!marketer) {
+      setAlertTitle("Invalid ID");
+      setError("Marketer not found");
+      return;
     }
 
-    setLoading(false);
+    const missingFiles: string[] = [];
+    if (!data.idImageUrl) missingFiles.push("ID document");
+    if (!data.businessRegDocumentUrl)
+      missingFiles.push("Business registration document");
+    if (!data.businessImageUrl) missingFiles.push("Business image");
+    if (
+      (data.agentType === "Merchant" || data.agentType === "Super Agent") &&
+      !data.addressDocumentUrl
+    ) {
+      missingFiles.push("Proof of address document");
+    }
+
+    if (missingFiles.length > 0) {
+      setMissingUrl(missingFiles);
+      openModal();
+      return;
+    }
+
+    await processRegistration(data, 1);
   };
 
   const handleProceedWithoutDocuments = async () => {
     setMissingUrl([]);
     closeModal();
-    await onSubmit(watch(), 1);
+    handleSubmit((data) => processRegistration(data, 0))();
   };
 
   if (refLoading) {
@@ -483,7 +596,7 @@ export default function OnboardAgentForm() {
     );
   }
 
-  if (showRefErrorAlert && refError)
+  if (refError)
     return <Alert variant="error" title={alertTitle} message={refError} />;
 
   return (
@@ -491,7 +604,7 @@ export default function OnboardAgentForm() {
       <PageBreadcrumb pageTitle="Register Agent & Merchant" />
 
       <form
-        onSubmit={handleSubmit((data) => onSubmit(data, 0))}
+        onSubmit={handleSubmit(onSubmitHandler)}
         className="grid grid-cols-1 gap-6 xl:grid-cols-2"
       >
         <Modal isOpen={isOpen} onClose={closeModal} className="max-w-xl m-4">
@@ -570,14 +683,21 @@ export default function OnboardAgentForm() {
                 <Label htmlFor="input">
                   First Name <span className="text-error-500">*</span>
                 </Label>
-                <Input
-                  type="text"
-                  id="firstName"
-                  // name="firstName"
-                  placeholder="Enter first name"
-                  {...register("firstName")}
-                  error={!!errors.firstName}
-                  hint={errors.firstName?.message}
+                <Controller
+                  name="firstName"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      type="text"
+                      id="firstName"
+                      placeholder="Enter first name"
+                      {...field}
+                      disabled={loading || uploadLoading}
+                      error={!!errors.firstName}
+                      success={dirtyFields.firstName && !errors.firstName}
+                      hint={errors.firstName?.message}
+                    />
+                  )}
                 />
               </div>
 
@@ -585,25 +705,40 @@ export default function OnboardAgentForm() {
                 <Label>
                   Last Name <span className="text-error-500">*</span>
                 </Label>
-                <Input
-                  type="text"
-                  id="lastName"
-                  // name="lastName"
-                  placeholder="Enter last name"
-                  {...register("lastName")}
-                  error={!!errors.lastName}
-                  hint={errors.lastName?.message}
+                <Controller
+                  name="lastName"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      type="text"
+                      id="lastName"
+                      placeholder="Enter last name"
+                      {...field}
+                      disabled={loading || uploadLoading}
+                      error={!!errors.lastName}
+                      success={dirtyFields.lastName && !errors.lastName}
+                      hint={errors.lastName?.message}
+                    />
+                  )}
                 />
               </div>
 
               <div>
                 <Label>Middle Name (Optional)</Label>
-                <Input
-                  type="text"
-                  id="middleName"
-                  // name="middleName"
-                  placeholder="Enter middle name"
-                  {...register("middleName")}
+                <Controller
+                  name="middleName"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      type="text"
+                      id="middleName"
+                      placeholder="Enter middle name"
+                      {...field}
+                      disabled={loading || uploadLoading}
+                      error={!!errors.middleName}
+                      success={dirtyFields.middleName && !errors.middleName}
+                    />
+                  )}
                 />
               </div>
 
@@ -611,14 +746,21 @@ export default function OnboardAgentForm() {
                 <Label>
                   Username <span className="text-error-500">*</span>
                 </Label>
-                <Input
-                  type="text"
-                  id="userName"
-                  // name="userName"
-                  placeholder="Enter username"
-                  {...register("userName")}
-                  error={!!errors.userName}
-                  hint={errors.userName?.message || "max length 12"}
+                <Controller
+                  name="userName"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      type="text"
+                      id="userName"
+                      placeholder="Enter username"
+                      {...field}
+                      disabled={loading || uploadLoading}
+                      error={!!errors.userName}
+                      success={dirtyFields.userName && !errors.userName}
+                      hint={errors.userName?.message || "max length 12"}
+                    />
+                  )}
                 />
               </div>
 
@@ -626,14 +768,21 @@ export default function OnboardAgentForm() {
                 <Label>
                   Business Name <span className="text-error-500">*</span>
                 </Label>
-                <Input
-                  type="text"
-                  id="businessName"
-                  // name="businessName"
-                  placeholder="Enter business name"
-                  {...register("businessName")}
-                  error={!!errors.businessName}
-                  hint={errors.businessName?.message}
+                <Controller
+                  name="businessName"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      type="text"
+                      id="businessName"
+                      placeholder="Enter business name"
+                      {...field}
+                      disabled={loading || uploadLoading}
+                      error={!!errors.businessName}
+                      success={dirtyFields.businessName && !errors.businessName}
+                      hint={errors.businessName?.message}
+                    />
+                  )}
                 />
               </div>
 
@@ -641,14 +790,24 @@ export default function OnboardAgentForm() {
                 <Label>
                   Business Phone <span className="text-error-500">*</span>
                 </Label>
-                <Input
-                  type="tel"
-                  id="businessPhone"
-                  // name="businessPhone"
-                  {...register("businessPhone")}
-                  error={!!errors.businessPhone}
-                  hint={errors.businessPhone?.message}
-                  selectedCountries={["SL"]}
+                <Controller
+                  name="businessPhone"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      type="tel"
+                      id="businessPhone"
+                      {...field}
+                      disabled={loading || uploadLoading}
+                      onBlur={(e) => handlePhoneBlur(e, "businessPhone")}
+                      error={!!errors.businessPhone}
+                      success={
+                        dirtyFields.businessPhone && !errors.businessPhone
+                      }
+                      hint={errors.businessPhone?.message}
+                      selectedCountries={["SL"]}
+                    />
+                  )}
                 />
               </div>
 
@@ -656,30 +815,44 @@ export default function OnboardAgentForm() {
                 <Label>
                   Phone <span className="text-error-500">*</span>
                 </Label>
-                <Input
-                  type="tel"
-                  id="phone"
-                  // name="phone"
-                  {...register("phone")}
-                  onBlur={handlePhoneBlur}
-                  error={!!errors.phone || !!userExistError}
-                  selectedCountries={["SL"]}
-                  hint={errors.phone?.message || userExistError || ""}
+                <Controller
+                  name="phone"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      type="tel"
+                      id="phone"
+                      {...field}
+                      disabled={loading || uploadLoading}
+                      onBlur={(e) => handlePhoneBlur(e, "phone")}
+                      error={!!errors.phone}
+                      success={dirtyFields.phone && !errors.phone}
+                      hint={errors.phone?.message || userExistError || ""}
+                      selectedCountries={["SL"]}
+                    />
+                  )}
                 />
               </div>
 
               <div>
                 <Label>Email (Optional)</Label>
                 <div className="relative">
-                  <Input
-                    type="email"
-                    id="email"
-                    // name="email"
-                    placeholder="info@gmail.com"
-                    {...register("email")}
-                    className="pl-[62px]"
-                    error={!!errors.email}
-                    hint={errors.email?.message}
+                  <Controller
+                    name="email"
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        type="email"
+                        id="email"
+                        placeholder="info@gmail.com"
+                        {...field}
+                        disabled={loading || uploadLoading}
+                        error={!!errors.email}
+                        success={dirtyFields.email && !errors.email}
+                        hint={errors.email?.message}
+                        className="pl-[62px]"
+                      />
+                    )}
                   />
                   <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none left-4 top-1/2 dark:text-gray-400">
                     <EnvelopeIcon className="size-6" />
@@ -691,95 +864,117 @@ export default function OnboardAgentForm() {
                 <Label>
                   Agency Type <span className="text-error-500">*</span>
                 </Label>
-                <div
-                  className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
-                    !!errors.agentType
-                      ? "border-error-500"
-                      : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
-                  }`}
-                  onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
-                >
-                  {agentType ? (
-                    <span> {agentType}</span>
-                  ) : (
-                    <span className="text-gray-400 dark:text-white/30">
-                      Select Type
-                    </span>
+                <Controller
+                  name="agentType"
+                  control={control}
+                  render={({ field }) => (
+                    <>
+                      <div
+                        className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer dark:text-white/90 ${
+                          errors.agentType
+                            ? "border-error-500"
+                            : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
+                        }`}
+                        onClick={() => {
+                          if (loading || uploadLoading) return;
+                          setIsTypeDropdownOpen(!isTypeDropdownOpen);
+                        }}
+                      >
+                        {field.value ? (
+                          <span>{field.value}</span>
+                        ) : (
+                          <span className="text-gray-400 dark:text-white/30">
+                            Select Type
+                          </span>
+                        )}
+                        <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
+                      </div>
+                      <Dropdown
+                        isOpen={isTypeDropdownOpen}
+                        onClose={() => setIsTypeDropdownOpen(false)}
+                        className="w-full p-2"
+                        search={false}
+                      >
+                        {typeOptions.map((option) => (
+                          <DropdownItem
+                            key={option}
+                            onItemClick={() => {
+                              field.onChange(option);
+                              setIsTypeDropdownOpen(false);
+                            }}
+                            className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                          >
+                            {option}
+                          </DropdownItem>
+                        ))}
+                      </Dropdown>
+                    </>
                   )}
-                  <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
-                </div>
+                />
                 {errors.agentType && (
-                  <p className="text-error-500 text-sm mt-1">
+                  <p className="mt-0.5 text-xs text-right pr-2 text-error-500">
                     {errors.agentType.message}
                   </p>
                 )}
-                <Dropdown
-                  isOpen={isTypeDropdownOpen}
-                  onClose={() => setIsTypeDropdownOpen(false)}
-                  className="w-full p-2"
-                  search={false}
-                >
-                  {typeOptions.map((option) => (
-                    <DropdownItem
-                      key={option}
-                      onItemClick={() => {
-                        setValue("agentType", option);
-                        setIsTypeDropdownOpen(false);
-                      }}
-                      className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-                    >
-                      {option}
-                    </DropdownItem>
-                  ))}
-                </Dropdown>
               </div>
 
-              {agentType !== "Merchant" && (
+              {agentType && agentType !== "Merchant" && (
                 <div className="relative">
                   <Label>
                     Agency Model <span className="text-error-500">*</span>
                   </Label>
-                  <div
-                    className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
-                      !!errors.model
-                        ? "border-error-500"
-                        : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
-                    }`}
-                    onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
-                  >
-                    {watch("model") ? (
-                      <span> {watch("model")}</span>
-                    ) : (
-                      <span className="text-gray-400 dark:text-white/30">
-                        Select Model
-                      </span>
+                  <Controller
+                    name="model"
+                    control={control}
+                    render={({ field }) => (
+                      <>
+                        <div
+                          className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer dark:text-white/90 ${
+                            errors.model
+                              ? "border-error-500"
+                              : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
+                          }`}
+                          onClick={() => {
+                            if (loading || uploadLoading) return;
+                            setIsModelDropdownOpen(!isModelDropdownOpen);
+                          }}
+                        >
+                          {field.value ? (
+                            <span>{field.value}</span>
+                          ) : (
+                            <span className="text-gray-400 dark:text-white/30">
+                              Select Model
+                            </span>
+                          )}
+                          <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
+                        </div>
+                        <Dropdown
+                          isOpen={isModelDropdownOpen}
+                          onClose={() => setIsModelDropdownOpen(false)}
+                          className="w-full p-2"
+                          search={false}
+                        >
+                          {modelOptions.map((option) => (
+                            <DropdownItem
+                              key={option}
+                              onItemClick={() => {
+                                field.onChange(option);
+                                setIsModelDropdownOpen(false);
+                              }}
+                              className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                            >
+                              {option}
+                            </DropdownItem>
+                          ))}
+                        </Dropdown>
+                      </>
                     )}
-                    <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
-                  </div>
+                  />
                   {errors.model && (
-                    <p className="text-error-500 text-sm mt-1">
+                    <p className="mt-0.5 text-xs text-right pr-2 text-error-500">
                       {errors.model.message}
                     </p>
                   )}
-                  <Dropdown
-                    isOpen={isModelDropdownOpen}
-                    onClose={() => setIsModelDropdownOpen(false)}
-                    className="w-full p-2"
-                    search={false}
-                  >
-                    {modelOptions.map((option) => (
-                      <DropdownItem
-                        key={option}
-                        onItemClick={() => {
-                          setValue("model", option);
-                          setIsModelDropdownOpen(false);
-                        }}
-                        className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-                      >
-                        {option}
-                      </DropdownItem>
-                    ))}
-                  </Dropdown>
                 </div>
               )}
 
@@ -793,13 +988,22 @@ export default function OnboardAgentForm() {
                 <Label>
                   Address <span className="text-error-500">*</span>
                 </Label>
-                <Input
-                  type="text"
-                  id="businessAddress"
-                  // name="businessAddress"
-                  {...register("businessAddress")}
-                  error={!!errors.businessAddress}
-                  hint={errors.businessAddress?.message}
+                <Controller
+                  name="businessAddress"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      type="text"
+                      id="businessAddress"
+                      {...field}
+                      disabled={loading || uploadLoading}
+                      error={!!errors.businessAddress}
+                      success={
+                        dirtyFields.businessAddress && !errors.businessAddress
+                      }
+                      hint={errors.businessAddress?.message}
+                    />
+                  )}
                 />
               </div>
 
@@ -807,49 +1011,58 @@ export default function OnboardAgentForm() {
                 <Label>
                   District <span className="text-error-500">*</span>
                 </Label>
-                <div
-                  className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
-                    !!errors.district
-                      ? "border-error-500"
-                      : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
-                  }`}
-                  onClick={() =>
-                    setIsDistrictDropdownOpen(!isDistrictDropdownOpen)
-                  }
-                >
-                  {watch("district") ? (
-                    <span> {watch("district")}</span>
-                  ) : (
-                    <span className="text-gray-400 dark:text-white/30">
-                      Select District
-                    </span>
+                <Controller
+                  name="district"
+                  control={control}
+                  render={({ field }) => (
+                    <>
+                      <div
+                        className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer dark:text-white/90 ${
+                          errors.district
+                            ? "border-error-500"
+                            : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
+                        }`}
+                        onClick={() => {
+                          if (loading || uploadLoading) return;
+                          setIsDistrictDropdownOpen(!isDistrictDropdownOpen);
+                        }}
+                      >
+                        {field.value ? (
+                          <span>{field.value}</span>
+                        ) : (
+                          <span className="text-gray-400 dark:text-white/30">
+                            Select District
+                          </span>
+                        )}
+                        <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
+                      </div>
+                      <Dropdown
+                        isOpen={isDistrictDropdownOpen}
+                        onClose={() => setIsDistrictDropdownOpen(false)}
+                        className="w-full p-2 h-50 overflow-y-auto"
+                        // search={true}
+                      >
+                        {districtOptions.map((option) => (
+                          <DropdownItem
+                            key={option}
+                            onItemClick={() => {
+                              field.onChange(option);
+                              setIsDistrictDropdownOpen(false);
+                            }}
+                            className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                          >
+                            {option}
+                          </DropdownItem>
+                        ))}
+                      </Dropdown>
+                    </>
                   )}
-                  <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
-                </div>
+                />
                 {errors.district && (
-                  <p className="text-error-500 text-sm mt-1">
+                  <p className="mt-0.5 text-xs text-right pr-2 text-error-500">
                     {errors.district.message}
                   </p>
                 )}
-                <Dropdown
-                  isOpen={isDistrictDropdownOpen}
-                  onClose={() => setIsDistrictDropdownOpen(false)}
-                  className="w-full p-2 h-50 overflow-y-auto"
-                  search={false}
-                >
-                  {districtOptions.map((option) => (
-                    <DropdownItem
-                      key={option}
-                      onItemClick={() => {
-                        setValue("district", option);
-                        setIsDistrictDropdownOpen(false);
-                      }}
-                      className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-                    >
-                      {option}
-                    </DropdownItem>
-                  ))}
-                </Dropdown>
               </div>
 
               <div>
@@ -857,11 +1070,20 @@ export default function OnboardAgentForm() {
                   Region (Optional)
                   {/* <span className="text-error-500">*</span> */}
                 </Label>
-                <Input
-                  type="text"
-                  id="region"
-                  // name="region"
-                  {...register("region")}
+                <Controller
+                  name="region"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      type="text"
+                      id="region"
+                      {...field}
+                      disabled={loading || uploadLoading}
+                      error={!!errors.region}
+                      success={dirtyFields.region && !errors.region}
+                      hint={errors.region?.message}
+                    />
+                  )}
                 />
               </div>
 
@@ -870,19 +1092,24 @@ export default function OnboardAgentForm() {
                   <Label>
                     Latitude <span className="text-error-500">*</span>
                   </Label>
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    id="latitude"
+                  <Controller
                     name="latitude"
-                    value={
-                      !geoLoading ? watch("latitude") : "Fetching Location..."
-                    }
-                    {...register("latitude")}
-                    disabled={geoLoading}
-                    error={!!errors.latitude}
-                    hint={errors.latitude?.message}
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        id="latitude"
+                        {...field}
+                        value={
+                          !geoLoading ? field.value : "Fetching Location..."
+                        }
+                        disabled={geoLoading || loading || uploadLoading}
+                        error={!!errors.latitude}
+                        hint={errors.latitude?.message}
+                      />
+                    )}
                   />
                 </div>
 
@@ -890,26 +1117,31 @@ export default function OnboardAgentForm() {
                   <Label>
                     Longitude <span className="text-error-500">*</span>
                   </Label>
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    id="longitude"
-                    // name="longitude"
-                    value={
-                      !geoLoading ? watch("longitude") : "Fetching Location..."
-                    }
-                    {...register("longitude")}
-                    disabled={geoLoading}
-                    error={!!errors.longitude}
-                    hint={errors.longitude?.message}
+                  <Controller
+                    name="longitude"
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        id="longitude"
+                        {...field}
+                        value={
+                          !geoLoading ? field.value : "Fetching Location..."
+                        }
+                        disabled={geoLoading || loading || uploadLoading}
+                        error={!!errors.longitude}
+                        hint={errors.longitude?.message}
+                      />
+                    )}
                   />
                 </div>
 
                 <Button
                   size="sm"
                   onClick={handleGetLocation}
-                  disabled={geoLoading}
+                  disabled={geoLoading || loading || uploadLoading}
                 >
                   <span title="Get location">
                     <svg
@@ -935,7 +1167,7 @@ export default function OnboardAgentForm() {
                 </Label>
                 <div
                   className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
-                    !!errors.businessImageUrl
+                    errors.businessImageUrl
                       ? "border-error-500"
                       : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                   }`}
@@ -947,16 +1179,13 @@ export default function OnboardAgentForm() {
                       isBusinessImageDragActive
                         ? "border-brand-500 bg-gray-100 dark:bg-gray-800"
                         : "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
-                    } ${uploadLoading ? "opacity-50 cursor-not-allowed" : ""} `}
+                    } `}
                     id="id-image-upload"
                   >
-                    <input
-                      {...getBusinessImageInputProps()}
-                      disabled={uploadLoading}
-                    />
+                    <input {...getBusinessImageInputProps()} />
                     <div
                       className={`dz-message flex flex-col items-center upload ${
-                        watch("businessImageUrl") && "opacity-40"
+                        businessImageUrl && "opacity-40"
                       }`}
                     >
                       <div className="mb-[22px] flex justify-center">
@@ -986,21 +1215,21 @@ export default function OnboardAgentForm() {
                         browse
                       </span>
                       <span className="font-medium underline text-theme-sm text-brand-500 truncate">
-                        {watch("businessImageUrl")
-                          ? watch("businessImageUrl").split("/").pop()
-                          : uploadLoading
-                          ? "Uploading..."
-                          : "Browse File"}
+                        {businessImage ? businessImage.name : "Browse File"}
                       </span>
                     </div>
-                    {watch("businessImageUrl") && (
+                    {businessImageUrl && (
                       <>
                         <button
+                          disabled={loading || uploadLoading}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setValue("businessImageUrl", "");
+                            setValue("businessImageUrl", "", {
+                              shouldValidate: true,
+                            });
+                            setBusinessImage(null);
                           }}
-                          className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8"
+                          className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
                           title="delete uploaded file"
                         >
                           <TrashBinIcon color="#e4e7ec" />
@@ -1008,7 +1237,7 @@ export default function OnboardAgentForm() {
 
                         <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
                           <img
-                            src={watch("businessImageUrl")}
+                            src={businessImageUrl}
                             alt="Uploaded ID Image Preview"
                             className="object-contain h-full mx-auto"
                           />
@@ -1017,15 +1246,10 @@ export default function OnboardAgentForm() {
                     )}
                   </div>
                 </div>
-                {errors.businessImageUrl && (
-                  <p className="text-error-500 text-sm mt-1">
-                    {errors.businessImageUrl.message}
-                  </p>
-                )}
-                {watch("businessImageUrl") && (
+                {businessImageUrl && (
                   <div className="mt-2">
                     <a
-                      href={watch("businessImageUrl")}
+                      href={businessImageUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-brand-500 hover:underline"
@@ -1043,7 +1267,7 @@ export default function OnboardAgentForm() {
                 </Label>
                 <div
                   className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
-                    !!errors.addressDocumentUrl
+                    errors.addressDocumentUrl
                       ? "border-error-500"
                       : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                   }`}
@@ -1055,16 +1279,13 @@ export default function OnboardAgentForm() {
                       isAddressDocumentDragActive
                         ? "border-brand-500 bg-gray-100 dark:bg-gray-800"
                         : "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
-                    } ${uploadLoading ? "opacity-50 cursor-not-allowed" : ""} `}
+                    } `}
                     id="id-image-upload"
                   >
-                    <input
-                      {...getAddressDocumentInputProps()}
-                      disabled={uploadLoading}
-                    />
+                    <input {...getAddressDocumentInputProps()} />
                     <div
                       className={`dz-message flex flex-col items-center upload ${
-                        watch("addressDocumentUrl") && "opacity-40"
+                        addressDocumentUrl && "opacity-40"
                       }`}
                     >
                       <div className="mb-[22px] flex justify-center">
@@ -1094,28 +1315,28 @@ export default function OnboardAgentForm() {
                         browse
                       </span>
                       <span className="font-medium underline text-theme-sm text-brand-500 truncate">
-                        {watch("addressDocumentUrl")
-                          ? watch("addressDocumentUrl").split("/").pop()
-                          : uploadLoading
-                          ? "Uploading..."
-                          : "Browse File"}
+                        {addressDocument ? addressDocument.name : "Browse File"}
                       </span>
                     </div>
-                    {watch("addressDocumentUrl") && (
+                    {addressDocumentUrl && (
                       <>
                         <button
+                          disabled={loading || uploadLoading}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setValue("addressDocumentUrl", "");
+                            setValue("addressDocumentUrl", "", {
+                              shouldValidate: true,
+                            });
+                            setAddressDocument(null);
                           }}
-                          className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8"
+                          className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
                           title="delete uploaded file"
                         >
                           <TrashBinIcon color="#e4e7ec" />
                         </button>
                         <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
                           <img
-                            src={watch("addressDocumentUrl")}
+                            src={addressDocumentUrl}
                             alt="Uploaded ID Image Preview"
                             className="object-contain h-full mx-auto"
                           />
@@ -1124,15 +1345,10 @@ export default function OnboardAgentForm() {
                     )}
                   </div>
                 </div>
-                {errors.addressDocumentUrl && (
-                  <p className="text-error-500 text-sm mt-1">
-                    {errors.addressDocumentUrl.message}
-                  </p>
-                )}
-                {watch("addressDocumentUrl") && (
+                {addressDocumentUrl && (
                   <div className="mt-2">
                     <a
-                      href={watch("addressDocumentUrl")}
+                      href={addressDocumentUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-brand-500 hover:underline"
@@ -1154,7 +1370,7 @@ export default function OnboardAgentForm() {
               </Label>
               <div
                 className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
-                  !!errors.businessRegDocumentUrl
+                  errors.businessRegDocumentUrl
                     ? "border-error-500"
                     : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                 }`}
@@ -1166,16 +1382,14 @@ export default function OnboardAgentForm() {
                       isRegDocumentDragActive
                         ? "border-brand-500 bg-gray-100 dark:bg-gray-800"
                         : "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
-                    } ${uploadLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                    } `}
                   id="business-document-upload"
                 >
-                  <input
-                    {...getRegDocumentInputProps()}
-                    disabled={uploadLoading}
-                  />
+                  <input {...getRegDocumentInputProps()} />
+
                   <div
                     className={`dz-message flex flex-col items-center ${
-                      watch("businessRegDocumentUrl") && "opacity-40"
+                      businessRegDocumentUrl && "opacity-40"
                     }`}
                   >
                     <div className="mb-[22px] flex justify-center">
@@ -1205,28 +1419,30 @@ export default function OnboardAgentForm() {
                       here or browse
                     </span>
                     <span className="font-medium underline text-theme-sm text-brand-500 truncate">
-                      {watch("businessRegDocumentUrl")
-                        ? watch("businessRegDocumentUrl").split("/").pop()
-                        : uploadLoading
-                        ? "Uploading..."
+                      {businessRegDocument
+                        ? businessRegDocument.name
                         : "Browse File"}
                     </span>
                   </div>
-                  {watch("businessRegDocumentUrl") && (
+                  {businessRegDocumentUrl && (
                     <>
                       <button
+                        disabled={loading || uploadLoading}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setValue("businessRegDocumentUrl", "");
+                          setValue("businessRegDocumentUrl", "", {
+                            shouldValidate: true,
+                          });
+                          setBusinessRegDocument(null);
                         }}
-                        className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8"
+                        className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
                         title="delete uploaded file"
                       >
                         <TrashBinIcon color="#e4e7ec" />
                       </button>
                       <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
                         <img
-                          src={watch("businessRegDocumentUrl")}
+                          src={businessRegDocumentUrl}
                           alt="Document Preview"
                           className="object-cover h-full mx-auto"
                         />
@@ -1235,15 +1451,10 @@ export default function OnboardAgentForm() {
                   )}
                 </div>
               </div>
-              {errors.businessRegDocumentUrl && (
-                <p className="text-error-500 text-sm mt-1">
-                  {errors.businessRegDocumentUrl.message}
-                </p>
-              )}
-              {watch("businessRegDocumentUrl") && (
+              {businessRegDocumentUrl && (
                 <div className="mt-2">
                   <a
-                    href={watch("businessRegDocumentUrl")}
+                    href={businessRegDocumentUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-brand-500 hover:underline"
@@ -1258,47 +1469,58 @@ export default function OnboardAgentForm() {
               <Label>
                 ID Type <span className="text-error-500">*</span>
               </Label>
-              <div
-                className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
-                  !!errors.idType
-                    ? "border-error-500"
-                    : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
-                }`}
-                onClick={() => setIsIdTypeDropdownOpen(!isIdTypeDropdownOpen)}
-              >
-                {watch("idType") ? (
-                  <span> {watch("idType")}</span>
-                ) : (
-                  <span className="text-gray-400 dark:text-white/30">
-                    Select ID Type
-                  </span>
+              <Controller
+                name="idType"
+                control={control}
+                render={({ field }) => (
+                  <>
+                    <div
+                      className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer dark:text-white/90 ${
+                        errors.idType
+                          ? "border-error-500"
+                          : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
+                      }`}
+                      onClick={() => {
+                        if (loading || uploadLoading) return;
+                        setIsIdTypeDropdownOpen(!isIdTypeDropdownOpen);
+                      }}
+                    >
+                      {field.value ? (
+                        <span>{field.value}</span>
+                      ) : (
+                        <span className="text-gray-400 dark:text-white/30">
+                          Select ID Type
+                        </span>
+                      )}
+                      <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
+                    </div>
+                    <Dropdown
+                      isOpen={isIdTypeDropdownOpen}
+                      onClose={() => setIsIdTypeDropdownOpen(false)}
+                      className="w-full p-2"
+                      search={false}
+                    >
+                      {idTypeOptions.map((option) => (
+                        <DropdownItem
+                          key={option}
+                          onItemClick={() => {
+                            field.onChange(option);
+                            setIsIdTypeDropdownOpen(false);
+                          }}
+                          className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                        >
+                          {option}
+                        </DropdownItem>
+                      ))}
+                    </Dropdown>
+                  </>
                 )}
-                <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
-              </div>
+              />
               {errors.idType && (
-                <p className="text-error-500 text-sm mt-1">
+                <p className="mt-0.5 text-xs text-right pr-2 text-error-500">
                   {errors.idType.message}
                 </p>
               )}
-              <Dropdown
-                isOpen={isIdTypeDropdownOpen}
-                onClose={() => setIsIdTypeDropdownOpen(false)}
-                className="w-full p-2"
-                search={false}
-              >
-                {idTypeOptions.map((option) => (
-                  <DropdownItem
-                    key={option}
-                    onItemClick={() => {
-                      setValue("idType", option);
-                      setIsIdTypeDropdownOpen(false);
-                    }}
-                    className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-                  >
-                    {option}
-                  </DropdownItem>
-                ))}
-              </Dropdown>
             </div>
 
             <div>
@@ -1307,7 +1529,7 @@ export default function OnboardAgentForm() {
               </Label>
               <div
                 className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
-                  !!errors.idImageUrl
+                  errors.idImageUrl
                     ? "border-error-500"
                     : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                 }`}
@@ -1319,10 +1541,11 @@ export default function OnboardAgentForm() {
                       isIdImageDragActive
                         ? "border-brand-500 bg-gray-100 dark:bg-gray-800"
                         : "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
-                    } ${uploadLoading ? "opacity-50 cursor-not-allowed" : ""} `}
+                    } `}
                   id="id-image-upload"
                 >
-                  <input {...getIdImageInputProps()} disabled={uploadLoading} />
+                  <input {...getIdImageInputProps()} />
+
                   <div
                     className={`dz-message flex flex-col items-center upload ${
                       idImageUrl && "opacity-40"
@@ -1355,21 +1578,19 @@ export default function OnboardAgentForm() {
                       here or browse
                     </span>
                     <span className="font-medium underline text-theme-sm text-brand-500 truncate">
-                      {idImageUrl
-                        ? idImageUrl.split("/").pop()
-                        : uploadLoading
-                        ? "Uploading..."
-                        : "Browse File"}
+                      {idImage ? idImage.name : "Browse File"}
                     </span>
                   </div>
                   {idImageUrl && (
                     <>
                       <button
+                        disabled={loading || uploadLoading}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setValue("idImageUrl", "");
+                          setValue("idImageUrl", "", { shouldValidate: true });
+                          setIdImage(null);
                         }}
-                        className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8"
+                        className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
                         title="delete uploaded file"
                       >
                         <TrashBinIcon color="#e4e7ec" />
@@ -1385,11 +1606,6 @@ export default function OnboardAgentForm() {
                   )}
                 </div>
               </div>
-              {errors.idImageUrl && (
-                <p className="text-error-500 text-sm mt-1">
-                  {errors.idImageUrl.message}
-                </p>
-              )}
               {idImageUrl && (
                 <div className="mt-2">
                   <a
@@ -1404,34 +1620,31 @@ export default function OnboardAgentForm() {
               )}
             </div>
 
+            {Object.keys(errors).length > 0 && (
+              <Alert variant="error" title="Please fix the following errors:">
+                <ul className="list-disc pl-5">
+                  {Object.entries(errors).map(([key, value]) => (
+                    <li
+                      key={key}
+                      className="text-sm text-gray-500 dark:text-gray-400"
+                    >
+                      {value.message}
+                    </li>
+                  ))}
+                </ul>
+              </Alert>
+            )}
+            {error && (
+              <Alert variant="error" title={alertTitle} message={error} />
+            )}
             {successAlert && (
               <Alert
                 variant="success"
-                title="Successful"
+                title={alertTitle}
                 message={successAlert}
               />
             )}
-            {errors.root?.apiError && (
-              <Alert
-                variant="error"
-                title="Registration Failed"
-                message={errors.root.apiError.message}
-              />
-            )}
-            {errors.root?.geolocationError && (
-              <Alert
-                variant="error"
-                title="Geolocation Error"
-                message={errors.root.geolocationError.message}
-              />
-            )}
-            {errors.root?.uploadError && (
-              <Alert
-                variant="error"
-                title="Upload Failed"
-                message={errors.root.uploadError.message}
-              />
-            )}
+
             <div className="col-span-2">
               <Button
                 className="w-full"

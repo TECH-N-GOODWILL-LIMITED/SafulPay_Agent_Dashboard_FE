@@ -51,7 +51,7 @@ const Input: FC<InputProps> = ({
   id,
   name,
   placeholder,
-  value = "",
+  value,
   onChange,
   className = "",
   min,
@@ -264,7 +264,7 @@ const Input: FC<InputProps> = ({
         <select
           id={id}
           name={name}
-          value={value}
+          value={value || ""}
           onChange={onChange}
           disabled={disabled}
           className={`cursor-pointer ${inputClasses}`}
@@ -288,7 +288,7 @@ const Input: FC<InputProps> = ({
           id={id}
           name={name}
           placeholder={placeholder}
-          value={value}
+          value={value || ""}
           onChange={onChange}
           onBlur={onBlur}
           min={min != null ? String(min) : undefined}

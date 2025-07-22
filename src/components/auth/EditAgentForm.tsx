@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router";
 import { useDropzone } from "react-dropzone";
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
 import {
   uploadToCloudinary,
   getAgentById,
   updateAgentInfo,
 } from "../../utils/api";
 import { useAllUsers } from "../../context/UsersContext";
-
 import ComponentCard from "../../components/common/ComponentCard";
 import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
@@ -28,45 +30,54 @@ import TextArea from "../form/input/TextArea";
 import { Agent } from "../../types/types";
 import { ADMIN_ROLE } from "../../utils/roles";
 
+const validationSchema = yup.object().shape({
+  firstName: yup.string().required("First name is required"),
+  lastName: yup.string().required("Last name is required"),
+  middleName: yup.string(),
+  userName: yup
+    .string()
+    .required("Username is required")
+    .max(12, "Username cannot exceed 12 characters"),
+  businessName: yup.string().required("Business name is required"),
+  businessPhone: yup.string(), // Readonly
+  phone: yup.string(), // Readonly
+  email: yup.string().email("Invalid email format"),
+  agentType: yup.string().required("Agency type is required"),
+  model: yup.string().when("agentType", {
+    is: (val: string) => val === "Agent" || val === "Super Agent",
+    then: (schema) => schema.required("Agency model is required"),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+  idType: yup.string(),
+  businessAddress: yup.string().required("Business address is required"),
+  district: yup.string().required("District is required"),
+  region: yup.string(),
+  latitude: yup.string().required("Latitude is required"),
+  longitude: yup.string().required("Longitude is required"),
+  idImageUrl: yup.string(),
+  businessImageUrl: yup.string(),
+  addressDocumentUrl: yup.string(),
+  businessRegDocumentUrl: yup.string(),
+  agentStatus: yup.string(),
+  reason: yup.string().min(4, "Reason must be at least 4 characters."),
+});
+
+type FormData = yup.InferType<typeof validationSchema>;
+
 export default function EditAgentForm() {
   const [alertTitle, setAlertTitle] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [fetchError, setFetchError] = useState<string>("");
-  const [successAlert, setSuccessAlert] = useState<string>("");
   const [updateSuccess, setUpdateSuccess] = useState<string>("");
-  const [firstName, setFirstName] = useState<string>("");
-  const [middleName, setMiddleName] = useState<string>("");
-  const [lastName, setLastName] = useState<string>("");
-  const [userName, setUserName] = useState<string>("");
-  const [businessName, setBusinessName] = useState<string>("");
-  const [businessPhone, setBusinessPhone] = useState<string>("");
-  const [phone, setPhone] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
-  const [agentType, setAgentType] = useState<
-    "Merchant" | "Super Agent" | "Agent" | string | undefined
-  >();
-  const [model, setModel] = useState<
-    "Target" | "Independent" | string | undefined
-  >();
-  const [idType, setIdType] = useState<string>("");
-  const [businessAddress, setBusinessAddress] = useState<string>("");
-  const [district, setDistrict] = useState<string>("");
-  const [region, setRegion] = useState<string>("");
-  const [latitude, setLatitude] = useState<string>("");
-  const [longitude, setLongitude] = useState<string>("");
-  const [idImage, setIdImage] = useState<File | null>(null);
-  const [idImageUrl, setIdImageUrl] = useState<string>("");
-  const [businessImage, setBusinessImage] = useState<File | null>(null);
-  const [businessImageUrl, setBusinessImageUrl] = useState<string>("");
-  const [addressDocument, setAddressDocument] = useState<File | null>(null);
-  const [addressDocumentUrl, setAddressDocumentUrl] = useState<string>("");
-  const [businessRegDocument, setBusinessRegDocument] = useState<File | null>(
+
+  const [idImageFile, setIdImageFile] = useState<File | null>(null);
+  const [businessImageFile, setBusinessImageFile] = useState<File | null>(null);
+  const [addressDocumentFile, setAddressDocumentFile] = useState<File | null>(
     null
   );
-  const [businessRegDocumentUrl, setBusinessRegDocumentUrl] =
-    useState<string>("");
-  const [isTemp, setIsTemp] = useState<number>(0);
-  const [missingUrl, setMissingUrl] = useState<string[]>([]);
+  const [businessRegDocumentFile, setBusinessRegDocumentFile] =
+    useState<File | null>(null);
+
   const [loading, setLoading] = useState<boolean>(false);
   const [geoLoading, setGeoLoading] = useState<boolean>(false);
   const [uploadLoading, setUploadLoading] = useState<boolean>(false);
@@ -77,13 +88,29 @@ export default function EditAgentForm() {
     useState<boolean>(false);
   const [isDistrictDropdownOpen, setIsDistrictDropdownOpen] =
     useState<boolean>(false);
-  const [agentStatus, setAgentStatus] = useState<string>("");
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] =
     useState<boolean>(false);
-  const [reason, setReason] = useState<string>("");
   const [originalAgentData, setOriginalAgentData] = useState<Agent | null>(
     null
   );
+
+  const {
+    handleSubmit,
+    control,
+    setValue,
+    watch,
+    reset,
+    formState: { errors, dirtyFields },
+  } = useForm({
+    resolver: yupResolver(validationSchema),
+    defaultValues: {},
+  });
+
+  const agentType = watch("agentType");
+  const idImageUrl = watch("idImageUrl");
+  const businessImageUrl = watch("businessImageUrl");
+  const addressDocumentUrl = watch("addressDocumentUrl");
+  const businessRegDocumentUrl = watch("businessRegDocumentUrl");
 
   const { id } = useParams<{ id: string }>();
   const { user, token } = useAuth();
@@ -92,57 +119,61 @@ export default function EditAgentForm() {
 
   const { fetchUsers } = useAllUsers();
 
+  const statusOptions = [
+    { label: "Pending", value: 0 },
+    { label: "Active", value: 1 },
+    { label: "Suspended", value: 2 },
+    { label: "Rejected", value: 3 },
+  ];
+
   useEffect(() => {
     const fetchAgentData = async () => {
       if (!id || !token) return;
       setLoading(true);
-      setAlertTitle("");
       setFetchError("");
       try {
         const response = await getAgentById(token, id);
         if (response.success && response.data) {
           const agent = response.data.agent;
-          setFirstName(agent.firstname || "");
-          setMiddleName(agent.middlename || "");
-          setLastName(agent.lastname || "");
-          setUserName(agent.username || "");
-          setBusinessName(agent.business_name || "");
-          setBusinessPhone(agent.business_phone || "");
-          setPhone(agent.phone || "");
-          setEmail(agent.email || "");
-          setAgentType(agent.type || "");
-          setModel(agent.model || "");
-          setIdType(agent.id_type || "");
-          setBusinessAddress(agent.address || "");
-          setDistrict(agent.district || "");
-          setRegion(agent.region || "");
-          setLatitude(agent.latitude || "");
-          setLongitude(agent.longitude || "");
-          setIdImageUrl(agent.id_document || "");
-          setBusinessImageUrl(agent.business_image || "");
-          setAddressDocumentUrl(agent.address_document || "");
-          setBusinessRegDocumentUrl(agent.business_registration || "");
-          setAgentStatus(
-            statusOptions.find((s) => s.value === agent.status)?.label || ""
-          );
-          setIsTemp(agent.temp || 0);
-
-          // Store original agent data
+          const defaultValues = {
+            firstName: agent.firstname || "",
+            middleName: agent.middlename || "",
+            lastName: agent.lastname || "",
+            userName: agent.username || "",
+            businessName: agent.business_name || "",
+            businessPhone: agent.business_phone || "",
+            phone: agent.phone || "",
+            email: agent.email || "",
+            agentType: agent.type || "",
+            model: agent.model || "",
+            idType: agent.id_type || "",
+            businessAddress: agent.address || "",
+            district: agent.district || "",
+            region: agent.region || "",
+            latitude: agent.latitude || "",
+            longitude: agent.longitude || "",
+            idImageUrl: agent.id_document || "",
+            businessImageUrl: agent.business_image || "",
+            addressDocumentUrl: agent.address_document || "",
+            businessRegDocumentUrl: agent.business_registration || "",
+            agentStatus:
+              statusOptions.find((s) => s.value === agent.status)?.label || "",
+            reason: "",
+          };
+          reset(defaultValues);
           setOriginalAgentData(agent);
         } else {
-          setAlertTitle("ERROR!!!");
           setFetchError(response.error || "Failed to fetch agent data");
         }
       } catch (err) {
-        setAlertTitle("ERROR!");
-        setFetchError(`Error fetching agent data: ${err}`);
+        setFetchError(`Error fetching agent data: ${(err as Error).message}`);
       } finally {
         setLoading(false);
       }
     };
 
     fetchAgentData();
-  }, [id, token]);
+  }, [id, token, reset]);
 
   const typeOptions = ["Merchant", "Super Agent", "Agent"];
   const modelOptions = ["Target", "Independent"];
@@ -172,14 +203,7 @@ export default function EditAgentForm() {
     "Western Area Rural",
   ];
 
-  const statusOptions = [
-    { label: "Pending", value: 0 },
-    { label: "Active", value: 1 },
-    { label: "Suspended", value: 2 },
-    { label: "Rejected", value: 3 },
-  ];
-
-  const onDrop = async (
+  const onDrop = (
     acceptedFiles: File[],
     type:
       | "idImage"
@@ -189,46 +213,24 @@ export default function EditAgentForm() {
   ) => {
     const file = acceptedFiles[0];
     if (file) {
-      setUploadLoading(true);
-      setAlertTitle("");
-      setError("");
-      setSuccessAlert("");
-      setUpdateSuccess("");
-
-      const result = await uploadToCloudinary(
-        file,
-        import.meta.env.VITE_CLOUDINARY_CLOUD_NAME,
-        "safulpayAgencyKYC"
-      );
-      setUploadLoading(false);
-      if (result.success) {
-        if (type === "idImage") {
-          setIdImage(file);
-          setIdImageUrl(result.url);
-        }
-        if (type === "businessRegDocument") {
-          setBusinessRegDocument(file);
-          setBusinessRegDocumentUrl(result.url);
-        }
-        if (type === "businessImage") {
-          setBusinessImage(file);
-          setBusinessImageUrl(result.url);
-        }
-        if (type === "addressDocument") {
-          setAddressDocument(file);
-          setAddressDocumentUrl(result.url);
-        }
-
-        setSuccessAlert("File uploaded successfully!");
-      } else {
-        setAlertTitle("Upload Failed");
-        if (result.error.includes("Upload preset not found")) {
-          setError(
-            "Cloudinary upload preset 'agent_uploads_unsigned' not found. Please create it in your Cloudinary dashboard."
-          );
-        } else {
-          setError(result.error || "Failed to upload file to Cloudinary");
-        }
+      const previewUrl = URL.createObjectURL(file);
+      if (type === "idImage") {
+        setIdImageFile(file);
+        setValue("idImageUrl", previewUrl, { shouldValidate: true });
+      }
+      if (type === "businessRegDocument") {
+        setBusinessRegDocumentFile(file);
+        setValue("businessRegDocumentUrl", previewUrl, {
+          shouldValidate: true,
+        });
+      }
+      if (type === "businessImage") {
+        setBusinessImageFile(file);
+        setValue("businessImageUrl", previewUrl, { shouldValidate: true });
+      }
+      if (type === "addressDocument") {
+        setAddressDocumentFile(file);
+        setValue("addressDocumentUrl", previewUrl, { shouldValidate: true });
       }
     }
   };
@@ -239,6 +241,7 @@ export default function EditAgentForm() {
     isDragActive: isBusinessImageDragActive,
   } = useDropzone({
     onDrop: (files) => onDrop(files, "businessImage"),
+    disabled: loading || uploadLoading,
     accept: {
       "application/pdf": [],
       "application/msword": [],
@@ -256,6 +259,7 @@ export default function EditAgentForm() {
     isDragActive: isAddressDocumentDragActive,
   } = useDropzone({
     onDrop: (files) => onDrop(files, "addressDocument"),
+    disabled: loading || uploadLoading,
     accept: {
       "application/pdf": [],
       "application/msword": [],
@@ -273,6 +277,7 @@ export default function EditAgentForm() {
     isDragActive: isIdImageDragActive,
   } = useDropzone({
     onDrop: (files) => onDrop(files, "idImage"),
+    disabled: loading || uploadLoading,
     accept: {
       "application/pdf": [],
       "application/msword": [],
@@ -290,6 +295,7 @@ export default function EditAgentForm() {
     isDragActive: isRegDocumentDragActive,
   } = useDropzone({
     onDrop: (files) => onDrop(files, "businessRegDocument"),
+    disabled: loading || uploadLoading,
     accept: {
       "application/pdf": [],
       "application/msword": [],
@@ -301,58 +307,6 @@ export default function EditAgentForm() {
     },
   });
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-    setter: React.Dispatch<React.SetStateAction<string>>
-  ) => {
-    setter(e.target.value.trim());
-    setAlertTitle("");
-    setError("");
-    setSuccessAlert("");
-    setUpdateSuccess("");
-  };
-
-  const handleTypeChange = (type: string) => {
-    setAgentType(type);
-    setAlertTitle("");
-    setError("");
-    setSuccessAlert("");
-    setUpdateSuccess("");
-    setIsTypeDropdownOpen(false);
-  };
-
-  const handleModelChange = (model: "Target" | "Independent" | string) => {
-    setModel(model);
-    setAlertTitle("");
-    setError("");
-    setSuccessAlert("");
-    setUpdateSuccess("");
-    setIsModelDropdownOpen(false);
-  };
-
-  const handleIdTypeChange = (type: string) => {
-    setIdType(type);
-    setAlertTitle("");
-    setError("");
-    setSuccessAlert("");
-    setUpdateSuccess("");
-    setIsIdTypeDropdownOpen(false);
-  };
-
-  const handleDistrictChange = (district: string) => {
-    setDistrict(district);
-    setAlertTitle("");
-    setError("");
-    setSuccessAlert("");
-    setUpdateSuccess("");
-    setIsDistrictDropdownOpen(false);
-  };
-
-  const handleStatusChange = (statusLabel: string) => {
-    setAgentStatus(statusLabel);
-    setIsStatusDropdownOpen(false);
-  };
-
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
       setAlertTitle("Geolocation Not Supported");
@@ -363,7 +317,6 @@ export default function EditAgentForm() {
     setGeoLoading(true);
     setAlertTitle("");
     setError("");
-    setSuccessAlert("");
     setUpdateSuccess("");
 
     navigator.geolocation.getCurrentPosition(
@@ -371,8 +324,8 @@ export default function EditAgentForm() {
         const lat = position.coords.latitude.toFixed(6);
         const lon = position.coords.longitude.toFixed(6);
 
-        setLatitude(lat);
-        setLongitude(lon);
+        setValue("latitude", lat, { shouldValidate: true });
+        setValue("longitude", lon, { shouldValidate: true });
         setGeoLoading(false);
       },
       (err) => {
@@ -408,181 +361,205 @@ export default function EditAgentForm() {
     );
   }
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAlertTitle("");
-    setError("");
-    setSuccessAlert("");
-    setUpdateSuccess("");
-
-    // Check for required fields before showing reason input
-    if (
-      !firstName ||
-      !lastName ||
-      !userName ||
-      !businessName ||
-      !businessPhone ||
-      !phone ||
-      !agentType ||
-      ((agentType === "Agent" || agentType === "Super Agent") && !model) ||
-      !businessAddress ||
-      !district ||
-      !latitude ||
-      !longitude
-    ) {
-      setAlertTitle("Fill all required fields");
-      setError("Please complete all required fields");
-      return;
-    }
-
-    if (idImageUrl && !idType) {
-      setAlertTitle("Fill all required fields");
-      setError("Select ID Type");
-      return;
-    }
-
-    const lat = parseFloat(latitude);
-    const lon = parseFloat(longitude);
-
-    if (
-      isNaN(lat) ||
-      isNaN(lon) ||
-      lat < -90 ||
-      lat > 90 ||
-      lon < -180 ||
-      lon > 180
-    ) {
-      setAlertTitle("Invalid Input Values");
-      setError(
-        "Ensure latitude (-90 to 90) and longitude (-180 to 180) are valid numbers"
-      );
-      return;
-    }
-
-    const missingUrls: string[] = [];
-
-    if (!idImageUrl) missingUrls.push("ID document");
-    if (!businessRegDocumentUrl)
-      missingUrls.push("Business registration document");
-    if (!businessImageUrl) missingUrls.push("Business image");
-    if (
-      (agentType === "Merchant" || agentType === "Super Agent") &&
-      !addressDocumentUrl
-    ) {
-      missingUrls.push("Proof of address document");
-    }
-
-    if (missingUrls.length > 0) {
-      setMissingUrl(missingUrls);
-      setIsTemp(0);
-      openModal();
-      return;
-    }
-
-    setIsTemp(1);
-    openModal();
-    // setShowReasonInput(true);
-  };
-
-  const handleConfirmUpdate = async () => {
-    if (reason.length < 4) {
-      setError("Reason must be at least 4 characters.");
-      return;
-    }
-
-    await updateAgentData();
-    // setShowReasonInput(false);
-    closeModal();
-  };
-
-  const updateAgentData = async () => {
-    setLoading(true);
-    setAlertTitle("");
-    setError("");
-    setSuccessAlert("");
-    setUpdateSuccess("");
-
+  const onSubmit = (data: FormData) => {
     const updatedFields: Partial<Agent> = {};
-
-    if (originalAgentData?.firstname !== firstName)
-      updatedFields.firstname = firstName;
-    if (originalAgentData?.middlename !== middleName)
-      updatedFields.middlename = middleName;
-    if (originalAgentData?.lastname !== lastName)
-      updatedFields.lastname = lastName;
-    if (originalAgentData?.username !== userName)
-      updatedFields.username = userName;
-    if (originalAgentData?.business_name !== businessName)
-      updatedFields.business_name = businessName;
-    if (originalAgentData?.email !== email) updatedFields.email = email;
-    if (originalAgentData?.type !== agentType) updatedFields.type = agentType;
-    if (originalAgentData?.model !== model) updatedFields.model = model;
-    if (originalAgentData?.address !== businessAddress)
-      updatedFields.address = businessAddress;
-    if (originalAgentData?.district !== district)
-      updatedFields.district = district;
-    if (originalAgentData?.region !== region) updatedFields.region = region;
-    if (originalAgentData?.latitude !== latitude)
-      updatedFields.latitude = latitude;
-    if (originalAgentData?.longitude !== longitude)
-      updatedFields.longitude = longitude;
-    if (originalAgentData?.business_image !== businessImageUrl)
-      updatedFields.business_image = businessImageUrl;
-    if (originalAgentData?.address_document !== addressDocumentUrl)
-      updatedFields.address_document = addressDocumentUrl;
-    if (originalAgentData?.business_registration !== businessRegDocumentUrl)
-      updatedFields.business_registration = businessRegDocumentUrl;
-    if (originalAgentData?.id_type !== idType) updatedFields.id_type = idType;
-    if (originalAgentData?.id_document !== idImageUrl)
-      updatedFields.id_document = idImageUrl;
-    if (originalAgentData?.temp !== isTemp) updatedFields.temp = isTemp;
+    if (originalAgentData?.firstname !== data.firstName)
+      updatedFields.firstname = data.firstName;
+    if (originalAgentData?.middlename !== data.middleName)
+      updatedFields.middlename = data.middleName;
+    if (originalAgentData?.lastname !== data.lastName)
+      updatedFields.lastname = data.lastName;
+    if (originalAgentData?.username !== data.userName)
+      updatedFields.username = data.userName;
+    if (originalAgentData?.business_name !== data.businessName)
+      updatedFields.business_name = data.businessName;
+    if (originalAgentData?.email !== data.email)
+      updatedFields.email = data.email;
+    if (originalAgentData?.type !== data.agentType)
+      updatedFields.type = data.agentType;
+    if (originalAgentData?.model !== data.model)
+      updatedFields.model = data.model;
+    if (originalAgentData?.address !== data.businessAddress)
+      updatedFields.address = data.businessAddress;
+    if (originalAgentData?.district !== data.district)
+      updatedFields.district = data.district;
+    if (originalAgentData?.region !== data.region)
+      updatedFields.region = data.region;
+    if (originalAgentData?.latitude !== data.latitude)
+      updatedFields.latitude = data.latitude;
+    if (originalAgentData?.longitude !== data.longitude)
+      updatedFields.longitude = data.longitude;
+    if (businessImageFile) updatedFields.business_image = "updated";
+    if (addressDocumentFile) updatedFields.address_document = "updated";
+    if (businessRegDocumentFile)
+      updatedFields.business_registration = "updated";
+    if (idImageFile) updatedFields.id_document = "updated";
+    if (originalAgentData?.id_type !== data.idType)
+      updatedFields.id_type = data.idType;
 
     const newStatusValue = statusOptions.find(
-      (s) => s.label === agentStatus
+      (s) => s.label === data.agentStatus
     )?.value;
     if (originalAgentData?.status !== newStatusValue)
       updatedFields.status = newStatusValue;
 
-    // If no fields have changed, don't make the API call
     if (Object.keys(updatedFields).length === 0) {
       setAlertTitle("No Changes");
       setUpdateSuccess("No changes detected to update.");
-      setLoading(false);
       return;
     }
 
-    const response = await updateAgentInfo(
-      token || "",
-      id || "",
-      updatedFields,
-      reason
-    );
-
-    if (response.success && response.data) {
-      await fetchUsers();
-      setAlertTitle("Successful");
-      setUpdateSuccess(
-        `${agentType} ${businessName}'s info updated successfully!`
-      );
-      setOriginalAgentData(response.data.agent);
-    } else {
-      setAlertTitle("Update Failed");
-      setError(response.error || "Agent update failed");
-    }
-
-    setLoading(false);
+    openModal();
   };
 
-  const handleProceedWithoutDocuments = async () => {
-    await updateAgentData();
-    setMissingUrl([]);
+  const handleConfirmUpdate = async (data: FormData) => {
+    setLoading(true);
+    setUploadLoading(true);
+    setError("");
+    setUpdateSuccess("");
     closeModal();
+
+    try {
+      const updatedFields: Partial<Agent> = {};
+      const filesToUpload: {
+        key: keyof Agent;
+        file: File | null;
+        urlField: keyof FormData;
+      }[] = [
+        {
+          key: "business_image",
+          file: businessImageFile,
+          urlField: "businessImageUrl",
+        },
+        {
+          key: "address_document",
+          file: addressDocumentFile,
+          urlField: "addressDocumentUrl",
+        },
+        {
+          key: "business_registration",
+          file: businessRegDocumentFile,
+          urlField: "businessRegDocumentUrl",
+        },
+        { key: "id_document", file: idImageFile, urlField: "idImageUrl" },
+      ];
+
+      for (const { key, file, urlField } of filesToUpload) {
+        if (file && !data[urlField]?.startsWith("https://res.cloudinary.com")) {
+          const result = await uploadToCloudinary(
+            file,
+            import.meta.env.VITE_CLOUDINARY_CLOUD_NAME,
+            "safulpayAgencyKYC"
+          );
+          if (result.success) {
+            setValue(urlField, result.url, { shouldValidate: true });
+            updatedFields[key] = result.url;
+          } else {
+            throw new Error(`Failed to upload ${file.name}`);
+          }
+        }
+      }
+
+      if (originalAgentData?.firstname !== data.firstName)
+        updatedFields.firstname = data.firstName;
+      if (originalAgentData?.middlename !== data.middleName)
+        updatedFields.middlename = data.middleName;
+      if (originalAgentData?.lastname !== data.lastName)
+        updatedFields.lastname = data.lastName;
+      if (originalAgentData?.username !== data.userName)
+        updatedFields.username = data.userName;
+      if (originalAgentData?.business_name !== data.businessName)
+        updatedFields.business_name = data.businessName;
+      if (originalAgentData?.email !== data.email)
+        updatedFields.email = data.email;
+      if (originalAgentData?.type !== data.agentType)
+        updatedFields.type = data.agentType;
+      if (originalAgentData?.model !== data.model)
+        updatedFields.model = data.model;
+      if (originalAgentData?.address !== data.businessAddress)
+        updatedFields.address = data.businessAddress;
+      if (originalAgentData?.district !== data.district)
+        updatedFields.district = data.district;
+      if (originalAgentData?.region !== data.region)
+        updatedFields.region = data.region;
+      if (originalAgentData?.latitude !== data.latitude)
+        updatedFields.latitude = data.latitude;
+      if (originalAgentData?.longitude !== data.longitude)
+        updatedFields.longitude = data.longitude;
+      if (originalAgentData?.id_type !== data.idType)
+        updatedFields.id_type = data.idType;
+      const newStatusValue = statusOptions.find(
+        (s) => s.label === data.agentStatus
+      )?.value;
+      if (originalAgentData?.status !== newStatusValue)
+        updatedFields.status = newStatusValue;
+
+      if (Object.keys(updatedFields).length === 0) {
+        setAlertTitle("No Changes");
+        setUpdateSuccess("No changes detected to update.");
+        setLoading(false);
+        setUploadLoading(false);
+        return;
+      }
+
+      const response = await updateAgentInfo(
+        token || "",
+        id || "",
+        updatedFields,
+        data.reason || ""
+      );
+
+      if (response.success && response.data) {
+        await fetchUsers();
+        setAlertTitle("Successful");
+        setUpdateSuccess(
+          `${data.agentType} ${data.businessName}'s info updated successfully!`
+        );
+        const newAgentData = response.data.agent;
+        const newDefaultValues = {
+          firstName: newAgentData.firstname || "",
+          middleName: newAgentData.middlename || "",
+          lastName: newAgentData.lastname || "",
+          userName: newAgentData.username || "",
+          businessName: newAgentData.business_name || "",
+          businessPhone: newAgentData.business_phone || "",
+          phone: newAgentData.phone || "",
+          email: newAgentData.email || "",
+          agentType: newAgentData.type || "",
+          model: newAgentData.model || "",
+          idType: newAgentData.id_type || "",
+          businessAddress: newAgentData.address || "",
+          district: newAgentData.district || "",
+          region: newAgentData.region || "",
+          latitude: newAgentData.latitude || "",
+          longitude: newAgentData.longitude || "",
+          idImageUrl: newAgentData.id_document || "",
+          businessImageUrl: newAgentData.business_image || "",
+          addressDocumentUrl: newAgentData.address_document || "",
+          businessRegDocumentUrl: newAgentData.business_registration || "",
+          agentStatus:
+            statusOptions.find((s) => s.value === newAgentData.status)?.label ||
+            "",
+          reason: "",
+        };
+        reset(newDefaultValues);
+        setOriginalAgentData(newAgentData);
+      } else {
+        setAlertTitle("Update Failed");
+        setError(response.error || "Agent update failed");
+      }
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+      setUploadLoading(false);
+    }
   };
 
   return (
     <>
       {fetchError && (
-        <Alert variant="error" title={alertTitle} message={fetchError} />
+        <Alert variant="error" title="Error" message={fetchError} />
       )}
 
       {updateSuccess && (
@@ -590,124 +567,40 @@ export default function EditAgentForm() {
       )}
 
       <form
-        onSubmit={handleUpdate}
+        onSubmit={handleSubmit(onSubmit)}
         className="grid grid-cols-1 gap-6 xl:grid-cols-2"
       >
         <Modal isOpen={isOpen} onClose={closeModal} className="max-w-xl m-4">
-          <div className="relative w-full rounded-3xl bg-white  dark:bg-gray-900  max-w-[600px] p-5 lg:p-10">
-            <div>
-              {isTemp !== 0 ? (
-                <div className="text-left">
-                  <h4 className="mb-8 text-2xl font-semibold text-center text-gray-800 dark:text-white/90 sm:text-title-sm">
-                    Confirm to update vendor
-                  </h4>
-
-                  <Label>Reason for updating vendor information</Label>
+          <div className="relative w-full rounded-3xl bg-white dark:bg-gray-900 max-w-[600px] p-5 lg:p-10">
+            <div className="text-left">
+              <h4 className="mb-8 text-2xl font-semibold text-center text-gray-800 dark:text-white/90 sm:text-title-sm">
+                Confirm to update vendor
+              </h4>
+              <Label>Reason for updating vendor information</Label>
+              <Controller
+                name="reason"
+                control={control}
+                render={({ field }) => (
                   <TextArea
-                    value={reason}
-                    onChange={setReason}
-                    placeholder={`Enter reason for updating ${agentType} info...`}
+                    {...field}
+                    placeholder={`Enter reason for updating agent info...`}
                     rows={4}
-                    minLength={4}
-                    maxLength={120}
-                    error={reason.length < 4 && reason.length > 0}
-                    hint={
-                      reason.length < 4 && reason.length > 0
-                        ? `Reason must be at least 4 characters.`
-                        : ""
-                    }
+                    error={!!errors.reason}
+                    hint={errors.reason?.message}
                   />
-
-                  <div className="flex items-center justify-end w-full gap-3 mt-4">
-                    <Button variant="outline" onClick={closeModal}>
-                      Close
-                    </Button>
-                    <Button onClick={handleConfirmUpdate} disabled={loading}>
-                      {loading ? "Updating..." : "Confirm"}
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-left">
-                  <div className="relative flex items-center justify-center z-1 mb-7">
-                    <svg
-                      className="fill-warning-50 dark:fill-warning-500/15"
-                      width={90}
-                      height={90}
-                      viewBox="0 0 90 90"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M34.364 6.85053C38.6205 -2.28351 51.3795 -2.28351 55.636 6.85053C58.0129 11.951 63.5594 14.6722 68.9556 13.3853C78.6192 11.0807 86.5743 21.2433 82.2185 30.3287C79.7862 35.402 81.1561 41.5165 85.5082 45.0122C93.3019 51.2725 90.4628 63.9451 80.7747 66.1403C75.3648 67.3661 71.5265 72.2695 71.5572 77.9156C71.6123 88.0265 60.1169 93.6664 52.3918 87.3184C48.0781 83.7737 41.9219 83.7737 37.6082 87.3184C29.8831 93.6664 18.3877 88.0266 18.4428 77.9156C18.4735 72.2695 14.6352 67.3661 9.22531 66.1403C-0.462787 63.9451 -3.30193 51.2725 4.49185 45.0122C8.84391 41.5165 10.2138 35.402 7.78151 30.3287C3.42572 21.2433 11.3808 11.0807 21.0444 13.3853C26.4406 14.6722 31.9871 11.951 34.364 6.85053Z"
-                        fill=""
-                        fillOpacity=""
-                      />
-                    </svg>
-                    <span className="absolute -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2">
-                      <svg
-                        className="fill-warning-600 dark:fill-orange-400"
-                        width={38}
-                        height={38}
-                        viewBox="0 0 38 38"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          clipRule="evenodd"
-                          d="M32.1445 19.0002C32.1445 26.2604 26.2589 32.146 18.9987 32.146C11.7385 32.146 5.85287 26.2604 5.85287 19.0002C5.85287 11.7399 11.7385 5.85433 18.9987 5.85433C26.2589 5.85433 32.1445 11.7399 32.1445 19.0002ZM18.9987 35.146C27.9158 35.146 35.1445 27.9173 35.1445 19.0002C35.1445 10.0831 27.9158 2.85433 18.9987 2.85433C10.0816 2.85433 2.85287 10.0831 2.85287 19.0002C2.85287 27.9173 10.0816 35.146 18.9987 35.146ZM21.0001 26.0855C21.0001 24.9809 20.1047 24.0855 19.0001 24.0855L18.9985 24.0855C17.894 24.0855 16.9985 24.9809 16.9985 26.0855C16.9985 27.19 17.894 28.0855 18.9985 28.0855L19.0001 28.0855C20.1047 28.0855 21.0001 27.19 21.0001 26.0855ZM18.9986 10.1829C19.827 10.1829 20.4986 10.8545 20.4986 11.6829L20.4986 20.6707C20.4986 21.4992 19.827 22.1707 18.9986 22.1707C18.1701 22.1707 17.4986 21.4992 17.4986 20.6707L17.4986 11.6829C17.4986 10.8545 18.1701 10.1829 18.9986 10.1829Z"
-                          fill=""
-                        />
-                      </svg>
-                    </span>
-                  </div>
-                  <h4 className="mb-2 text-2xl text-center font-semibold text-gray-800 dark:text-white/90 sm:text-title-sm">
-                    Warning! Incomplete Documents
-                  </h4>
-
-                  <p className="text-sm text-center leading-6 text-gray-500 dark:text-gray-400">
-                    {missingUrl.length}{" "}
-                    {missingUrl.length > 1 ? "documents" : "document"} (
-                    <span className="text-brand-accent">
-                      {missingUrl.join(", ")}
-                    </span>
-                    ) missing.
-                  </p>
-
-                  <p className="mt-5 font-semibold text-xl text-gray-800 dark:text-white/90">
-                    Do you want to proceed without uploading?
-                  </p>
-
-                  <Label>Reason for updating vendor information</Label>
-                  <TextArea
-                    value={reason}
-                    onChange={setReason}
-                    placeholder={`Enter reason for updating ${agentType} info...`}
-                    rows={4}
-                    minLength={4}
-                    maxLength={120}
-                    error={reason.length < 4 && reason.length > 0}
-                    hint={
-                      reason.length < 4 && reason.length > 0
-                        ? `Reason must be at least 4 characters.`
-                        : ""
-                    }
-                  />
-
-                  <div className="flex items-center justify-center w-full gap-3 mt-8">
-                    <Button variant="outline" onClick={closeModal}>
-                      Close
-                    </Button>
-                    <Button
-                      onClick={handleProceedWithoutDocuments}
-                      disabled={loading}
-                    >
-                      {loading ? "Registering..." : "Proceed"}
-                    </Button>
-                  </div>
-                </div>
-              )}
+                )}
+              />
+              <div className="flex items-center justify-end w-full gap-3 mt-4">
+                <Button variant="outline" onClick={closeModal}>
+                  Close
+                </Button>
+                <Button
+                  onClick={handleSubmit(handleConfirmUpdate)}
+                  disabled={loading || uploadLoading}
+                >
+                  {loading ? "Updating..." : "Confirm Update"}
+                </Button>
+              </div>
             </div>
           </div>
         </Modal>
@@ -718,14 +611,21 @@ export default function EditAgentForm() {
                 <Label htmlFor="input">
                   First Name <span className="text-error-500">*</span>
                 </Label>
-                <Input
-                  type="text"
-                  id="firstName"
+                <Controller
                   name="firstName"
-                  placeholder="Enter first name"
-                  value={firstName}
-                  onChange={(e) => handleInputChange(e, setFirstName)}
-                  error={!!error && !firstName}
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      type="text"
+                      id="firstName"
+                      placeholder="Enter first name"
+                      disabled={loading || uploadLoading}
+                      error={!!errors.firstName}
+                      success={dirtyFields.firstName && !errors.firstName}
+                      hint={errors.firstName?.message}
+                    />
+                  )}
                 />
               </div>
 
@@ -733,26 +633,38 @@ export default function EditAgentForm() {
                 <Label>
                   Last Name <span className="text-error-500">*</span>
                 </Label>
-                <Input
-                  type="text"
-                  id="lastName"
+                <Controller
                   name="lastName"
-                  placeholder="Enter last name"
-                  value={lastName}
-                  onChange={(e) => handleInputChange(e, setLastName)}
-                  error={!!error && !lastName}
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      type="text"
+                      id="lastName"
+                      placeholder="Enter last name"
+                      disabled={loading || uploadLoading}
+                      error={!!errors.lastName}
+                      success={dirtyFields.lastName && !errors.lastName}
+                      hint={errors.lastName?.message}
+                    />
+                  )}
                 />
               </div>
 
               <div>
                 <Label>Middle Name (Optional)</Label>
-                <Input
-                  type="text"
-                  id="middleName"
-                  name="middeleName"
-                  placeholder="Enter middle name"
-                  value={middleName}
-                  onChange={(e) => handleInputChange(e, setMiddleName)}
+                <Controller
+                  name="middleName"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      type="text"
+                      id="middleName"
+                      placeholder="Enter middle name"
+                      disabled={loading || uploadLoading}
+                    />
+                  )}
                 />
               </div>
 
@@ -760,16 +672,21 @@ export default function EditAgentForm() {
                 <Label>
                   Username <span className="text-error-500">*</span>
                 </Label>
-                <Input
-                  type="text"
-                  id="userName"
-                  name="username"
-                  placeholder="Enter username"
-                  value={userName}
-                  max={12}
-                  onChange={(e) => handleInputChange(e, setUserName)}
-                  error={!!error && !userName}
-                  hint="max length 12"
+                <Controller
+                  name="userName"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      type="text"
+                      id="userName"
+                      placeholder="Enter username"
+                      disabled={loading || uploadLoading}
+                      error={!!errors.userName}
+                      success={dirtyFields.userName && !errors.userName}
+                      hint={errors.userName?.message || "max length 12"}
+                    />
+                  )}
                 />
               </div>
 
@@ -777,14 +694,21 @@ export default function EditAgentForm() {
                 <Label>
                   Business Name <span className="text-error-500">*</span>
                 </Label>
-                <Input
-                  type="text"
-                  id="businessName"
-                  name="business_name"
-                  placeholder="Enter business name"
-                  value={businessName}
-                  onChange={(e) => handleInputChange(e, setBusinessName)}
-                  error={!!error && !businessName}
+                <Controller
+                  name="businessName"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      type="text"
+                      id="businessName"
+                      placeholder="Enter business name"
+                      disabled={loading || uploadLoading}
+                      error={!!errors.businessName}
+                      success={dirtyFields.businessName && !errors.businessName}
+                      hint={errors.businessName?.message}
+                    />
+                  )}
                 />
               </div>
 
@@ -793,19 +717,18 @@ export default function EditAgentForm() {
                   Business Phone{" "}
                   <span className="text-error-500">(read only)</span>
                 </Label>
-                <Input
-                  type="tel"
-                  id="businessPhone"
+                <Controller
                   name="businessPhone"
-                  value={
-                    businessPhone.startsWith("232")
-                      ? businessPhone.substring(3)
-                      : businessPhone
-                  }
-                  onChange={(e) => handleInputChange(e, setBusinessPhone)}
-                  error={!!error && !businessPhone}
-                  selectedCountries={["SL"]}
-                  readOnly
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      type="tel"
+                      id="businessPhone"
+                      selectedCountries={["SL"]}
+                      readOnly
+                    />
+                  )}
                 />
               </div>
 
@@ -813,29 +736,40 @@ export default function EditAgentForm() {
                 <Label>
                   Phone <span className="text-error-500">(read only)</span>
                 </Label>
-                <Input
-                  type="tel"
-                  id="phone"
+                <Controller
                   name="phone"
-                  value={phone.startsWith("232") ? phone.substring(3) : phone}
-                  onChange={(e) => handleInputChange(e, setPhone)}
-                  error={!!error && !phone}
-                  selectedCountries={["SL"]}
-                  readOnly
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      type="tel"
+                      id="phone"
+                      selectedCountries={["SL"]}
+                      readOnly
+                    />
+                  )}
                 />
               </div>
 
               <div>
                 <Label>Email (Optional)</Label>
                 <div className="relative">
-                  <Input
-                    type="email"
-                    id="email"
+                  <Controller
                     name="email"
-                    placeholder="info@gmail.com"
-                    value={email}
-                    onChange={(e) => handleInputChange(e, setEmail)}
-                    className="pl-[62px]"
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        type="email"
+                        id="email"
+                        placeholder="info@gmail.com"
+                        className="pl-[62px]"
+                        disabled={loading || uploadLoading}
+                        error={!!errors.email}
+                        success={dirtyFields.email && !errors.email}
+                        hint={errors.email?.message}
+                      />
+                    )}
                   />
                   <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none left-4 top-1/2 dark:text-gray-400">
                     <EnvelopeIcon className="size-6" />
@@ -847,39 +781,58 @@ export default function EditAgentForm() {
                 <Label>
                   Agency Type <span className="text-error-500">*</span>
                 </Label>
-                <div
-                  className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
-                    !!error && !agentType
-                      ? "border-error-500"
-                      : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
-                  }`}
-                  onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
-                >
-                  {agentType ? (
-                    <span> {agentType}</span>
-                  ) : (
-                    <span className="text-gray-400 dark:text-white/30">
-                      Select Type
-                    </span>
+                <Controller
+                  name="agentType"
+                  control={control}
+                  render={({ field }) => (
+                    <>
+                      <div
+                        className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
+                          errors.agentType
+                            ? "border-error-500"
+                            : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
+                        }`}
+                        onClick={() => {
+                          if (loading || uploadLoading) return;
+                          setIsTypeDropdownOpen(!isTypeDropdownOpen);
+                        }}
+                      >
+                        {field.value ? (
+                          <span> {field.value}</span>
+                        ) : (
+                          <span className="text-gray-400 dark:text-white/30">
+                            Select Type
+                          </span>
+                        )}
+                        <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
+                      </div>
+                      <Dropdown
+                        isOpen={isTypeDropdownOpen}
+                        onClose={() => setIsTypeDropdownOpen(false)}
+                        className="w-full p-2"
+                        search={false}
+                      >
+                        {typeOptions.map((option) => (
+                          <DropdownItem
+                            key={option}
+                            onItemClick={() => {
+                              field.onChange(option);
+                              setIsTypeDropdownOpen(false);
+                            }}
+                            className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                          >
+                            {option}
+                          </DropdownItem>
+                        ))}
+                      </Dropdown>
+                    </>
                   )}
-                  <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
-                </div>
-                <Dropdown
-                  isOpen={isTypeDropdownOpen}
-                  onClose={() => setIsTypeDropdownOpen(false)}
-                  className="w-full p-2"
-                  search={false}
-                >
-                  {typeOptions.map((option) => (
-                    <DropdownItem
-                      key={option}
-                      onItemClick={() => handleTypeChange(option)}
-                      className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-                    >
-                      {option}
-                    </DropdownItem>
-                  ))}
-                </Dropdown>
+                />
+                {errors.agentType && (
+                  <p className="mt-0.5 text-xs text-right pr-2 text-error-500">
+                    {errors.agentType.message}
+                  </p>
+                )}
               </div>
 
               {agentType !== "Merchant" && (
@@ -887,39 +840,58 @@ export default function EditAgentForm() {
                   <Label>
                     Agency Model <span className="text-error-500">*</span>
                   </Label>
-                  <div
-                    className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
-                      !!error && !model
-                        ? "border-error-500"
-                        : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
-                    }`}
-                    onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
-                  >
-                    {model ? (
-                      <span> {model}</span>
-                    ) : (
-                      <span className="text-gray-400 dark:text-white/30">
-                        Select Model
-                      </span>
+                  <Controller
+                    name="model"
+                    control={control}
+                    render={({ field }) => (
+                      <>
+                        <div
+                          className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
+                            errors.model
+                              ? "border-error-500"
+                              : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
+                          }`}
+                          onClick={() => {
+                            if (loading || uploadLoading) return;
+                            setIsModelDropdownOpen(!isModelDropdownOpen);
+                          }}
+                        >
+                          {field.value ? (
+                            <span> {field.value}</span>
+                          ) : (
+                            <span className="text-gray-400 dark:text-white/30">
+                              Select Model
+                            </span>
+                          )}
+                          <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
+                        </div>
+                        <Dropdown
+                          isOpen={isModelDropdownOpen}
+                          onClose={() => setIsModelDropdownOpen(false)}
+                          className="w-full p-2"
+                          search={false}
+                        >
+                          {modelOptions.map((option) => (
+                            <DropdownItem
+                              key={option}
+                              onItemClick={() => {
+                                field.onChange(option);
+                                setIsModelDropdownOpen(false);
+                              }}
+                              className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                            >
+                              {option}
+                            </DropdownItem>
+                          ))}
+                        </Dropdown>
+                      </>
                     )}
-                    <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
-                  </div>
-                  <Dropdown
-                    isOpen={isModelDropdownOpen}
-                    onClose={() => setIsModelDropdownOpen(false)}
-                    className="w-full p-2"
-                    search={false}
-                  >
-                    {modelOptions.map((option) => (
-                      <DropdownItem
-                        key={option}
-                        onItemClick={() => handleModelChange(option)}
-                        className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-                      >
-                        {option}
-                      </DropdownItem>
-                    ))}
-                  </Dropdown>
+                  />
+                  {errors.model && (
+                    <p className="mt-0.5 text-xs text-right pr-2 text-error-500">
+                      {errors.model.message}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -933,13 +905,22 @@ export default function EditAgentForm() {
                 <Label>
                   Address <span className="text-error-500">*</span>
                 </Label>
-                <Input
-                  type="text"
-                  id="businessAddress"
-                  name="address"
-                  value={businessAddress}
-                  onChange={(e) => handleInputChange(e, setBusinessAddress)}
-                  error={!!error && !businessAddress}
+                <Controller
+                  name="businessAddress"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      type="text"
+                      id="businessAddress"
+                      disabled={loading || uploadLoading}
+                      error={!!errors.businessAddress}
+                      success={
+                        dirtyFields.businessAddress && !errors.businessAddress
+                      }
+                      hint={errors.businessAddress?.message}
+                    />
+                  )}
                 />
               </div>
 
@@ -947,55 +928,73 @@ export default function EditAgentForm() {
                 <Label>
                   District <span className="text-error-500">*</span>
                 </Label>
-                <div
-                  className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
-                    !!error && !district
-                      ? "border-error-500"
-                      : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
-                  }`}
-                  onClick={() =>
-                    setIsDistrictDropdownOpen(!isDistrictDropdownOpen)
-                  }
-                >
-                  {district ? (
-                    <span> {district}</span>
-                  ) : (
-                    <span className="text-gray-400 dark:text-white/30">
-                      Select District
-                    </span>
+                <Controller
+                  name="district"
+                  control={control}
+                  render={({ field }) => (
+                    <>
+                      <div
+                        className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
+                          errors.district
+                            ? "border-error-500"
+                            : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
+                        }`}
+                        onClick={() => {
+                          if (loading || uploadLoading) return;
+                          setIsDistrictDropdownOpen(!isDistrictDropdownOpen);
+                        }}
+                      >
+                        {field.value ? (
+                          <span> {field.value}</span>
+                        ) : (
+                          <span className="text-gray-400 dark:text-white/30">
+                            Select District
+                          </span>
+                        )}
+                        <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
+                      </div>
+                      <Dropdown
+                        isOpen={isDistrictDropdownOpen}
+                        onClose={() => setIsDistrictDropdownOpen(false)}
+                        className="w-full p-2 h-50 overflow-y-auto"
+                        search={false}
+                      >
+                        {districtOptions.map((option) => (
+                          <DropdownItem
+                            key={option}
+                            onItemClick={() => {
+                              field.onChange(option);
+                              setIsDistrictDropdownOpen(false);
+                            }}
+                            className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                          >
+                            {option}
+                          </DropdownItem>
+                        ))}
+                      </Dropdown>
+                    </>
                   )}
-                  <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
-                </div>
-                <Dropdown
-                  isOpen={isDistrictDropdownOpen}
-                  onClose={() => setIsDistrictDropdownOpen(false)}
-                  className="w-full p-2 h-50 overflow-y-auto"
-                  search={false}
-                >
-                  {districtOptions.map((option) => (
-                    <DropdownItem
-                      key={option}
-                      onItemClick={() => handleDistrictChange(option)}
-                      className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-                    >
-                      {option}
-                    </DropdownItem>
-                  ))}
-                </Dropdown>
+                />
+                {errors.district && (
+                  <p className="mt-0.5 text-xs text-right pr-2 text-error-500">
+                    {errors.district.message}
+                  </p>
+                )}
               </div>
 
               <div>
-                <Label>
-                  Region (Optional)
-                  {/* <span className="text-error-500">*</span> */}
-                </Label>
-                <Input
-                  type="text"
-                  id="region"
+                <Label>Region (Optional)</Label>
+                <Controller
                   name="region"
-                  value={region}
-                  onChange={(e) => handleInputChange(e, setRegion)}
-                  //   error={!!error && !region}
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      type="text"
+                      id="region"
+                      disabled={loading || uploadLoading}
+                    />
+                  )}
                 />
               </div>
 
@@ -1004,16 +1003,24 @@ export default function EditAgentForm() {
                   <Label>
                     Latitude <span className="text-error-500">*</span>
                   </Label>
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    id="latitude"
+                  <Controller
                     name="latitude"
-                    value={!geoLoading ? latitude : "Fetching Location..."}
-                    onChange={(e) => handleInputChange(e, setLatitude)}
-                    disabled={geoLoading}
-                    error={!!error && !latitude}
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        type="number"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        id="latitude"
+                        value={
+                          !geoLoading ? field.value : "Fetching Location..."
+                        }
+                        disabled={geoLoading || loading || uploadLoading}
+                        error={!!errors.latitude}
+                        hint={errors.latitude?.message}
+                      />
+                    )}
                   />
                 </div>
 
@@ -1021,23 +1028,31 @@ export default function EditAgentForm() {
                   <Label>
                     Longitude <span className="text-error-500">*</span>
                   </Label>
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    id="longitude"
+                  <Controller
                     name="longitude"
-                    value={!geoLoading ? longitude : "Fetching Location..."}
-                    onChange={(e) => handleInputChange(e, setLongitude)}
-                    disabled={geoLoading}
-                    error={!!error && !longitude}
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        type="number"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        id="longitude"
+                        value={
+                          !geoLoading ? field.value : "Fetching Location..."
+                        }
+                        disabled={geoLoading || loading || uploadLoading}
+                        error={!!errors.longitude}
+                        hint={errors.longitude?.message}
+                      />
+                    )}
                   />
                 </div>
 
                 <Button
                   size="sm"
                   onClick={handleGetLocation}
-                  disabled={geoLoading}
+                  disabled={geoLoading || loading || uploadLoading}
                 >
                   <span title="Get location">
                     <svg
@@ -1063,7 +1078,7 @@ export default function EditAgentForm() {
                 </Label>
                 <div
                   className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
-                    !!error && !businessImageUrl
+                    errors.businessImageUrl
                       ? "border-error-500"
                       : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                   }`}
@@ -1080,7 +1095,7 @@ export default function EditAgentForm() {
                   >
                     <input
                       {...getBusinessImageInputProps()}
-                      disabled={uploadLoading}
+                      disabled={uploadLoading || loading}
                     />
                     <div
                       className={`dz-message flex flex-col items-center upload ${
@@ -1116,22 +1131,21 @@ export default function EditAgentForm() {
                       <span className="font-medium underline text-theme-sm text-brand-500 truncate">
                         {originalAgentData?.business_image
                           ? "Change File"
-                          : businessImage
-                          ? businessImage.name
-                          : uploadLoading
-                          ? "Uploading..."
+                          : businessImageFile
+                          ? businessImageFile.name
                           : "Browse File"}
                       </span>
                     </div>
                     {businessImageUrl && (
                       <>
                         <button
+                          disabled={loading || uploadLoading}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setBusinessImageUrl("");
-                            setBusinessImage(null);
+                            setValue("businessImageUrl", "");
+                            setBusinessImageFile(null);
                           }}
-                          className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8"
+                          className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
                           title="delete uploaded file"
                         >
                           <TrashBinIcon color="#e4e7ec" />
@@ -1168,7 +1182,7 @@ export default function EditAgentForm() {
                 </Label>
                 <div
                   className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
-                    !!error && !addressDocumentUrl
+                    errors.addressDocumentUrl
                       ? "border-error-500"
                       : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                   }`}
@@ -1185,7 +1199,7 @@ export default function EditAgentForm() {
                   >
                     <input
                       {...getAddressDocumentInputProps()}
-                      disabled={uploadLoading}
+                      disabled={uploadLoading || loading}
                     />
                     <div
                       className={`dz-message flex flex-col items-center upload ${
@@ -1221,22 +1235,21 @@ export default function EditAgentForm() {
                       <span className="font-medium underline text-theme-sm text-brand-500 truncate">
                         {originalAgentData?.address_document
                           ? "Change File"
-                          : addressDocument
-                          ? addressDocument.name
-                          : uploadLoading
-                          ? "Uploading..."
+                          : addressDocumentFile
+                          ? addressDocumentFile.name
                           : "Browse File"}
                       </span>
                     </div>
                     {addressDocumentUrl && (
                       <>
                         <button
+                          disabled={loading || uploadLoading}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setAddressDocumentUrl("");
-                            setAddressDocument(null);
+                            setValue("addressDocumentUrl", "");
+                            setAddressDocumentFile(null);
                           }}
-                          className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8"
+                          className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
                           title="delete uploaded file"
                         >
                           <TrashBinIcon color="#e4e7ec" />
@@ -1277,7 +1290,7 @@ export default function EditAgentForm() {
               </Label>
               <div
                 className={`overflow-hidden transition relative border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
-                  !!error && !businessRegDocumentUrl
+                  errors.businessRegDocumentUrl
                     ? "border-error-500"
                     : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                 }`}
@@ -1289,12 +1302,12 @@ export default function EditAgentForm() {
                       isRegDocumentDragActive
                         ? "border-brand-500 bg-gray-100 dark:bg-gray-800"
                         : "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
-                    } ${uploadLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                    } ${uploadLoading ? "opacity-50 cursor-not-allowed" : ""} `}
                   id="business-document-upload"
                 >
                   <input
                     {...getRegDocumentInputProps()}
-                    disabled={uploadLoading}
+                    disabled={uploadLoading || loading}
                   />
                   <div
                     className={`dz-message flex flex-col items-center ${
@@ -1330,22 +1343,21 @@ export default function EditAgentForm() {
                     <span className="font-medium underline text-theme-sm text-brand-500 truncate">
                       {originalAgentData?.business_registration
                         ? "Change File"
-                        : businessRegDocument
-                        ? businessRegDocument.name
-                        : uploadLoading
-                        ? "Uploading..."
+                        : businessRegDocumentFile
+                        ? businessRegDocumentFile.name
                         : "Browse File"}
                     </span>
                   </div>
                   {businessRegDocumentUrl && (
                     <>
                       <button
+                        disabled={loading || uploadLoading}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setBusinessRegDocumentUrl("");
-                          setBusinessRegDocument(null);
+                          setValue("businessRegDocumentUrl", "");
+                          setBusinessRegDocumentFile(null);
                         }}
-                        className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8"
+                        className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
                         title="delete uploaded file"
                       >
                         <TrashBinIcon color="#e4e7ec" />
@@ -1379,39 +1391,53 @@ export default function EditAgentForm() {
               <Label>
                 ID Type <span className="text-error-500">*</span>
               </Label>
-              <div
-                className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
-                  !!error && !idType
-                    ? "border-error-500"
-                    : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
-                }`}
-                onClick={() => setIsIdTypeDropdownOpen(!isIdTypeDropdownOpen)}
-              >
-                {idType ? (
-                  <span> {idType}</span>
-                ) : (
-                  <span className="text-gray-400 dark:text-white/30">
-                    Select ID Type
-                  </span>
+              <Controller
+                name="idType"
+                control={control}
+                render={({ field }) => (
+                  <>
+                    <div
+                      className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
+                        errors.idType
+                          ? "border-error-500"
+                          : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
+                      }`}
+                      onClick={() => {
+                        if (loading || uploadLoading) return;
+                        setIsIdTypeDropdownOpen(!isIdTypeDropdownOpen);
+                      }}
+                    >
+                      {field.value ? (
+                        <span> {field.value}</span>
+                      ) : (
+                        <span className="text-gray-400 dark:text-white/30">
+                          Select ID Type
+                        </span>
+                      )}
+                      <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
+                    </div>
+                    <Dropdown
+                      isOpen={isIdTypeDropdownOpen}
+                      onClose={() => setIsIdTypeDropdownOpen(false)}
+                      className="w-full p-2"
+                      search={false}
+                    >
+                      {idTypeOptions.map((option) => (
+                        <DropdownItem
+                          key={option}
+                          onItemClick={() => {
+                            field.onChange(option);
+                            setIsIdTypeDropdownOpen(false);
+                          }}
+                          className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                        >
+                          {option}
+                        </DropdownItem>
+                      ))}
+                    </Dropdown>
+                  </>
                 )}
-                <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
-              </div>
-              <Dropdown
-                isOpen={isIdTypeDropdownOpen}
-                onClose={() => setIsIdTypeDropdownOpen(false)}
-                className="w-full p-2"
-                search={false}
-              >
-                {idTypeOptions.map((option) => (
-                  <DropdownItem
-                    key={option}
-                    onItemClick={() => handleIdTypeChange(option)}
-                    className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-                  >
-                    {option}
-                  </DropdownItem>
-                ))}
-              </Dropdown>
+              />
             </div>
 
             <div>
@@ -1420,7 +1446,7 @@ export default function EditAgentForm() {
               </Label>
               <div
                 className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
-                  !!error && !idImageUrl
+                  errors.idImageUrl
                     ? "border-error-500"
                     : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                 }`}
@@ -1435,7 +1461,10 @@ export default function EditAgentForm() {
                     } ${uploadLoading ? "opacity-50 cursor-not-allowed" : ""} `}
                   id="id-image-upload"
                 >
-                  <input {...getIdImageInputProps()} disabled={uploadLoading} />
+                  <input
+                    {...getIdImageInputProps()}
+                    disabled={uploadLoading || loading}
+                  />
                   <div
                     className={`dz-message flex flex-col items-center upload ${
                       idImageUrl && "opacity-40"
@@ -1470,22 +1499,21 @@ export default function EditAgentForm() {
                     <span className="font-medium underline text-theme-sm text-brand-500 truncate">
                       {originalAgentData?.id_document
                         ? "Change File"
-                        : idImage
-                        ? idImage.name
-                        : uploadLoading
-                        ? "Uploading..."
+                        : idImageFile
+                        ? idImageFile.name
                         : "Browse File"}
                     </span>
                   </div>
                   {idImageUrl && (
                     <>
                       <button
+                        disabled={loading || uploadLoading}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setIdImageUrl("");
-                          setIdImage(null);
+                          setValue("idImageUrl", "");
+                          setIdImageFile(null);
                         }}
-                        className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8"
+                        className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
                         title="delete uploaded file"
                       >
                         <TrashBinIcon color="#e4e7ec" />
@@ -1520,51 +1548,68 @@ export default function EditAgentForm() {
                 <Label>
                   Update Agent Status <span className="text-error-500">*</span>
                 </Label>
-                <div
-                  className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
-                    !!error && !agentStatus
-                      ? "border-error-500"
-                      : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
-                  }`}
-                  onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
-                >
-                  {agentStatus ? (
-                    <span> {agentStatus}</span>
-                  ) : (
-                    <span className="text-gray-400 dark:text-white/30">
-                      Select Status
-                    </span>
+                <Controller
+                  name="agentStatus"
+                  control={control}
+                  render={({ field }) => (
+                    <>
+                      <div
+                        className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
+                          errors.agentStatus
+                            ? "border-error-500"
+                            : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
+                        }`}
+                        onClick={() => {
+                          if (loading || uploadLoading) return;
+                          setIsStatusDropdownOpen(!isStatusDropdownOpen);
+                        }}
+                      >
+                        {field.value ? (
+                          <span> {field.value}</span>
+                        ) : (
+                          <span className="text-gray-400 dark:text-white/30">
+                            Select Status
+                          </span>
+                        )}
+                        <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
+                      </div>
+                      <Dropdown
+                        isOpen={isStatusDropdownOpen}
+                        onClose={() => setIsStatusDropdownOpen(false)}
+                        className="w-full p-2"
+                        search={false}
+                      >
+                        {statusOptions.map((option) => (
+                          <DropdownItem
+                            key={option.label}
+                            onItemClick={() => {
+                              field.onChange(option.label);
+                              setIsStatusDropdownOpen(false);
+                            }}
+                            className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                          >
+                            {option.label}
+                          </DropdownItem>
+                        ))}
+                      </Dropdown>
+                    </>
                   )}
-                  <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
-                </div>
-                <Dropdown
-                  isOpen={isStatusDropdownOpen}
-                  onClose={() => setIsStatusDropdownOpen(false)}
-                  className="w-full p-2"
-                  search={false}
-                >
-                  {statusOptions.map((option) => (
-                    <DropdownItem
-                      key={option.label}
-                      onItemClick={() => handleStatusChange(option.label)}
-                      className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-                    >
-                      {option.label}
-                    </DropdownItem>
-                  ))}
-                </Dropdown>
+                />
               </div>
+            )}
+
+            {Object.keys(errors).length > 0 && (
+              <Alert variant="error" title="Please fix the following errors:">
+                <ul className="list-disc pl-5">
+                  {Object.entries(errors).map(([key, value]) => (
+                    <li key={key}>{value.message}</li>
+                  ))}
+                </ul>
+              </Alert>
             )}
 
             {error && (
               <Alert variant="error" title={alertTitle} message={error} />
-            )}
-            {successAlert && (
-              <Alert
-                variant="success"
-                title={alertTitle}
-                message={successAlert}
-              />
             )}
 
             <div className="col-span-2">

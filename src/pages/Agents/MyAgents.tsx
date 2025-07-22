@@ -2,7 +2,10 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router";
 import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-import ComponentCard from "../../components/common/ComponentCard";
+import ComponentCard, {
+  ActionButtonConfig,
+  FilterConfig,
+} from "../../components/common/ComponentCard";
 import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
 import Alert from "../../components/ui/alert/Alert";
 import { useAuth } from "../../context/AuthContext";
@@ -15,6 +18,7 @@ import {
   MERCHANT_ROLE,
 } from "../../utils/roles";
 import AgentsStatsCard from "../../components/common/AgentStatsCard";
+import { Agent } from "../../types/types";
 
 const tableHeader: string[] = [
   "Name / Business Name",
@@ -28,12 +32,48 @@ const tableHeader: string[] = [
 const MyAgents: React.FC = () => {
   const [filterKycStatus, setFilterKycStatus] = useState<string>("All");
   const [filterRole, setFilterRole] = useState<string>("All");
+  const [filterStatus, setFilterStatus] = useState<string>("All");
   const { user } = useAuth();
   const { agents, loading, error, fetchMyAgents } = useMyAgents();
   const navigate = useNavigate();
 
-  const kycStatusOptions = ["All", "Completed", "Incomplete"];
   const roleOptions = ["All", AGENT_ROLE, SUPER_AGENT_ROLE, MERCHANT_ROLE];
+  const kycStatusOptions = ["All", "Completed", "Incomplete"];
+  const statusOptions = ["All", "Pending", "Active", "Suspended", "Rejected"];
+  // const roleOptions = ["All", MERCHANT_ROLE];
+
+  const handleAddAgent = () => {
+    if (user?.referral_code) {
+      navigate(`/onboardagent/${user.referral_code}`);
+    }
+  };
+
+  const filters: FilterConfig[] = [
+    {
+      label: `Role: ${filterRole}`,
+      options: roleOptions,
+      onSelect: (role) => setFilterRole(role),
+      value: filterRole,
+    },
+    {
+      label: `KYC: ${filterKycStatus}`,
+      options: kycStatusOptions,
+      onSelect: (status) => setFilterKycStatus(status),
+      value: filterKycStatus,
+    },
+    {
+      label: `Status: ${filterStatus}`,
+      options: statusOptions,
+      onSelect: (status) => setFilterStatus(status),
+      value: filterStatus,
+    },
+  ];
+
+  const actionButton: ActionButtonConfig = {
+    label: "Add Agent",
+    icon: "✚",
+    onClick: handleAddAgent,
+  };
 
   const isUnauthorized =
     !user || (user.role !== MARKETER_ROLE && user.role !== ADMIN_ROLE);
@@ -52,15 +92,24 @@ const MyAgents: React.FC = () => {
   }, [fetchMyAgents]);
 
   const myAgentsData = useMemo(() => {
-    const filteredAgents = agents.filter((agent) => {
+    const filteredAgents = agents.filter((agent: Agent) => {
+      const status =
+        agent.status === 1
+          ? "Active"
+          : agent.status === 2
+          ? "Suspended"
+          : agent.status === 3
+          ? "Rejected"
+          : "Pending";
       const kycStatus = agent.temp === 1 ? "Completed" : "Incomplete";
+      const statusMatch = filterStatus === "All" || status === filterStatus;
       const roleMatch = filterRole === "All" || agent.type === filterRole;
       const kycMatch =
         filterKycStatus === "All" || kycStatus === filterKycStatus;
-      return roleMatch && kycMatch;
+      return roleMatch && kycMatch && statusMatch;
     });
 
-    return filteredAgents.map((agent) => ({
+    return filteredAgents.map((agent: Agent) => ({
       id: agent.id,
       image: agent.image || "/images/user/user-12.jpg",
       name: agent.name || "N/A",
@@ -91,7 +140,7 @@ const MyAgents: React.FC = () => {
       temp: agent.temp,
       kycStatus: agent.temp === 1 ? "Completed" : "Incomplete",
     }));
-  }, [agents, filterRole, filterKycStatus]);
+  }, [agents, filterRole, filterKycStatus, filterStatus]);
 
   if (loading) {
     return (
@@ -134,14 +183,9 @@ const MyAgents: React.FC = () => {
         <AgentsStatsCard statsData={agents} />
         <ComponentCard
           title="My Agents Table"
-          // desc="Details of agents & merchants under your referral code"
-          actionButton1={`Role: ${filterRole}`}
-          actionButton2={`KYC: ${filterKycStatus}`}
-          onItemClick={(role) => setFilterRole(role)}
-          onItemClick2={(status) => setFilterKycStatus(status)}
-          userType={AGENT_ROLE}
-          filterOptions={roleOptions}
-          filterOptions2={kycStatusOptions}
+          desc="Details of agents & merchants under your referral code"
+          filters={filters}
+          actionButton={actionButton}
         >
           <BasicTableOne
             tableHeading={tableHeader}

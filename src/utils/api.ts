@@ -157,6 +157,42 @@ export const checkUserExist = async (
   }
 };
 
+export const checkPhoneType = async (
+  phone: string
+): Promise<
+  ApiResponse<{ status: string; message?: string; type?: string }>
+> => {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/agents/checkPhoneType`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ phone }),
+      redirect: "follow",
+    });
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return {
+        success: true,
+        data: {
+          status: data.status,
+          message: data.message,
+          type: data.data.type,
+        },
+      };
+    } else {
+      return {
+        success: false,
+        error: data.message || "Failed to check phone existence ",
+      };
+    }
+  } catch (err) {
+    return { success: false, error: `Error checking phone existence: ${err}` };
+  }
+};
+
 export const getAllUsers = async (
   accessToken: string
 ): Promise<ApiResponse<{ users: Users[] }>> => {
@@ -377,6 +413,7 @@ export const addAgent = async (
     if (response.ok && data.status) {
       return { success: true, data: { agent: data.data } };
     } else {
+      console.log(data);
       return {
         success: false,
         error: data.errors.phone

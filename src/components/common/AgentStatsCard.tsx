@@ -85,7 +85,7 @@ const AgentsStatsCard: React.FC<StatsProp> = ({ statsData }) => {
             Referred by You / Total Agents
           </span>
           <div className="mt-2 flex items-end justify-between gap-1">
-            <h4 className="text-title-xs sm:text-title-sm font-semibold text-gray-800 dark:text-white/90">
+            <h4 className="text-title-sm font-semibold text-gray-800 dark:text-white/90">
               {totalReferred} /
               <span className="text-theme-xl font-medium">{totalAgents}</span>
             </h4>
@@ -101,7 +101,7 @@ const AgentsStatsCard: React.FC<StatsProp> = ({ statsData }) => {
             Active Agents / Pending Agents
           </span>
           <div className="mt-2 flex items-end justify-between gap-1">
-            <h4 className="text-title-xs sm:text-title-sm font-semibold text-gray-800 dark:text-white/90">
+            <h4 className="text-title-sm font-semibold text-gray-800 dark:text-white/90">
               {activeAgents} /
               <span className="text-theme-xl font-medium">{pendingAgents}</span>
             </h4>
@@ -124,7 +124,7 @@ const AgentsStatsCard: React.FC<StatsProp> = ({ statsData }) => {
               Incomplete KYC / Completed KYC
             </span>
             <div className="mt-2 flex items-end justify-between gap-1">
-              <h4 className="text-title-xs sm:text-title-sm font-semibold text-gray-800 dark:text-white/90 grow">
+              <h4 className="text-title-sm font-semibold text-gray-800 dark:text-white/90 grow">
                 {incompleteKyc} /
                 <span className="text-theme-xl font-medium">
                   {completedKyc}
@@ -148,7 +148,7 @@ const AgentsStatsCard: React.FC<StatsProp> = ({ statsData }) => {
             Total Residual Cash
           </span>
           <div className="mt-2 flex items-end gap-3">
-            <h4 className="text-title-xs sm:text-title-sm font-semibold text-gray-800 dark:text-white/90">
+            <h4 className="text-title-sm font-semibold text-gray-800 dark:text-white/90">
               Le {totalResiduals.toFixed(2)}
             </h4>
           </div>

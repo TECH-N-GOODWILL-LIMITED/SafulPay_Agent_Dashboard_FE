@@ -34,7 +34,7 @@ export default function MarketersLeaderboard() {
       <PageBreadcrumb pageTitle="Marketers Leaderboard" />
       <div className="space-y-5 sm:space-y-6">
         <StatsCard statsData={tableData} />
-        <ComponentCard title="Leaderboard">
+        <ComponentCard title="Leaderboard" desc="Marketers leaderboard ranking">
           <LeaderboardTable
             tableHeading={tableHeader}
             tableContent={tableData?.data}

@@ -1,10 +1,15 @@
-import { useEffect } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router";
 import { useAllUsers, usersItem } from "../../context/UsersContext";
-import ComponentCard from "../../components/common/ComponentCard";
+import ComponentCard, {
+  ActionButtonConfig,
+  FilterConfig,
+} from "../../components/common/ComponentCard";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
 import Alert from "../../components/ui/alert/Alert";
+import { useAuth } from "../../context/AuthContext";
 import { AGENT_ROLE, MERCHANT_ROLE, SUPER_AGENT_ROLE } from "../../utils/roles";
 
 const tableHeader: string[] = [
@@ -17,46 +22,107 @@ const tableHeader: string[] = [
 ];
 
 const Agents: React.FC = () => {
+  const [filterRole, setFilterRole] = useState<string>("All");
+  const [filterKycStatus, setFilterKycStatus] = useState<string>("All");
+  const [filterStatus, setFilterStatus] = useState<string>("All");
+
   const { filterByRole, filteredUsers, title, error, loading } = useAllUsers();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const roleOptions = ["All", AGENT_ROLE, SUPER_AGENT_ROLE, MERCHANT_ROLE];
+  const kycStatusOptions = ["All", "Completed", "Incomplete"];
+  const statusOptions = ["All", "Pending", "Active", "Suspended", "Rejected"];
 
   const vendors = [AGENT_ROLE, SUPER_AGENT_ROLE, MERCHANT_ROLE];
-  // const vendors = ["Agent", "Super Agent", "Merchant"];
 
   useEffect(() => {
     filterByRole(vendors);
   }, []);
 
-  const tableData = filteredUsers.map((agent: usersItem) => ({
-    id: agent.id,
-    image: agent.image || "/images/user/user-12.jpg", // fallback image
-    name: agent.name || "N/A",
-    firstName: agent.firstname,
-    lastName: agent.lastname,
-    businessName: agent.business_name || "No Business name",
-    username: agent.username || "No username",
-    role: agent.type,
-    model: agent.model,
-    residualAmount: agent?.residual_amount || 0.0,
-    phone: agent.phone || "No Phone number",
-    businessPhone: agent.business_phone || "No Business phone",
-    address: agent.address,
-    latitude: agent.latitude,
-    longitude: agent.longitude,
-    idType: agent.id_type,
-    idDocument: agent.id_document,
-    bizRegDocument: agent.business_registration,
-    businessImage: agent.business_image,
-    status:
-      agent.status === 1
-        ? "Active"
-        : agent.status === 2
-        ? "Suspended"
-        : agent.status === 3
-        ? "Rejected"
-        : "Pending",
-    temp: agent.temp,
-    kycStatus: agent.temp === 1 ? "Completed" : "Incomplete",
-  }));
+  const handleAddAgent = () => {
+    if (user?.referral_code) {
+      navigate(`/onboardagent/${user.referral_code}`);
+    }
+  };
+
+  const filters: FilterConfig[] = [
+    {
+      label: `Role: ${filterRole}`,
+      options: roleOptions,
+      onSelect: (role) => setFilterRole(role),
+      value: filterRole,
+    },
+    {
+      label: `KYC: ${filterKycStatus}`,
+      options: kycStatusOptions,
+      onSelect: (status) => setFilterKycStatus(status),
+      value: filterKycStatus,
+    },
+    {
+      label: `Status: ${filterStatus}`,
+      options: statusOptions,
+      onSelect: (status) => setFilterStatus(status),
+      value: filterStatus,
+    },
+  ];
+
+  const actionButton: ActionButtonConfig = {
+    label: "Add Agent",
+    icon: "✚",
+    onClick: handleAddAgent,
+  };
+
+  const tableData = useMemo(() => {
+    const filteredAgents = filteredUsers.filter((agent: usersItem) => {
+      const status =
+        agent.status === 1
+          ? "Active"
+          : agent.status === 2
+          ? "Suspended"
+          : agent.status === 3
+          ? "Rejected"
+          : "Pending";
+      const kycStatus = agent.temp === 1 ? "Completed" : "Incomplete";
+      const statusMatch = filterStatus === "All" || status === filterStatus;
+      const roleMatch = filterRole === "All" || agent.type === filterRole;
+      const kycMatch =
+        filterKycStatus === "All" || kycStatus === filterKycStatus;
+      return roleMatch && kycMatch && statusMatch;
+    });
+
+    return filteredAgents.map((agent: usersItem) => ({
+      id: agent.id,
+      image: agent.image || "/images/user/user-12.jpg", // fallback image
+      name: agent.name || "N/A",
+      firstName: agent.firstname,
+      lastName: agent.lastname,
+      businessName: agent.business_name || "No Business name",
+      username: agent.username || "No username",
+      role: agent.type,
+      model: agent.model,
+      residualAmount: agent?.residual_amount || 0.0,
+      phone: agent.phone || "No Phone number",
+      businessPhone: agent.business_phone || "No Business phone",
+      address: agent.address,
+      latitude: agent.latitude,
+      longitude: agent.longitude,
+      idType: agent.id_type,
+      idDocument: agent.id_document,
+      bizRegDocument: agent.business_registration,
+      businessImage: agent.business_image,
+      status:
+        agent.status === 1
+          ? "Active"
+          : agent.status === 2
+          ? "Suspended"
+          : agent.status === 3
+          ? "Rejected"
+          : "Pending",
+      temp: agent.temp,
+      kycStatus: agent.temp === 1 ? "Completed" : "Incomplete",
+    }));
+  }, [filteredUsers, filterRole, filterKycStatus, filterStatus]);
 
   if (error) {
     return (
@@ -78,22 +144,23 @@ const Agents: React.FC = () => {
       />
       <PageBreadcrumb pageTitle="Agents & Merchants" />
 
-      {loading && (
+      {loading ? (
         <div className="text-gray-500 dark:text-gray-400">Loading...</div>
+      ) : (
+        <div className="space-y-6">
+          <ComponentCard
+            title="Vendors Table"
+            desc="Details of all Merchants, Super Agents & Agents"
+            filters={filters}
+            actionButton={actionButton}
+          >
+            <BasicTableOne
+              tableHeading={tableHeader}
+              tableContent={tableData}
+            />
+          </ComponentCard>
+        </div>
       )}
-
-      <div className="space-y-6">
-        <ComponentCard
-          title="Vendors Table"
-          desc="Details of all Merchants, Super Agents & Agents"
-          actionButton1="Filter"
-          onItemClick={filterByRole}
-          userType="Agent"
-          filterOptions={vendors}
-        >
-          <BasicTableOne tableHeading={tableHeader} tableContent={tableData} />
-        </ComponentCard>
-      </div>
     </>
   );
 };

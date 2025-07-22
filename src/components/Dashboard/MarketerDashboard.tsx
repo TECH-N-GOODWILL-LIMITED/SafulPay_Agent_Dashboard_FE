@@ -3,7 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useAllMarketers } from "../../context/MarketersContext";
 import { useMyAgents } from "../../context/MyAgentsContext";
 import BarChartDynamic from "../charts/bar/BarChartDynamic";
-import ComponentCard from "../common/ComponentCard";
+import ComponentCard, { ActionButtonConfig } from "../common/ComponentCard";
 import {
   AGENT_ROLE,
   MARKETER_ROLE,
@@ -38,6 +38,19 @@ const MarketerDashboard: React.FC = () => {
     }
     fetchMarketerStats();
   }, [token, user]);
+
+  const handleRefresh = () => {
+    if (token && user?.role === MARKETER_ROLE) {
+      fetchMarketers();
+      fetchMyAgents();
+    }
+    fetchMarketerStats();
+  };
+
+  const refreshButton: ActionButtonConfig = {
+    label: "Refresh",
+    onClick: handleRefresh,
+  };
 
   // Derived data for agent filtering
   const activeAgents = useMemo(
@@ -102,7 +115,7 @@ const MarketerDashboard: React.FC = () => {
         horizontal: false,
         columnWidth: "39%",
         borderRadius: 5,
-        borderRadiusApplication: "end",
+        borderRadiusApplication: "end" as const,
       },
     },
     dataLabels: {
@@ -125,7 +138,7 @@ const MarketerDashboard: React.FC = () => {
     legend: {
       show: true,
       position: "top" as const,
-      horizontalAlign: "center",
+      horizontalAlign: "center" as const,
       fontFamily: "Outfit",
     },
     yaxis: {
@@ -162,7 +175,7 @@ const MarketerDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <ComponentCard title="Marketer Overview" actionButton1="Refresh">
+      <ComponentCard title="Marketer Overview" actionButton={refreshButton}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="p-4 bg-white rounded shadow">
             <h4>Total Marketers</h4>
@@ -179,7 +192,7 @@ const MarketerDashboard: React.FC = () => {
         </div>
       </ComponentCard>
 
-      <ComponentCard title="My Agent Network" actionButton1="Refresh">
+      <ComponentCard title="My Agent Network" actionButton={refreshButton}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="p-4 bg-white rounded shadow">
             <h4>Total Agents Referred</h4>

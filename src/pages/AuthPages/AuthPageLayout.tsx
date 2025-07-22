@@ -32,7 +32,7 @@ export default function AuthLayout({
                 SafulPay Agency Dashboard
               </h2>
               <p className="text-center text-gray-400 dark:text-white/60">
-                Secure Mobile Money Management for Your Business
+                Secure Agency Monitoring and Management System
               </p>
             </div>
           </div>
