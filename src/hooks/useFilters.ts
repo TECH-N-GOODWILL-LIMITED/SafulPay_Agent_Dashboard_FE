@@ -1,6 +1,4 @@
-
-
- import { useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 
 export type FilterType = {
   key: string;
@@ -57,3 +55,4 @@ export const useFilters = (initialFilters: FilterType[]) => {
     isFilterActive,
     filters: initialFilters,
   };
+};

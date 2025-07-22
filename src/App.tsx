@@ -27,7 +27,7 @@ import Riders from "./pages/Riders/Riders";
 import Agents from "./pages/Agents/Agents";
 import Accountants from "./pages/Accountants/Accountants";
 import Transactions from "./pages/Transactions/Transactions";
-import ForgotPin from "./pages/AuthPages/ForgotPin";
+// import ForgotPin from "./pages/AuthPages/ForgotPin";
 import Admin from "./pages/Admin/Admin";
 import Disbursement from "./pages/Disbursement.tsx/Disbursement";
 import Audit from "./pages/Audit/Audit";
@@ -148,7 +148,7 @@ export default function App() {
             {/* Auth Layout */}
             <Route path="/signin" element={<SignIn />} />
             <Route path="/signup" element={<SignUp />} />
-            <Route path="/forgotpin" element={<ForgotPin />} />
+            {/* <Route path="/forgotpin" element={<ForgotPin />} /> */}
             <Route path="/unauthorized" element={<Unauthorized />} />
 
             {/* Fallback Route */}

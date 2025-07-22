@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useAllMarketers } from "../../context/MarketersContext";
 import { useMyAgents } from "../../context/MyAgentsContext";
@@ -14,18 +14,18 @@ import {
 const MarketerDashboard: React.FC = () => {
   const { user, token } = useAuth();
   const {
-    allMarketers,
+    // allMarketers,
     totalMarketers,
     marketerStats,
     fetchMarketers,
     fetchMarketerStats,
-    loading: marketersLoading,
-    error: marketersError,
+    // loading: marketersLoading,
+    // error: marketersError,
   } = useAllMarketers();
   const {
     agents,
     total,
-    user: myUser,
+    // user: myUser,
     loading: agentsLoading,
     error: agentsError,
     fetchMyAgents,

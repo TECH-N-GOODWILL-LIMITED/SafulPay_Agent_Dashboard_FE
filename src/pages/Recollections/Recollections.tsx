@@ -1,9 +1,9 @@
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-import ComponentCard from "../../components/common/ComponentCard";
+// import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
-import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
+// import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
 import RecentOrders from "../../components/ecommerce/RecentOrders";
-import BasicTables from "../Tables/BasicTables";
+// import BasicTables from "../Tables/BasicTables";
 
 // interface TableContentType {
 //   user: {

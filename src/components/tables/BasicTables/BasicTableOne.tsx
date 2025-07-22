@@ -85,9 +85,9 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
   const showResidualAmount = tableHeading?.includes("Residual Amount");
 
   const isAgent =
-    currentUser?.role === "Agent" ||
-    currentUser?.role === "Super Agent" ||
-    currentUser?.role === "Merchant";
+    currentUser?.role === AGENT_ROLE ||
+    currentUser?.role === SUPER_AGENT_ROLE ||
+    currentUser?.role === MERCHANT_ROLE;
 
   const changeStatus = async (
     user: TableContentItem,
