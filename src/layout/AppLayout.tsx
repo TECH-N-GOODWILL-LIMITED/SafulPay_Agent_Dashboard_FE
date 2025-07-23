@@ -1,7 +1,5 @@
 import { SidebarProvider, useSidebar } from "../context/SidebarContext";
-// import { Navigate, Outlet } from "react-router";
 import { Outlet } from "react-router";
-import { useAuth } from "../context/AuthContext";
 import AppHeader from "./AppHeader";
 import Backdrop from "./Backdrop";
 import AppSidebar from "./AppSidebar";
@@ -33,16 +31,7 @@ const LayoutContent: React.FC = () => {
 };
 
 const AppLayout: React.FC = () => {
-  const { token, user } = useAuth();
   useRevalidateSessionOnRouteChange();
-
-  console.log(user);
-  console.log(token);
-
-  // Redirect if not authenticated
-  // if (!token || user?.role === "Rider") {
-  //   return <Navigate to="/signin" replace />;
-  // }
 
   return (
     <SidebarProvider>

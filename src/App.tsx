@@ -67,7 +67,7 @@ export default function App() {
                 <Route path="/profile" element={<UserProfiles />} />
               </Route>
 
-              {/* Admin, All Users Create Account Page */}
+              {/* Admin, All Users, Audit Page */}
               <Route element={<ProtectedRoute allowedRoles={[ADMIN_ROLE]} />}>
                 <Route path="/users" element={<Users />} />
                 <Route path="/admin" element={<Admin />} />
@@ -80,10 +80,8 @@ export default function App() {
                   <ProtectedRoute allowedRoles={[MARKETER_ROLE, ADMIN_ROLE]} />
                 }
               >
-                {/* <Route element={<MarketersLayout />}> */}
                 <Route path="/marketers" element={<Marketers />} />
                 <Route path="/editagent/:id" element={<EditAgent />} />
-                {/* </Route> */}
               </Route>
 
               {/* Accountants, Riders Page and financial pages*/}

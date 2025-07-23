@@ -7,15 +7,13 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
-  const { token, user } = useAuth(); // Assuming user object contains the role
+  const { token, user } = useAuth();
 
   if (!token) {
-    // If not authenticated, redirect to sign-in page
     return <Navigate to="/signin" replace />;
   }
 
-  if (!user || !allowedRoles.includes(user.role)) {
-    // If authenticated but not authorized, redirect to unauthorized page
+  if (!user || user.status === 2 || !allowedRoles.includes(user.role)) {
     return <Navigate to="/unauthorized" replace />;
   }
 
