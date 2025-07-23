@@ -6,20 +6,21 @@ export interface ApiResponse<T> {
 
 export interface UserBio {
   id: number;
-  business_name?: string;
-  firstname?: string;
-  lastname?: string;
   name: string;
+  firstname: string;
+  middlename?: string;
+  lastname: string;
   username?: string;
   phone: string;
-  image?: string;
   email: string;
+  image?: string;
   address?: string;
+  referral_code: string;
   country_code?: string;
-  status: number;
   role: string;
-  created_at?: string;
-  updated_at?: string;
+  status: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface LoginResponseData {
@@ -36,51 +37,167 @@ export interface LoginResponse {
   error?: [];
 }
 
-export interface Marketer {
+// export interface Marketer {
+//   id: number;
+//   firstname: string;
+//   lastname: string;
+//   name: string;
+//   username: string;
+//   phone: string;
+//   email: string;
+//   image?: string;
+//   status: number;
+//   role_id: number;
+//   country_code?: string;
+//   bearer_token: string;
+//   created_at: string;
+//   updated_at: string;
+// }
+
+// NOTE: Comon denomination of Agent and Users👇🏼
+export interface Users {
   id: number;
+  master_id?: string;
   firstname: string;
+  middlename?: string;
   lastname: string;
   name: string;
   username: string;
+  business_name?: string;
+  business_phone?: string;
   phone: string;
   email: string;
   image?: string;
+  role: string;
+  type?: string;
+  model?: string;
+  address?: string;
+  region?: string;
+  district?: string;
+  latitude?: string;
+  longitude?: string;
+  id_type?: string;
+  id_document?: string;
+  business_registration?: string;
+  business_image?: string;
+  referral_code: string;
+  ref_by?: string;
+  threshold_wallet_balance?: string;
+  threshold_cash_in_hand?: number;
+  residual_amount?: number;
+  temp?: number;
   status: number;
-  role_id: number;
-  country_code?: string;
-  bearer_token: string;
-  // created_at: string;
-  // updated_at: string;
+  created_at: string;
+  updated_at: string;
+  // marketer: Marketer | null;
 }
-
 export interface Agent {
   id: number;
   master_id?: string;
-  business_name: string;
   firstname: string;
+  middlename?: string;
   lastname: string;
   name: string;
-  username?: string;
+  username: string;
+  business_name: string;
+  business_phone: string;
   phone: string;
   email: string;
   image?: string;
-  model: string;
-  category: string;
-  status: string;
-  threshold_wallet_balance: string;
-  threshold_cash_in_hand: string;
-  residual_amount: string;
+  type: string | "Merchant" | "Super Agent" | "Agent";
+  model?: string | "Target" | "Independent";
+  address: string;
+  address_document: string;
+  region?: string;
+  district?: string;
   latitude: string;
   longitude: string;
-  created_at?: string;
-  updated_at?: string;
-  marketer: Marketer | null;
+  id_type: string;
+  id_document: string;
+  business_registration: string;
+  business_image: string;
+  referral_code: string;
+  ref_by: string;
+  threshold_wallet_balance: string;
+  threshold_cash_in_hand: number;
+  residual_amount: number;
+  status: number;
+  temp: number;
+  created_at: string;
+  updated_at: string;
+  // marketer: Marketer | null;
 }
 
-export interface AgentResponse {
-  status: boolean;
-  message: string;
-  data: Agent[];
+export interface UpdatedAgentFields extends Partial<Agent> {
+  reason: string;
+}
+
+// export interface AgentResponse {
+//   status: boolean;
+//   message: string;
+//   data: Agent[];
+// }
+
+// export interface AgentsPerWeek {
+//   year: string;
+//   week: string;
+//   total_agents: string;
+// }
+
+// export interface AgentsPerWeek<K extends keyof any> {
+//   year: string;
+//   week: string;
+//   [key in K]: string;
+// }
+
+interface BaseAgentsPerWeek {
+  year: number;
+  week: number;
+}
+
+interface TotalAgentsPerWeek extends BaseAgentsPerWeek {
+  total_agents: number;
+}
+
+interface AgentsThisWeek extends BaseAgentsPerWeek {
+  agents_this_week: number;
+}
+
+interface BasicInfo {
+  firstname: string;
+  lastname: string;
+  username: string;
+  referral_code: string;
+  total_agents: number;
+  weekly_agents: AgentsThisWeek[];
+}
+
+export interface BasicMarketerInfo extends BasicInfo {
+  marketer_id: number;
+}
+
+export interface MarketerStats {
+  total_agents_by_marketers: number;
+  total_agents: number;
+  total_agents_per_week: TotalAgentsPerWeek[];
+  data: BasicMarketerInfo[];
+}
+
+export interface AuditLogData {
+  id: number;
+  action: string;
+  table: string;
+  performed_by: {
+    user_id: number;
+    name: string;
+    role: string;
+  };
+  description: number;
+  reason: string;
+  ip_address: string;
+  user_agent: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface countryType {

@@ -1,68 +1,104 @@
-import { useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useAllUsers, usersItem } from "../../context/UsersContext";
 import { userRoles } from "../../utils/roles";
-import ComponentCard from "../../components/common/ComponentCard";
+import ComponentCard, {
+  ActionButtonConfig,
+  FilterConfig,
+} from "../../components/common/ComponentCard";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
 import Alert from "../../components/ui/alert/Alert";
-
-interface TableContentType {
-  user: {
-    id: number;
-    image?: string;
-    name?: string;
-    businessName: string;
-    role: string;
-    phone: string;
-    status: string;
-  };
-}
+import { useModal } from "../../hooks/useModal";
+import { Modal } from "../../components/ui/modal";
+import RegisterModal from "../../components/common/RegisterModal";
 
 const tableHeader: string[] = [
-  "Name/Business Name",
+  "Name / Username",
   "Role",
   "Phone Number",
   "Status",
 ];
 
 const Users: React.FC = () => {
-  const { fetchUsers, title, error, loading, filteredUsers, filterByRole } =
-    useAllUsers();
+  const [filterRole, setFilterRole] = useState<string>("All");
+  const [filterStatus, setFilterStatus] = useState<string>("All");
+  const { allUsers, title, error, loading } = useAllUsers();
+  const { isOpen, openModal, closeModal } = useModal();
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  const allRoles = ["All", ...userRoles];
+  const statusOptions = ["All", "Pending", "Active", "Suspended", "Rejected"];
 
-  const userOptions = [...userRoles, "All Users"];
+  const filters: FilterConfig[] = [
+    {
+      label: `Role: ${filterRole}`,
+      options: allRoles,
+      onSelect: (role) => setFilterRole(role),
+      value: filterRole,
+    },
+    {
+      label: `Status: ${filterStatus}`,
+      options: statusOptions,
+      onSelect: (status) => setFilterStatus(status),
+      value: filterStatus,
+    },
+  ];
 
-  const tableData: TableContentType[] = filteredUsers.map(
-    (user: usersItem) => ({
-      user: {
-        id: user.id,
-        image: "/images/user/user-17.jpg", // or actual image URL if available
-        name: user.name,
-        firstName: user.firstname,
-        lastName: user.lastname,
-        businessName: "", // add if your API provides it
-        role: user.role,
-        phone: user.phone,
-        status:
-          user.status === 1
-            ? "Active"
-            : user.status === 2
-            ? "Suspended"
-            : "Pending",
-      },
-    })
-  );
+  const actionButton: ActionButtonConfig = {
+    label: "Add User",
+    icon: "✚",
+    onClick: openModal,
+  };
 
-  if (loading)
-    return <div className="text-gray-500 dark:text-gray-400">Loading...</div>;
-  if (error)
-    return (
-      <Alert variant="error" title={title} message={error} showLink={false} />
-    );
+  const tableData = useMemo(() => {
+    const filteredUsers = allUsers.filter((user: usersItem) => {
+      const status =
+        user.status === 1
+          ? "Active"
+          : user.status === 2
+          ? "Suspended"
+          : user.status === 3
+          ? "Rejected"
+          : "Pending";
+      const statusMatch = filterStatus === "All" || status === filterStatus;
+      const roleMatch = filterRole === "All" || user.role === filterRole;
+
+      return roleMatch && statusMatch;
+    });
+
+    return filteredUsers.map((user: usersItem) => ({
+      id: user.id,
+      image: user.image || "/images/user/user-12.jpg", // fallback image
+      name: user.name || "N/A",
+      firstName: user.firstname,
+      lastName: user.lastname,
+      businessName: user.business_name || "No Business name",
+      username: user.username || "No username",
+      role:
+        user.role === "Agent" || user.role === "Merchant"
+          ? user.type
+          : user.role,
+      model: user.model,
+      phone: user.phone || "No Phone number",
+      businessPhone: user.business_phone || "No Business phone",
+      address: user.address,
+      latitude: user.latitude,
+      longitude: user.longitude,
+      idType: user.id_type,
+      idDocument: user.id_document,
+      bizRegDocument: user.business_registration,
+      businessImage: user.business_image,
+      temp: user.temp,
+      status:
+        user.status === 1
+          ? "Active"
+          : user.status === 2
+          ? "Suspended"
+          : user.status === 3
+          ? "Rejected"
+          : "Pending",
+    }));
+  }, [allUsers, filterRole, filterStatus]);
 
   return (
     <>
@@ -70,20 +106,34 @@ const Users: React.FC = () => {
         title="Users | SafulPay Agency Dashboard - Finance just got better"
         description="List of all agency users - Management system for SafulPay's Agency Platform"
       />
-      <PageBreadcrumb pageTitle="Users" />
-      <div className="space-y-6">
-        <ComponentCard
-          title="Users Table"
-          desc="Details of all users with various account types"
-          actionButton1="Filter"
-          onItemClick={filterByRole}
-          userType="User"
+      <PageBreadcrumb pageTitle="All Users" />
+
+      {error ? (
+        <Alert variant="error" title={title} message={error} showLink={false} />
+      ) : loading ? (
+        <div className="text-gray-500 dark:text-gray-400">Loading...</div>
+      ) : (
+        <div className="space-y-6">
+          <ComponentCard
+            title="Users Table"
+            desc="Details of all users with various account types"
+            filters={filters}
+            actionButton={actionButton}
+          >
+            <BasicTableOne
+              tableHeading={tableHeader}
+              tableContent={tableData}
+            />
+          </ComponentCard>
+        </div>
+      )}
+      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
+        <RegisterModal
+          modalHeading="Add a new user"
           userRoles={userRoles}
-          filterOptions={userOptions}
-        >
-          <BasicTableOne tableHeading={tableHeader} tableContent={tableData} />
-        </ComponentCard>
-      </div>
+          onClose={closeModal}
+        />
+      </Modal>
     </>
   );
 };

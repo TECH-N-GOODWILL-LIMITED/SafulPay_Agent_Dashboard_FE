@@ -8,7 +8,7 @@ import ToggleSwitch from "../../components/form/form-elements/ToggleSwitch";
 import FileInputExample from "../../components/form/form-elements/FileInputExample";
 import SelectInputs from "../../components/form/form-elements/SelectInputs";
 import TextAreaInput from "../../components/form/form-elements/TextAreaInput";
-import InputStates from "../../components/form/form-elements/InputStates";
+// import InputStates from "../../components/form/form-elements/InputStates";
 import PageMeta from "../../components/common/PageMeta";
 
 export default function FormElements() {
@@ -24,7 +24,7 @@ export default function FormElements() {
           <DefaultInputs />
           <SelectInputs />
           <TextAreaInput />
-          <InputStates />
+          {/* <InputStates /> */}
         </div>
         <div className="space-y-6">
           <InputGroup />

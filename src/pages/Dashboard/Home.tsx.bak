@@ -8,7 +8,6 @@ import { useAllUsers } from "../../context/UsersContext";
 import { useAuth } from "../../context/AuthContext";
 import { generateUserMetrics } from "../../utils/utils";
 import type { usersMetric } from "../../types/types";
-import MarketerDashboard from "../../components/Dashboard/MarketerDashboard";
 
 const usersCashFLow: usersMetric[] = [
   { users: "Total Cumulative Cash", metric: 120000, currencySymbol: true },
@@ -40,8 +39,7 @@ const txType = [
 export default function Home() {
   const { allUsers } = useAllUsers();
   const { user } = useAuth();
-  const userRole = user?.role || "Admin";
-
+  const userRole = user?.role || "Admin"; // Fallback to Admin if role is undefined
   const userMetrics = generateUserMetrics(allUsers);
 
   // Filter cash flow and transaction types based on role
@@ -165,7 +163,6 @@ export default function Home() {
                   ))}
                 </div>
               </div>
-              <MarketerDashboard />
             </div>
 
             <div className="col-span-12 xl:col-span-5">

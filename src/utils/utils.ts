@@ -1,5 +1,14 @@
 import { usersItem } from "../context/UsersContext";
 import type { countryType } from "../types/types";
+import {
+  ACCOUNTANT_ROLE,
+  ADMIN_ROLE,
+  AGENT_ROLE,
+  MARKETER_ROLE,
+  MERCHANT_ROLE,
+  RIDER_ROLE,
+  SUPER_AGENT_ROLE,
+} from "./roles";
 
 export function filterPhoneNumber(phoneNumber: string) {
   // Remove all whitespace characters
@@ -60,12 +69,20 @@ export const generateUserMetrics = (users: usersItem[]) => {
     return acc;
   }, {} as Record<string, number>);
 
+  const agentCounts =
+    (roleCounts[AGENT_ROLE] || 0) +
+    (roleCounts[MERCHANT_ROLE] || 0) +
+    (roleCounts[SUPER_AGENT_ROLE] || 0);
+
   return [
     { users: "Total Users", metric: totalUsers },
-    { users: "Admins", metric: roleCounts["Admin"] || 0 },
-    { users: "Marketers", metric: roleCounts["Marketer"] || 0 },
-    { users: "Agents", metric: roleCounts["Agent"] || 0 },
-    { users: "Accountants", metric: roleCounts["Accountant"] || 0 },
-    { users: "Riders", metric: roleCounts["Rider"] || 0 },
+    { users: "Admins", metric: roleCounts[ADMIN_ROLE] || 0 },
+    { users: "Marketers", metric: roleCounts[MARKETER_ROLE] || 0 },
+    {
+      users: "Agents",
+      metric: agentCounts,
+    },
+    { users: "Accountants", metric: roleCounts[ACCOUNTANT_ROLE] || 0 },
+    { users: "Riders", metric: roleCounts[RIDER_ROLE] || 0 },
   ];
 };

@@ -1,44 +1,46 @@
-import { useEffect, useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router";
-import { useAllUsers, usersItem } from "../../context/UsersContext";
+import PageMeta from "../../components/common/PageMeta";
+import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard, {
   ActionButtonConfig,
   FilterConfig,
 } from "../../components/common/ComponentCard";
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-import PageMeta from "../../components/common/PageMeta";
 import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
 import Alert from "../../components/ui/alert/Alert";
 import { useAuth } from "../../context/AuthContext";
-import { AGENT_ROLE, MERCHANT_ROLE, SUPER_AGENT_ROLE } from "../../utils/roles";
+import { useMyAgents } from "../../context/MyAgentsContext";
+import {
+  MARKETER_ROLE,
+  ADMIN_ROLE,
+  AGENT_ROLE,
+  SUPER_AGENT_ROLE,
+  MERCHANT_ROLE,
+} from "../../utils/roles";
+import AgentsStatsCard from "../../components/common/AgentStatsCard";
+import { Agent } from "../../types/types";
 
 const tableHeader: string[] = [
   "Name / Business Name",
   "Role",
   "Residual Amount",
   "Business Phone / Primary Phone",
-  "KYC Status",
   "Status",
+  "KYC Status",
 ];
 
-const Agents: React.FC = () => {
-  const [filterRole, setFilterRole] = useState<string>("All");
+const MyAgents: React.FC = () => {
   const [filterKycStatus, setFilterKycStatus] = useState<string>("All");
+  const [filterRole, setFilterRole] = useState<string>("All");
   const [filterStatus, setFilterStatus] = useState<string>("All");
-
-  const { filterByRole, filteredUsers, title, error, loading } = useAllUsers();
   const { user } = useAuth();
+  const { agents, loading, error, fetchMyAgents } = useMyAgents();
   const navigate = useNavigate();
 
   const roleOptions = ["All", AGENT_ROLE, SUPER_AGENT_ROLE, MERCHANT_ROLE];
   const kycStatusOptions = ["All", "Completed", "Incomplete"];
   const statusOptions = ["All", "Pending", "Active", "Suspended", "Rejected"];
-
-  const vendors = [AGENT_ROLE, SUPER_AGENT_ROLE, MERCHANT_ROLE];
-
-  useEffect(() => {
-    filterByRole(vendors);
-  }, []);
+  // const roleOptions = ["All", MERCHANT_ROLE];
 
   const handleAddAgent = () => {
     if (user?.referral_code) {
@@ -73,8 +75,24 @@ const Agents: React.FC = () => {
     onClick: handleAddAgent,
   };
 
-  const tableData = useMemo(() => {
-    const filteredAgents = filteredUsers.filter((agent: usersItem) => {
+  const isUnauthorized =
+    !user || (user.role !== MARKETER_ROLE && user.role !== ADMIN_ROLE);
+
+  useEffect(() => {
+    if (!loading && isUnauthorized) {
+      const timer = setTimeout(() => {
+        navigate("/unauthorized");
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, isUnauthorized, navigate]);
+
+  useEffect(() => {
+    fetchMyAgents();
+  }, [fetchMyAgents]);
+
+  const myAgentsData = useMemo(() => {
+    const filteredAgents = agents.filter((agent: Agent) => {
       const status =
         agent.status === 1
           ? "Active"
@@ -91,9 +109,9 @@ const Agents: React.FC = () => {
       return roleMatch && kycMatch && statusMatch;
     });
 
-    return filteredAgents.map((agent: usersItem) => ({
+    return filteredAgents.map((agent: Agent) => ({
       id: agent.id,
-      image: agent.image || "/images/user/user-12.jpg", // fallback image
+      image: agent.image || "/images/user/user-12.jpg",
       name: agent.name || "N/A",
       firstName: agent.firstname,
       lastName: agent.lastname,
@@ -122,16 +140,33 @@ const Agents: React.FC = () => {
       temp: agent.temp,
       kycStatus: agent.temp === 1 ? "Completed" : "Incomplete",
     }));
-  }, [filteredUsers, filterRole, filterKycStatus, filterStatus]);
+  }, [agents, filterRole, filterKycStatus, filterStatus]);
+
+  if (loading) {
+    return (
+      <div className="text-gray-500 dark:text-gray-400">Loading agents...</div>
+    );
+  }
 
   if (error) {
     return (
+      <Alert variant="error" title="Error" message={error} showLink={false} />
+    );
+  }
+
+  // Check if the logged-in user has the allowed role to view this page
+  if (isUnauthorized) {
+    return (
       <>
         <PageMeta
-          title="Error | SafulPay's Agency Dashboard - Finance just got better"
+          title="Unauthorized Access | SafulPay's Agency Dashboard - Finance just got better"
           description="You are not authorized to view this page."
         />
-        <Alert variant="error" title={title} message={error} />
+        <Alert
+          variant="error"
+          title="Unauthorized Access"
+          message="You do not have permission to edit this agent. Redirecting..."
+        />
       </>
     );
   }
@@ -139,30 +174,27 @@ const Agents: React.FC = () => {
   return (
     <>
       <PageMeta
-        title="Agents | SafulPay Agency Dashboard - Finance just got better"
-        description="List of all agency agents - Management system for SafulPay's Agency Platform"
+        title="My Agents & Merchants | SafulPay Agency Dashboard"
+        description="List of agents under this marketer's referral code."
       />
-      <PageBreadcrumb pageTitle="Agents & Merchants" />
+      <PageBreadcrumb pageTitle="My Agents & Merchants" />
 
-      {loading ? (
-        <div className="text-gray-500 dark:text-gray-400">Loading...</div>
-      ) : (
-        <div className="space-y-6">
-          <ComponentCard
-            title="Vendors Table"
-            desc="Details of all Merchants, Super Agents & Agents"
-            filters={filters}
-            actionButton={actionButton}
-          >
-            <BasicTableOne
-              tableHeading={tableHeader}
-              tableContent={tableData}
-            />
-          </ComponentCard>
-        </div>
-      )}
+      <div className="space-y-6 sm:space-y-6">
+        <AgentsStatsCard statsData={agents} />
+        <ComponentCard
+          title="My Agents Table"
+          desc="Details of agents & merchants under your referral code"
+          filters={filters}
+          actionButton={actionButton}
+        >
+          <BasicTableOne
+            tableHeading={tableHeader}
+            tableContent={myAgentsData}
+          />
+        </ComponentCard>
+      </div>
     </>
   );
 };
 
-export default Agents;
+export default MyAgents;

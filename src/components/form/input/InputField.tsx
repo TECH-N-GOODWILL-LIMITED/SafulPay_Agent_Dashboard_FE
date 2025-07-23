@@ -43,6 +43,7 @@ interface InputProps {
   pattern?: string;
   readOnly?: boolean;
   selectOptions?: string[];
+  onBlur?: React.FocusEventHandler<HTMLInputElement>;
 }
 
 const Input: FC<InputProps> = ({
@@ -50,7 +51,7 @@ const Input: FC<InputProps> = ({
   id,
   name,
   placeholder,
-  value = "",
+  value,
   onChange,
   className = "",
   min,
@@ -66,6 +67,7 @@ const Input: FC<InputProps> = ({
   pattern,
   readOnly = false,
   selectOptions,
+  onBlur,
 }) => {
   const availableCountries = selectedCountries
     ? countries.filter((c) => selectedCountries.includes(c.code))
@@ -213,6 +215,7 @@ const Input: FC<InputProps> = ({
               placeholder={phonePlaceholder}
               value={formatPhoneNumber(rawNumber, selectedCountry)}
               onChange={handlePhoneInputChange}
+              onBlur={onBlur}
               disabled={disabled}
               readOnly={readOnly}
               className={`${inputClasses} rounded-l-none flex-1`}
@@ -261,7 +264,7 @@ const Input: FC<InputProps> = ({
         <select
           id={id}
           name={name}
-          value={value}
+          value={value || ""}
           onChange={onChange}
           disabled={disabled}
           className={`cursor-pointer ${inputClasses}`}
@@ -285,8 +288,9 @@ const Input: FC<InputProps> = ({
           id={id}
           name={name}
           placeholder={placeholder}
-          value={value}
+          value={value || ""}
           onChange={onChange}
+          onBlur={onBlur}
           min={min != null ? String(min) : undefined}
           max={max != null ? String(max) : undefined}
           step={step != null ? String(step) : undefined}
@@ -300,7 +304,7 @@ const Input: FC<InputProps> = ({
 
       {hint && (
         <p
-          className={`mt-1.5 text-xs ${
+          className={`mt-0.5 text-xs text-right pr-2 ${
             error
               ? "text-error-500"
               : success

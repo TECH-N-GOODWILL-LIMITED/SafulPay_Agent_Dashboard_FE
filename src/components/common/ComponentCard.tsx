@@ -1,22 +1,29 @@
 import { useState } from "react";
+import Button from "../ui/button/Button";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
-import { useModal } from "../../hooks/useModal";
-import { Modal } from "../ui/modal";
-import Button from "../ui/button/Button";
-import RegisterModal from "./RegisterModal";
-import RegisterAgentModal from "./RegisterAgentModal";
 
+// New interfaces to be added
+export interface FilterConfig {
+  label: string;
+  options: string[];
+  onSelect: (option: string) => void;
+  value: string;
+}
+
+export interface ActionButtonConfig {
+  label: string;
+  onClick: () => void;
+  icon?: React.ReactNode | string;
+}
 interface ComponentCardProps {
   title: string;
   children: React.ReactNode;
   className?: string;
   desc?: string;
-  actionButton1?: string;
-  onItemClick?: (role: string) => void;
-  filterOptions?: string[];
-  userRoles?: string[];
-  userType?: string;
+  defaultAction?: boolean;
+  filters?: FilterConfig[];
+  actionButton?: ActionButtonConfig;
 }
 
 const ComponentCard: React.FC<ComponentCardProps> = ({
@@ -24,51 +31,51 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
   children,
   className = "",
   desc = "",
-  actionButton1 = "",
-  onItemClick,
-  filterOptions,
-  userRoles,
-  userType = "",
+  defaultAction = false,
+  filters = [],
+  actionButton,
 }) => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const { isOpen, openModal, closeModal } = useModal();
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
-  function toggleDropdown() {
-    setIsDropdownOpen(!isDropdownOpen);
-  }
-
-  function handleItemClick(option: string) {
-    if (onItemClick) {
-      onItemClick(option);
+  const toggleDropdown = (label: string) => {
+    if (openDropdown === label) {
+      setOpenDropdown(null);
+    } else {
+      setOpenDropdown(label);
     }
-    setIsDropdownOpen(false);
-  }
+  };
 
-  function closeDropdown() {
-    setIsDropdownOpen(false);
-  }
+  const handleSelect = (onSelect: (option: string) => void, option: string) => {
+    onSelect(option);
+    setOpenDropdown(null);
+  };
 
   return (
     <div
       className={`rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] ${className}`}
     >
       <div className="px-6 py-5 flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
-        <h3 className="text-base font-medium text-gray-800 dark:text-white/90">
-          {title}
-        </h3>
-        {desc && (
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {desc}
-          </p>
-        )}
-        {actionButton1 && (
-          <div className="flex items-center gap-3">
-            <Button size="sm" endIcon="✚" onClick={openModal}>
-              Add {userType}
-            </Button>
-            <div className="relative">
+        <div className="flex-1">
+          <h3 className="text-base font-medium text-gray-800 dark:text-white/90">
+            {title}
+          </h3>
+          {desc && (
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {desc}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          {filters.length > 0 && (
+            <span className="font-semibold leading-6 text-gray-500 dark:text-gray-400">
+              Filter By -
+            </span>
+          )}
+
+          {filters.map((filter) => (
+            <div className="relative" key={filter.label}>
               <Button
-                onClick={toggleDropdown}
+                onClick={() => toggleDropdown(filter.label)}
                 size="sm"
                 variant="outline"
                 className="dropdown-toggle"
@@ -108,60 +115,48 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
                     strokeWidth="1.5"
                   />
                 </svg>
-                {actionButton1}
+                {filter.label}
               </Button>
-              {!filterOptions ? (
-                <Dropdown
-                  isOpen={isDropdownOpen}
-                  onClose={closeDropdown}
-                  className="w-40 p-2"
-                >
+              <Dropdown
+                isOpen={openDropdown === filter.label}
+                onClose={() => setOpenDropdown(null)}
+                className="w-40 p-2"
+              >
+                {filter.options.map((option) => (
                   <DropdownItem
-                    onItemClick={closeDropdown}
+                    key={option}
+                    onItemClick={() => handleSelect(filter.onSelect, option)}
                     className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                   >
-                    View More
+                    {option}
                   </DropdownItem>
-                </Dropdown>
-              ) : (
-                <Dropdown
-                  isOpen={isDropdownOpen}
-                  onClose={closeDropdown}
-                  className="w-40 p-2"
-                >
-                  {filterOptions?.map((option) => (
-                    <DropdownItem
-                      key={option}
-                      onItemClick={() => handleItemClick(option)}
-                      className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-                    >
-                      {option}
-                    </DropdownItem>
-                  ))}
-                </Dropdown>
-              )}
+                ))}
+              </Dropdown>
             </div>
-          </div>
-        )}
+          ))}
+
+          {actionButton && (
+            <Button
+              size="sm"
+              endIcon={actionButton.icon || ""}
+              onClick={actionButton.onClick}
+            >
+              {actionButton.label}
+            </Button>
+          )}
+
+          {defaultAction && (
+            <div className="relative">
+              <Button size="sm" variant="outline" className="dropdown-toggle">
+                View More
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
       <div className="p-4 border-t border-gray-100 dark:border-gray-800 sm:p-6">
         <div className="space-y-6">{children}</div>
       </div>
-      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
-        {userType === "Agent" ? (
-          <RegisterAgentModal
-            modalHeading="Add a new agent"
-            onClose={closeModal}
-          />
-        ) : (
-          <RegisterModal
-            modalHeading="Add a new user"
-            userRoles={userRoles}
-            selectRole={userType}
-            onClose={closeModal}
-          />
-        )}
-      </Modal>
     </div>
   );
 };

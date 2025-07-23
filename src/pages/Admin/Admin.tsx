@@ -1,62 +1,82 @@
-import { useEffect } from "react";
-import { useAllUsers } from "../../context/UsersContext";
-import { userRoles } from "../../utils/roles";
-import type { Agent, UserBio } from "../../types/types";
-import ComponentCard from "../../components/common/ComponentCard";
+import { useEffect, useState, useMemo } from "react";
+import { useAllUsers, usersItem } from "../../context/UsersContext";
+import { userRoles, ADMIN_ROLE } from "../../utils/roles";
+import ComponentCard, {
+  ActionButtonConfig,
+  FilterConfig,
+} from "../../components/common/ComponentCard";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
 import Alert from "../../components/ui/alert/Alert";
+import { useModal } from "../../hooks/useModal";
+import { Modal } from "../../components/ui/modal";
+import RegisterModal from "../../components/common/RegisterModal";
 
-interface AgentWithRole extends Agent {
-  role: string; // set to "Agent"
-}
-type usersItem = UserBio | AgentWithRole;
-
-interface TableContentType {
-  user: {
-    id: number;
-    image?: string;
-    name?: string;
-    role: string;
-    phone: string;
-    status: string;
-  };
-}
-
-const tableHeader: string[] = ["Name", "Role", "Phone Number", "Status"];
+const tableHeader: string[] = [
+  "Name / Username",
+  "Role",
+  "Phone Number",
+  "Status",
+];
 
 const Admin = () => {
+  const [filterStatus, setFilterStatus] = useState<string>("All");
   const { title, error, loading, filteredUsers, filterByRole } = useAllUsers();
+  const { isOpen, openModal, closeModal } = useModal();
+
+  const statusOptions = ["All", "Pending", "Active", "Suspended", "Rejected"];
 
   useEffect(() => {
-    filterByRole("Admin");
+    filterByRole(ADMIN_ROLE);
   }, [filterByRole]);
 
-  const tableData: TableContentType[] = filteredUsers?.map(
-    (user: usersItem) => ({
-      user: {
-        id: user.id,
-        image: "/images/user/user-07.jpg", // or actual image URL if available
-        name: user.name,
-        role: user.role,
-        phone: user.phone,
-        status:
-          user.status === 1
-            ? "Active"
-            : user.status === 2
-            ? "Suspended"
-            : "Pending",
-      },
-    })
-  );
+  const actionButton: ActionButtonConfig = {
+    label: "Add Admin",
+    icon: "✚",
+    onClick: openModal,
+  };
 
-  if (loading)
-    return <div className="text-gray-500 dark:text-gray-400">Loading...</div>;
-  if (error)
-    return (
-      <Alert variant="error" title={title} message={error} showLink={false} />
-    );
+  const filters: FilterConfig[] = [
+    {
+      label: `Status: ${filterStatus}`,
+      options: statusOptions,
+      onSelect: (status) => setFilterStatus(status),
+      value: filterStatus,
+    },
+  ];
+
+  const tableData = useMemo(() => {
+    const filteredAdmins = filteredUsers.filter((admin: usersItem) => {
+      const status =
+        admin.status === 1
+          ? "Active"
+          : admin.status === 2
+          ? "Suspended"
+          : admin.status === 3
+          ? "Rejected"
+          : "Pending";
+      const statusMatch = filterStatus === "All" || status === filterStatus;
+      return statusMatch;
+    });
+
+    return filteredAdmins.map((user: usersItem) => ({
+      id: user.id,
+      image: user.image || "/images/user/user-07.jpg",
+      name: user.name,
+      firstName: user.firstname,
+      lastName: user.lastname,
+      username: user.username,
+      role: user.role,
+      phone: user.phone,
+      status:
+        user.status === 1
+          ? "Active"
+          : user.status === 2
+          ? "Suspended"
+          : "Pending",
+    }));
+  }, [filteredUsers, filterStatus]);
 
   return (
     <>
@@ -65,18 +85,34 @@ const Admin = () => {
         description="List of all agency admins - Management system for SafulPay's Agency Platform"
       />
       <PageBreadcrumb pageTitle="Admins" />
-      <div className="space-y-6">
-        <ComponentCard
-          title="Admins Table"
-          desc="Details of all Admins"
-          actionButton1="Filter"
-          userType="Admin"
+
+      {error ? (
+        <Alert variant="error" title={title} message={error} showLink={false} />
+      ) : loading ? (
+        <div className="text-gray-500 dark:text-gray-400">Loading...</div>
+      ) : (
+        <div className="space-y-6">
+          <ComponentCard
+            title="Admin Table"
+            desc="Details of all Admins"
+            actionButton={actionButton}
+            filters={filters}
+          >
+            <BasicTableOne
+              tableHeading={tableHeader}
+              tableContent={tableData}
+            />
+          </ComponentCard>
+        </div>
+      )}
+      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
+        <RegisterModal
+          modalHeading="Add a new user"
           userRoles={userRoles}
-          filterOptions={userRoles}
-        >
-          <BasicTableOne tableHeading={tableHeader} tableContent={tableData} />
-        </ComponentCard>
-      </div>
+          selectRole="Admin"
+          onClose={closeModal}
+        />
+      </Modal>
     </>
   );
 };

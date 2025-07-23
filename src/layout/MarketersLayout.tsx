@@ -1,11 +1,9 @@
 import { SidebarProvider, useSidebar } from "../context/SidebarContext";
 import { Outlet } from "react-router";
+// import { useAuth } from "../context/AuthContext";
 import AppHeader from "./AppHeader";
 import Backdrop from "./Backdrop";
 import AppSidebar from "./AppSidebar";
-import { MyAgentsProvider } from "../context/MyAgentsContext";
-import { useRevalidateSessionOnRouteChange } from "../hooks/validateSessionOnRouteChange";
-import { MarketersProvider } from "../context/MarketersContext";
 
 const LayoutContent: React.FC = () => {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
@@ -30,18 +28,12 @@ const LayoutContent: React.FC = () => {
   );
 };
 
-const AppLayout: React.FC = () => {
-  useRevalidateSessionOnRouteChange();
-
+const MarketersLayout: React.FC = () => {
   return (
     <SidebarProvider>
-      <MyAgentsProvider>
-        <MarketersProvider>
-          <LayoutContent />
-        </MarketersProvider>
-      </MyAgentsProvider>
+      <LayoutContent />
     </SidebarProvider>
   );
 };
 
-export default AppLayout;
+export default MarketersLayout;

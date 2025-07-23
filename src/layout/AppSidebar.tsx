@@ -1,91 +1,137 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
-
+import { useSidebar } from "../context/SidebarContext";
+import { useAuth } from "../context/AuthContext";
+import { ACCOUNTANT_ROLE, ADMIN_ROLE, MARKETER_ROLE } from "../utils/roles";
 import {
   BoxCubeIcon,
   ChevronDownIcon,
   GridIcon,
   HorizontaLDots,
-  UserCircleIcon,
   UserIcon,
   ListIcon,
   PlusIcon,
   DollarLineIcon,
   ArrowUpIcon,
+  PieChartIcon,
+  GroupIcon,
 } from "../icons";
-import { useSidebar } from "../context/SidebarContext";
-import { useAuth } from "../context/AuthContext";
 
 type NavItem = {
   name: string;
   icon: React.ReactNode;
   path?: string;
-  subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
+  roles?: string[];
+  subItems?: {
+    name: string;
+    path: string;
+    pro?: boolean;
+    new?: boolean;
+    roles?: string[];
+  }[];
 };
-
-//! NOTE: ACTION BUTTONS
-// ACTIVE USERS - edit, block
-// BLOCKED USERS - edit, Unblock
-// PENDING USERS - edit, reject/approve,
-const navItems: NavItem[] = [
-  {
-    icon: <GridIcon />,
-    name: "Dashboard",
-    path: "/",
-  },
-  {
-    icon: <UserCircleIcon />,
-    name: "Users",
-    subItems: [
-      { name: "All Users", path: "/users" },
-      { name: "Admin", path: "/admin" },
-      { name: "Marketers", path: "/marketers" },
-      { name: "Agents", path: "/agents" },
-      { name: "Riders", path: "/riders" },
-      { name: "Accountants", path: "/accountants" },
-    ],
-  },
-  {
-    icon: <UserIcon />,
-    name: "Edit Profile",
-    path: "/profile",
-  },
-];
-
-const othersItems: NavItem[] = [
-  {
-    icon: <BoxCubeIcon />,
-    name: "Recollections",
-    path: "/recollections",
-  },
-  { icon: <DollarLineIcon />, name: "Disbursement", path: "/disbursement" },
-  {
-    icon: <PlusIcon />,
-    name: "Deposit",
-    path: "/deposit",
-  },
-  {
-    icon: <ArrowUpIcon />,
-    name: "Withdrawal",
-    path: "/withdrawal",
-  },
-  {
-    icon: <ListIcon />,
-    name: "Transactions Log",
-    path: "/transactions",
-  },
-  {
-    icon: <ListIcon />,
-    name: "Audit Log",
-    path: "/audit",
-  },
-];
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const { user } = useAuth();
-  const userRole = user?.role || "Admin";
+  const userRole = user?.role || "Guest";
   const location = useLocation();
+
+  const navItems: NavItem[] = [
+    {
+      icon: <GridIcon />,
+      name: "Dashboard",
+      path: "/",
+    },
+    {
+      icon: <GroupIcon />,
+      name: "Users",
+      subItems: [
+        { name: "All Users", path: "/users", roles: [ADMIN_ROLE] },
+        { name: "Admin", path: "/admin", roles: [ADMIN_ROLE] },
+        {
+          name: "Marketers",
+          path: "/marketers",
+          roles: [ADMIN_ROLE, MARKETER_ROLE],
+        },
+        {
+          name: "Agents",
+          path: "/agents",
+          roles: ["Guest", ADMIN_ROLE],
+        },
+        {
+          name: "My Agents",
+          path: "/myagents",
+          roles: [MARKETER_ROLE],
+        },
+        {
+          name: "Riders",
+          path: "/riders",
+          roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
+        },
+        {
+          name: "Accountants",
+          path: "/accountants",
+          roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
+        },
+        {
+          name: "Register Agents",
+          path: `/onboardagent/${user?.referral_code}`,
+          roles: [MARKETER_ROLE, ADMIN_ROLE],
+        },
+      ],
+    },
+    {
+      icon: <UserIcon />,
+      name: "Edit Profile",
+      path: "/profile",
+      roles: ["Guest", ADMIN_ROLE],
+    },
+    {
+      icon: <PieChartIcon />,
+      name: "Marketers Leaderboard",
+      path: "/marketers-leaderboard",
+    },
+  ];
+
+  const othersItems: NavItem[] = [
+    {
+      icon: <BoxCubeIcon />,
+      name: "Recollections",
+      path: "/recollections",
+      roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
+    },
+    {
+      icon: <DollarLineIcon />,
+      name: "Disbursement",
+      path: "/disbursement",
+      roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
+    },
+    {
+      icon: <PlusIcon />,
+      name: "Deposit",
+      path: "/deposit",
+      roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
+    },
+    {
+      icon: <ArrowUpIcon />,
+      name: "Withdrawal",
+      path: "/withdrawal",
+      roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
+    },
+    {
+      icon: <ListIcon />,
+      name: "Transactions Log",
+      path: "/transactions",
+      roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
+    },
+    {
+      icon: <ListIcon />,
+      name: "Audit Log",
+      path: "/audit",
+      roles: [ADMIN_ROLE],
+    },
+  ];
 
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";
@@ -150,6 +196,24 @@ const AppSidebar: React.FC = () => {
     });
   };
 
+  const filterItemsByRole = (items: NavItem[]) => {
+    return items
+      .filter((item) => !item.roles || item.roles.includes(userRole))
+      .map((item) => {
+        if (item.subItems) {
+          // Filter subItems too
+          const filteredSubItems = item.subItems.filter(
+            (sub) => !sub.roles || sub.roles.includes(userRole)
+          );
+          return { ...item, subItems: filteredSubItems };
+        }
+        return item;
+      });
+  };
+
+  const filteredNavItems = filterItemsByRole(navItems);
+  const filteredOthersItems = filterItemsByRole(othersItems);
+
   const getFilteredSubItems = (
     subItems: NavItem["subItems"],
     role: string
@@ -159,11 +223,15 @@ const AppSidebar: React.FC = () => {
       case "Admin":
         return subItems;
       case "Accountant":
-        return subItems.filter((item) => ["Accountants"].includes(item.name));
+        return subItems.filter((item) =>
+          ["Accountants", "Riders", "Agents"].includes(item.name)
+        );
       case "Marketer":
-        return subItems.filter((item) => ["Marketers"].includes(item.name));
+        return subItems.filter((item) =>
+          ["Marketers", "My Agents", "Register Agents"].includes(item.name)
+        );
       default:
-        return subItems;
+        return;
     }
   };
 
@@ -365,24 +433,26 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots className="size-6" />
                 )}
               </h2>
-              {renderMenuItems(navItems, "main")}
+              {renderMenuItems(filteredNavItems, "main")}
             </div>
-            <div className="">
-              <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                  !isExpanded && !isHovered
-                    ? "lg:justify-center"
-                    : "justify-start"
-                }`}
-              >
-                {isExpanded || isHovered || isMobileOpen ? (
-                  "Finance and Logs"
-                ) : (
-                  <HorizontaLDots />
-                )}
-              </h2>
-              {renderMenuItems(othersItems, "others")}
-            </div>
+            {filteredOthersItems.length > 0 && (
+              <div>
+                <h2
+                  className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
+                    !isExpanded && !isHovered
+                      ? "lg:justify-center"
+                      : "justify-start"
+                  }`}
+                >
+                  {isExpanded || isHovered || isMobileOpen ? (
+                    "Finance and Logs"
+                  ) : (
+                    <HorizontaLDots />
+                  )}
+                </h2>
+                {renderMenuItems(filteredOthersItems, "others")}
+              </div>
+            )}
           </div>
         </nav>
       </div>

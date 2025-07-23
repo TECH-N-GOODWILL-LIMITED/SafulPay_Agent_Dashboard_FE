@@ -4,7 +4,13 @@ import { Dropdown } from "../ui/dropdown/Dropdown";
 import { useAuth } from "../../context/AuthContext";
 import Button from "../ui/button/Button";
 import { useNavigate } from "react-router";
+import { UserBio } from "../../types/types";
 
+// interface UserDropdownProps {
+//   onboardingUser?: UserBio | null;
+// }
+
+// export default function UserDropdown({ onboardingUser }: UserDropdownProps) {
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
@@ -19,14 +25,28 @@ export default function UserDropdown() {
     setIsOpen(false);
   }
 
-  const { user, logout } = useAuth();
+  const { token, user, onboardingUser, setOnboardingUser, logout } = useAuth();
+
+  const displayUser: UserBio | null = user || onboardingUser;
 
   const handleLogout = async () => {
     setLoading(true);
-    await logout(); // call your context logout
-    setLoading(false);
-    navigate("/signin");
+    if (!token) {
+      setOnboardingUser(null);
+      navigate("/");
+    } else {
+      await logout();
+      setLoading(false);
+      navigate("/signin");
+    }
   };
+
+  // const handleLogout = async () => {
+  //   setLoading(true);
+  //   await logout(); // call your context logout
+  //   setLoading(false);
+  //   navigate("/signin");
+  // };
 
   return (
     <div className="relative">
@@ -34,12 +54,15 @@ export default function UserDropdown() {
         onClick={toggleDropdown}
         className="flex items-center text-gray-700 dropdown-toggle dark:text-gray-400"
       >
-        <span className="mr-3 overflow-hidden rounded-full h-11 w-11">
-          <img src="/images/user/owner.jpg" alt="User" />
+        <span className="mr-3 overflow-hidden rounded-full h-11 w-11 ring-2 inset-ring-2 inset-ring-brand-500 ring-brand-500">
+          <img
+            src={displayUser?.image || "/images/user/owner.jpg"}
+            alt="User"
+          />
         </span>
 
         <span className="block mr-1 font-medium text-theme-sm">
-          {user?.firstname ? user?.firstname : "Anonymous"}
+          {displayUser?.firstname ? displayUser?.firstname : "Anonymous"}
         </span>
         <svg
           className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${
@@ -64,14 +87,14 @@ export default function UserDropdown() {
       <Dropdown
         isOpen={isOpen}
         onClose={closeDropdown}
-        className="absolute right-0 mt-[17px] flex w-[260px] flex-col rounded-2xl border border-gray-200 bg-white p-3 shadow-theme-lg dark:border-gray-800 dark:bg-gray-dark"
+        className="mt-[17px] flex w-[260px] flex-col rounded-2xl p-3"
       >
         <div>
           <span className="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-            {user?.name}
+            {displayUser?.firstname}
           </span>
           <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
-            {user?.email}
+            {displayUser?.email}
           </span>
         </div>
 
@@ -149,7 +172,12 @@ export default function UserDropdown() {
               fill=""
             />
           </svg>
-          {loading ? "Signing out..." : "Sign out"}
+
+          {!token && onboardingUser
+            ? "Exit Onboarding"
+            : loading
+            ? "Signing out..."
+            : "Sign out"}
         </Button>
       </Dropdown>
     </div>
