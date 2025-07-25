@@ -62,13 +62,13 @@ const Admin = () => {
 
     return filteredAdmins.map((user: usersItem) => ({
       id: user.id,
-      image: user.image || "/images/user/user-07.jpg",
+      image: "/images/user/user-admin-vector.webp",
       name: user.name,
       firstName: user.firstname,
       lastName: user.lastname,
       username: user.username,
       role: user.role,
-      phone: user.phone,
+      phone: user.phone || "No Phone Number",
       status:
         user.status === 1
           ? "Active"

@@ -49,6 +49,8 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({
 
   const { user, token } = useAuth();
 
+  console.log(token);
+
   const fetchAgents = async () => {
     if (!token) {
       setTitle("Not authenticated");
@@ -60,6 +62,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({
     const response = await getAllAgents(token);
     if (response.success && response.data) {
       setAllAgents(response.data.agents);
+      console.log(allAgents.length);
     } else {
       setTitle("Failed to fetch agents");
       setError(response.error || "Failed to fetch agents");

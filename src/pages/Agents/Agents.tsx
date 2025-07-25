@@ -14,23 +14,25 @@ import { AGENT_ROLE, MERCHANT_ROLE, SUPER_AGENT_ROLE } from "../../utils/roles";
 
 const tableHeader: string[] = [
   "Name / Business Name",
-  "Role",
+  "Role / Model",
   "Residual Amount",
   "Business Phone / Primary Phone",
-  "KYC Status",
   "Status",
+  "KYC Status",
 ];
 
 const Agents: React.FC = () => {
   const [filterRole, setFilterRole] = useState<string>("All");
-  const [filterKycStatus, setFilterKycStatus] = useState<string>("All");
+  const [filterModel, setFilterModel] = useState<string>("All");
   const [filterStatus, setFilterStatus] = useState<string>("All");
+  const [filterKycStatus, setFilterKycStatus] = useState<string>("All");
 
   const { filterByRole, filteredUsers, title, error, loading } = useAllUsers();
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const roleOptions = ["All", AGENT_ROLE, SUPER_AGENT_ROLE, MERCHANT_ROLE];
+  const modelOptions = ["All", "Target", "Independent"];
   const kycStatusOptions = ["All", "Completed", "Incomplete"];
   const statusOptions = ["All", "Pending", "Active", "Suspended", "Rejected"];
 
@@ -54,6 +56,12 @@ const Agents: React.FC = () => {
       value: filterRole,
     },
     {
+      label: `Model: ${filterModel}`,
+      options: modelOptions,
+      onSelect: (model) => setFilterModel(model),
+      value: filterModel,
+    },
+    {
       label: `KYC: ${filterKycStatus}`,
       options: kycStatusOptions,
       onSelect: (status) => setFilterKycStatus(status),
@@ -75,6 +83,7 @@ const Agents: React.FC = () => {
 
   const tableData = useMemo(() => {
     const filteredAgents = filteredUsers.filter((agent: usersItem) => {
+      const model = agent.type !== MERCHANT_ROLE ? agent.model : "Independent";
       const status =
         agent.status === 1
           ? "Active"
@@ -84,23 +93,25 @@ const Agents: React.FC = () => {
           ? "Rejected"
           : "Pending";
       const kycStatus = agent.temp === 1 ? "Completed" : "Incomplete";
-      const statusMatch = filterStatus === "All" || status === filterStatus;
       const roleMatch = filterRole === "All" || agent.type === filterRole;
+      const modelMatch = filterModel === "All" || model === filterModel;
+      const statusMatch = filterStatus === "All" || status === filterStatus;
       const kycMatch =
         filterKycStatus === "All" || kycStatus === filterKycStatus;
-      return roleMatch && kycMatch && statusMatch;
+      return roleMatch && modelMatch && kycMatch && statusMatch;
     });
 
     return filteredAgents.map((agent: usersItem) => ({
       id: agent.id,
-      image: agent.image || "/images/user/user-12.jpg", // fallback image
+      // image: agent.image || "/images/user/user-12.jpg", // fallback image
+      image: agent.image || "/images/user/agent-image.png", // fallback image
       name: agent.name || "N/A",
       firstName: agent.firstname,
       lastName: agent.lastname,
       businessName: agent.business_name || "No Business name",
       username: agent.username || "No username",
       role: agent.type,
-      model: agent.model,
+      model: agent.type !== MERCHANT_ROLE ? agent.model : "Independent",
       residualAmount: agent?.residual_amount || 0.0,
       phone: agent.phone || "No Phone number",
       businessPhone: agent.business_phone || "No Business phone",
@@ -122,7 +133,7 @@ const Agents: React.FC = () => {
       temp: agent.temp,
       kycStatus: agent.temp === 1 ? "Completed" : "Incomplete",
     }));
-  }, [filteredUsers, filterRole, filterKycStatus, filterStatus]);
+  }, [filteredUsers, filterRole, filterModel, filterKycStatus, filterStatus]);
 
   if (error) {
     return (

@@ -31,35 +31,35 @@ import { Agent } from "../../types/types";
 import { ADMIN_ROLE } from "../../utils/roles";
 
 const validationSchema = yup.object().shape({
-  firstName: yup.string().required("First name is required"),
-  lastName: yup.string().required("Last name is required"),
-  middleName: yup.string(),
-  userName: yup
+  firstname: yup.string().required("First name is required"),
+  lastname: yup.string().required("Last name is required"),
+  middlename: yup.string(),
+  username: yup
     .string()
     .required("Username is required")
     .max(12, "Username cannot exceed 12 characters"),
-  businessName: yup.string().required("Business name is required"),
-  businessPhone: yup.string(), // Readonly
+  business_name: yup.string().required("Business name is required"),
+  business_phone: yup.string(), // Readonly
   phone: yup.string(), // Readonly
   email: yup.string().email("Invalid email format"),
-  agentType: yup.string().required("Agency type is required"),
-  model: yup.string().when("agentType", {
+  type: yup.string().required("Agency type is required"),
+  model: yup.string().when("type", {
     is: (val: string) => val === "Agent" || val === "Super Agent",
     then: (schema) => schema.required("Agency model is required"),
     otherwise: (schema) => schema.notRequired(),
   }),
-  idType: yup.string(),
-  businessAddress: yup.string().required("Business address is required"),
+  id_type: yup.string(),
+  address: yup.string().required("Business address is required"),
   district: yup.string().required("District is required"),
   region: yup.string(),
   latitude: yup.string().required("Latitude is required"),
   longitude: yup.string().required("Longitude is required"),
-  idImageUrl: yup.string(),
-  businessImageUrl: yup.string(),
-  addressDocumentUrl: yup.string(),
-  businessRegDocumentUrl: yup.string(),
-  agentStatus: yup.string(),
-  reason: yup.string().min(4, "Reason must be at least 4 characters."),
+  id_document: yup.string(),
+  business_image: yup.string(),
+  address_document: yup.string(),
+  business_registration: yup.string(),
+  status: yup.number(),
+  reason: yup.string(),
 });
 
 type FormData = yup.InferType<typeof validationSchema>;
@@ -77,19 +77,12 @@ export default function EditAgentForm() {
   );
   const [businessRegDocumentFile, setBusinessRegDocumentFile] =
     useState<File | null>(null);
+  const [deletedImageKeys, setDeletedImageKeys] = useState<string[]>([]);
 
   const [loading, setLoading] = useState<boolean>(false);
   const [geoLoading, setGeoLoading] = useState<boolean>(false);
   const [uploadLoading, setUploadLoading] = useState<boolean>(false);
-  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState<boolean>(false);
-  const [isModelDropdownOpen, setIsModelDropdownOpen] =
-    useState<boolean>(false);
-  const [isIdTypeDropdownOpen, setIsIdTypeDropdownOpen] =
-    useState<boolean>(false);
-  const [isDistrictDropdownOpen, setIsDistrictDropdownOpen] =
-    useState<boolean>(false);
-  const [isStatusDropdownOpen, setIsStatusDropdownOpen] =
-    useState<boolean>(false);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [originalAgentData, setOriginalAgentData] = useState<Agent | null>(
     null
   );
@@ -100,17 +93,18 @@ export default function EditAgentForm() {
     setValue,
     watch,
     reset,
+    setError: setFormError,
     formState: { errors, dirtyFields },
   } = useForm({
     resolver: yupResolver(validationSchema),
     defaultValues: {},
   });
 
-  const agentType = watch("agentType");
-  const idImageUrl = watch("idImageUrl");
-  const businessImageUrl = watch("businessImageUrl");
-  const addressDocumentUrl = watch("addressDocumentUrl");
-  const businessRegDocumentUrl = watch("businessRegDocumentUrl");
+  const agentType = watch("type");
+  const idImageUrl = watch("id_document");
+  const businessImageUrl = watch("business_image");
+  const addressDocumentUrl = watch("address_document");
+  const businessRegDocumentUrl = watch("business_registration");
 
   const { id } = useParams<{ id: string }>();
   const { user, token } = useAuth();
@@ -136,28 +130,27 @@ export default function EditAgentForm() {
         if (response.success && response.data) {
           const agent = response.data.agent;
           const defaultValues = {
-            firstName: agent.firstname || "",
-            middleName: agent.middlename || "",
-            lastName: agent.lastname || "",
-            userName: agent.username || "",
-            businessName: agent.business_name || "",
-            businessPhone: agent.business_phone || "",
+            firstname: agent.firstname || "",
+            middlename: agent.middlename || "",
+            lastname: agent.lastname || "",
+            username: agent.username || "",
+            business_name: agent.business_name || "",
+            business_phone: agent.business_phone || "",
             phone: agent.phone || "",
             email: agent.email || "",
-            agentType: agent.type || "",
+            type: agent.type || "",
             model: agent.model || "",
-            idType: agent.id_type || "",
-            businessAddress: agent.address || "",
+            id_type: agent.id_type || "",
+            address: agent.address || "",
             district: agent.district || "",
             region: agent.region || "",
             latitude: agent.latitude || "",
             longitude: agent.longitude || "",
-            idImageUrl: agent.id_document || "",
-            businessImageUrl: agent.business_image || "",
-            addressDocumentUrl: agent.address_document || "",
-            businessRegDocumentUrl: agent.business_registration || "",
-            agentStatus:
-              statusOptions.find((s) => s.value === agent.status)?.label || "",
+            id_document: agent.id_document || "",
+            business_image: agent.business_image || "",
+            address_document: agent.address_document || "",
+            business_registration: agent.business_registration || "",
+            status: agent.status,
             reason: "",
           };
           reset(defaultValues);
@@ -183,7 +176,6 @@ export default function EditAgentForm() {
     "national id",
     "passport id",
   ];
-
   const districtOptions = [
     "Kailahun",
     "Kenema",
@@ -216,21 +208,21 @@ export default function EditAgentForm() {
       const previewUrl = URL.createObjectURL(file);
       if (type === "idImage") {
         setIdImageFile(file);
-        setValue("idImageUrl", previewUrl, { shouldValidate: true });
+        setValue("id_document", previewUrl, { shouldValidate: true });
       }
       if (type === "businessRegDocument") {
         setBusinessRegDocumentFile(file);
-        setValue("businessRegDocumentUrl", previewUrl, {
+        setValue("business_registration", previewUrl, {
           shouldValidate: true,
         });
       }
       if (type === "businessImage") {
         setBusinessImageFile(file);
-        setValue("businessImageUrl", previewUrl, { shouldValidate: true });
+        setValue("business_image", previewUrl, { shouldValidate: true });
       }
       if (type === "addressDocument") {
         setAddressDocumentFile(file);
-        setValue("addressDocumentUrl", previewUrl, { shouldValidate: true });
+        setValue("address_document", previewUrl, { shouldValidate: true });
       }
     }
   };
@@ -307,6 +299,11 @@ export default function EditAgentForm() {
     },
   });
 
+  const handleDropdownToggle = (dropdownName: string) => {
+    if (loading || uploadLoading) return;
+    setOpenDropdown((prev) => (prev === dropdownName ? null : dropdownName));
+  };
+
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
       setAlertTitle("Geolocation Not Supported");
@@ -361,51 +358,18 @@ export default function EditAgentForm() {
     );
   }
 
-  const onSubmit = (data: FormData) => {
-    const updatedFields: Partial<Agent> = {};
-    if (originalAgentData?.firstname !== data.firstName)
-      updatedFields.firstname = data.firstName;
-    if (originalAgentData?.middlename !== data.middleName)
-      updatedFields.middlename = data.middleName;
-    if (originalAgentData?.lastname !== data.lastName)
-      updatedFields.lastname = data.lastName;
-    if (originalAgentData?.username !== data.userName)
-      updatedFields.username = data.userName;
-    if (originalAgentData?.business_name !== data.businessName)
-      updatedFields.business_name = data.businessName;
-    if (originalAgentData?.email !== data.email)
-      updatedFields.email = data.email;
-    if (originalAgentData?.type !== data.agentType)
-      updatedFields.type = data.agentType;
-    if (originalAgentData?.model !== data.model)
-      updatedFields.model = data.model;
-    if (originalAgentData?.address !== data.businessAddress)
-      updatedFields.address = data.businessAddress;
-    if (originalAgentData?.district !== data.district)
-      updatedFields.district = data.district;
-    if (originalAgentData?.region !== data.region)
-      updatedFields.region = data.region;
-    if (originalAgentData?.latitude !== data.latitude)
-      updatedFields.latitude = data.latitude;
-    if (originalAgentData?.longitude !== data.longitude)
-      updatedFields.longitude = data.longitude;
-    if (businessImageFile) updatedFields.business_image = "updated";
-    if (addressDocumentFile) updatedFields.address_document = "updated";
-    if (businessRegDocumentFile)
-      updatedFields.business_registration = "updated";
-    if (idImageFile) updatedFields.id_document = "updated";
-    if (originalAgentData?.id_type !== data.idType)
-      updatedFields.id_type = data.idType;
+  const onSubmit = () => {
+    const hasDirtyFields = Object.keys(dirtyFields).length > 0;
+    const hasNewFiles =
+      idImageFile ||
+      businessImageFile ||
+      addressDocumentFile ||
+      businessRegDocumentFile;
+    const hasDeletedImages = deletedImageKeys.length > 0;
 
-    const newStatusValue = statusOptions.find(
-      (s) => s.label === data.agentStatus
-    )?.value;
-    if (originalAgentData?.status !== newStatusValue)
-      updatedFields.status = newStatusValue;
-
-    if (Object.keys(updatedFields).length === 0) {
+    if (!hasDirtyFields && !hasNewFiles && !hasDeletedImages) {
       setAlertTitle("No Changes");
-      setUpdateSuccess("No changes detected to update.");
+      setError("No changes detected to update.");
       return;
     }
 
@@ -413,6 +377,14 @@ export default function EditAgentForm() {
   };
 
   const handleConfirmUpdate = async (data: FormData) => {
+    if (!data.reason || data.reason.trim().length < 4) {
+      setFormError("reason", {
+        type: "manual",
+        message: "Reason must be at least 4 characters.",
+      });
+      return;
+    }
+
     setLoading(true);
     setUploadLoading(true);
     setError("");
@@ -421,6 +393,14 @@ export default function EditAgentForm() {
 
     try {
       const updatedFields: Partial<Agent> = {};
+      const dirtyKeys = Object.keys(dirtyFields) as (keyof FormData)[];
+
+      dirtyKeys.forEach((key) => {
+        if (key in originalAgentData!) {
+          updatedFields[key as keyof Agent] = data[key] as any;
+        }
+      });
+
       const filesToUpload: {
         key: keyof Agent;
         file: File | null;
@@ -429,23 +409,26 @@ export default function EditAgentForm() {
         {
           key: "business_image",
           file: businessImageFile,
-          urlField: "businessImageUrl",
+          urlField: "business_image",
         },
         {
           key: "address_document",
           file: addressDocumentFile,
-          urlField: "addressDocumentUrl",
+          urlField: "address_document",
         },
         {
           key: "business_registration",
           file: businessRegDocumentFile,
-          urlField: "businessRegDocumentUrl",
+          urlField: "business_registration",
         },
-        { key: "id_document", file: idImageFile, urlField: "idImageUrl" },
+        { key: "id_document", file: idImageFile, urlField: "id_document" },
       ];
 
       for (const { key, file, urlField } of filesToUpload) {
-        if (file && !data[urlField]?.startsWith("https://res.cloudinary.com")) {
+        if (
+          file &&
+          !String(data[urlField]).startsWith("https://res.cloudinary.com")
+        ) {
           const result = await uploadToCloudinary(
             file,
             import.meta.env.VITE_CLOUDINARY_CLOUD_NAME,
@@ -460,46 +443,17 @@ export default function EditAgentForm() {
         }
       }
 
-      if (originalAgentData?.firstname !== data.firstName)
-        updatedFields.firstname = data.firstName;
-      if (originalAgentData?.middlename !== data.middleName)
-        updatedFields.middlename = data.middleName;
-      if (originalAgentData?.lastname !== data.lastName)
-        updatedFields.lastname = data.lastName;
-      if (originalAgentData?.username !== data.userName)
-        updatedFields.username = data.userName;
-      if (originalAgentData?.business_name !== data.businessName)
-        updatedFields.business_name = data.businessName;
-      if (originalAgentData?.email !== data.email)
-        updatedFields.email = data.email;
-      if (originalAgentData?.type !== data.agentType)
-        updatedFields.type = data.agentType;
-      if (originalAgentData?.model !== data.model)
-        updatedFields.model = data.model;
-      if (originalAgentData?.address !== data.businessAddress)
-        updatedFields.address = data.businessAddress;
-      if (originalAgentData?.district !== data.district)
-        updatedFields.district = data.district;
-      if (originalAgentData?.region !== data.region)
-        updatedFields.region = data.region;
-      if (originalAgentData?.latitude !== data.latitude)
-        updatedFields.latitude = data.latitude;
-      if (originalAgentData?.longitude !== data.longitude)
-        updatedFields.longitude = data.longitude;
-      if (originalAgentData?.id_type !== data.idType)
-        updatedFields.id_type = data.idType;
-      const newStatusValue = statusOptions.find(
-        (s) => s.label === data.agentStatus
-      )?.value;
-      if (originalAgentData?.status !== newStatusValue)
-        updatedFields.status = newStatusValue;
+      deletedImageKeys.forEach((key) => {
+        updatedFields[key as keyof Agent] = undefined;
+      });
 
-      if (Object.keys(updatedFields).length === 0) {
-        setAlertTitle("No Changes");
-        setUpdateSuccess("No changes detected to update.");
-        setLoading(false);
-        setUploadLoading(false);
-        return;
+      const newStatusValue = statusOptions.find(
+        (s) =>
+          s.label ===
+          statusOptions.find((opt) => opt.value === data.status)?.label
+      )?.value;
+      if (originalAgentData?.status !== newStatusValue) {
+        updatedFields.status = newStatusValue;
       }
 
       const response = await updateAgentInfo(
@@ -513,37 +467,36 @@ export default function EditAgentForm() {
         await fetchUsers();
         setAlertTitle("Successful");
         setUpdateSuccess(
-          `${data.agentType} ${data.businessName}'s info updated successfully!`
+          `${data.type} ${data.business_name}'s info updated successfully!`
         );
         const newAgentData = response.data.agent;
         const newDefaultValues = {
-          firstName: newAgentData.firstname || "",
-          middleName: newAgentData.middlename || "",
-          lastName: newAgentData.lastname || "",
-          userName: newAgentData.username || "",
-          businessName: newAgentData.business_name || "",
-          businessPhone: newAgentData.business_phone || "",
+          firstname: newAgentData.firstname || "",
+          middlename: newAgentData.middlename || "",
+          lastname: newAgentData.lastname || "",
+          username: newAgentData.username || "",
+          business_name: newAgentData.business_name || "",
+          business_phone: newAgentData.business_phone || "",
           phone: newAgentData.phone || "",
           email: newAgentData.email || "",
-          agentType: newAgentData.type || "",
+          type: newAgentData.type || "",
           model: newAgentData.model || "",
-          idType: newAgentData.id_type || "",
-          businessAddress: newAgentData.address || "",
+          id_type: newAgentData.id_type || "",
+          address: newAgentData.address || "",
           district: newAgentData.district || "",
           region: newAgentData.region || "",
           latitude: newAgentData.latitude || "",
           longitude: newAgentData.longitude || "",
-          idImageUrl: newAgentData.id_document || "",
-          businessImageUrl: newAgentData.business_image || "",
-          addressDocumentUrl: newAgentData.address_document || "",
-          businessRegDocumentUrl: newAgentData.business_registration || "",
-          agentStatus:
-            statusOptions.find((s) => s.value === newAgentData.status)?.label ||
-            "",
+          id_document: newAgentData.id_document || "",
+          business_image: newAgentData.business_image || "",
+          address_document: newAgentData.address_document || "",
+          business_registration: newAgentData.business_registration || "",
+          status: newAgentData.status,
           reason: "",
         };
         reset(newDefaultValues);
         setOriginalAgentData(newAgentData);
+        setDeletedImageKeys([]);
       } else {
         setAlertTitle("Update Failed");
         setError(response.error || "Agent update failed");
@@ -570,7 +523,7 @@ export default function EditAgentForm() {
         onSubmit={handleSubmit(onSubmit)}
         className="grid grid-cols-1 gap-6 xl:grid-cols-2"
       >
-        <Modal isOpen={isOpen} onClose={closeModal} className="max-w-xl m-4">
+        <Modal isOpen={isOpen} onClose={closeModal} className="max-w-lg m-4">
           <div className="relative w-full rounded-3xl bg-white dark:bg-gray-900 max-w-[600px] p-5 lg:p-10">
             <div className="text-left">
               <h4 className="mb-8 text-2xl font-semibold text-center text-gray-800 dark:text-white/90 sm:text-title-sm">
@@ -612,18 +565,18 @@ export default function EditAgentForm() {
                   First Name <span className="text-error-500">*</span>
                 </Label>
                 <Controller
-                  name="firstName"
+                  name="firstname"
                   control={control}
                   render={({ field }) => (
                     <Input
                       {...field}
                       type="text"
-                      id="firstName"
+                      id="firstname"
                       placeholder="Enter first name"
                       disabled={loading || uploadLoading}
-                      error={!!errors.firstName}
-                      success={dirtyFields.firstName && !errors.firstName}
-                      hint={errors.firstName?.message}
+                      error={!!errors.firstname}
+                      success={dirtyFields.firstname && !errors.firstname}
+                      hint={errors.firstname?.message}
                     />
                   )}
                 />
@@ -634,18 +587,18 @@ export default function EditAgentForm() {
                   Last Name <span className="text-error-500">*</span>
                 </Label>
                 <Controller
-                  name="lastName"
+                  name="lastname"
                   control={control}
                   render={({ field }) => (
                     <Input
                       {...field}
                       type="text"
-                      id="lastName"
+                      id="lastname"
                       placeholder="Enter last name"
                       disabled={loading || uploadLoading}
-                      error={!!errors.lastName}
-                      success={dirtyFields.lastName && !errors.lastName}
-                      hint={errors.lastName?.message}
+                      error={!!errors.lastname}
+                      success={dirtyFields.lastname && !errors.lastname}
+                      hint={errors.lastname?.message}
                     />
                   )}
                 />
@@ -654,13 +607,13 @@ export default function EditAgentForm() {
               <div>
                 <Label>Middle Name (Optional)</Label>
                 <Controller
-                  name="middleName"
+                  name="middlename"
                   control={control}
                   render={({ field }) => (
                     <Input
                       {...field}
                       type="text"
-                      id="middleName"
+                      id="middlename"
                       placeholder="Enter middle name"
                       disabled={loading || uploadLoading}
                     />
@@ -673,18 +626,18 @@ export default function EditAgentForm() {
                   Username <span className="text-error-500">*</span>
                 </Label>
                 <Controller
-                  name="userName"
+                  name="username"
                   control={control}
                   render={({ field }) => (
                     <Input
                       {...field}
                       type="text"
-                      id="userName"
+                      id="username"
                       placeholder="Enter username"
                       disabled={loading || uploadLoading}
-                      error={!!errors.userName}
-                      success={dirtyFields.userName && !errors.userName}
-                      hint={errors.userName?.message || "max length 12"}
+                      error={!!errors.username}
+                      success={dirtyFields.username && !errors.username}
+                      hint={errors.username?.message || "max length 12"}
                     />
                   )}
                 />
@@ -695,18 +648,20 @@ export default function EditAgentForm() {
                   Business Name <span className="text-error-500">*</span>
                 </Label>
                 <Controller
-                  name="businessName"
+                  name="business_name"
                   control={control}
                   render={({ field }) => (
                     <Input
                       {...field}
                       type="text"
-                      id="businessName"
+                      id="business_name"
                       placeholder="Enter business name"
                       disabled={loading || uploadLoading}
-                      error={!!errors.businessName}
-                      success={dirtyFields.businessName && !errors.businessName}
-                      hint={errors.businessName?.message}
+                      error={!!errors.business_name}
+                      success={
+                        dirtyFields.business_name && !errors.business_name
+                      }
+                      hint={errors.business_name?.message}
                     />
                   )}
                 />
@@ -718,16 +673,10 @@ export default function EditAgentForm() {
                   <span className="text-error-500">(read only)</span>
                 </Label>
                 <Controller
-                  name="businessPhone"
+                  name="business_phone"
                   control={control}
                   render={({ field }) => (
-                    <Input
-                      {...field}
-                      type="tel"
-                      id="businessPhone"
-                      selectedCountries={["SL"]}
-                      readOnly
-                    />
+                    <Input {...field} type="tel" id="business_phone" readOnly />
                   )}
                 />
               </div>
@@ -740,13 +689,7 @@ export default function EditAgentForm() {
                   name="phone"
                   control={control}
                   render={({ field }) => (
-                    <Input
-                      {...field}
-                      type="tel"
-                      id="phone"
-                      selectedCountries={["SL"]}
-                      readOnly
-                    />
+                    <Input {...field} type="tel" id="phone" readOnly />
                   )}
                 />
               </div>
@@ -782,20 +725,17 @@ export default function EditAgentForm() {
                   Agency Type <span className="text-error-500">*</span>
                 </Label>
                 <Controller
-                  name="agentType"
+                  name="type"
                   control={control}
                   render={({ field }) => (
                     <>
                       <div
-                        className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
-                          errors.agentType
+                        className={`relative dropdown-toggle h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
+                          errors.type
                             ? "border-error-500"
                             : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                         }`}
-                        onClick={() => {
-                          if (loading || uploadLoading) return;
-                          setIsTypeDropdownOpen(!isTypeDropdownOpen);
-                        }}
+                        onClick={() => handleDropdownToggle("agentType")}
                       >
                         {field.value ? (
                           <span> {field.value}</span>
@@ -807,8 +747,8 @@ export default function EditAgentForm() {
                         <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
                       </div>
                       <Dropdown
-                        isOpen={isTypeDropdownOpen}
-                        onClose={() => setIsTypeDropdownOpen(false)}
+                        isOpen={openDropdown === "agentType"}
+                        onClose={() => setOpenDropdown(null)}
                         className="w-full p-2"
                         search={false}
                       >
@@ -817,7 +757,7 @@ export default function EditAgentForm() {
                             key={option}
                             onItemClick={() => {
                               field.onChange(option);
-                              setIsTypeDropdownOpen(false);
+                              setOpenDropdown(null);
                             }}
                             className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                           >
@@ -828,9 +768,9 @@ export default function EditAgentForm() {
                     </>
                   )}
                 />
-                {errors.agentType && (
+                {errors.type && (
                   <p className="mt-0.5 text-xs text-right pr-2 text-error-500">
-                    {errors.agentType.message}
+                    {errors.type.message}
                   </p>
                 )}
               </div>
@@ -846,15 +786,12 @@ export default function EditAgentForm() {
                     render={({ field }) => (
                       <>
                         <div
-                          className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
+                          className={`relative dropdown-toggle h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
                             errors.model
                               ? "border-error-500"
                               : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                           }`}
-                          onClick={() => {
-                            if (loading || uploadLoading) return;
-                            setIsModelDropdownOpen(!isModelDropdownOpen);
-                          }}
+                          onClick={() => handleDropdownToggle("model")}
                         >
                           {field.value ? (
                             <span> {field.value}</span>
@@ -866,8 +803,8 @@ export default function EditAgentForm() {
                           <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
                         </div>
                         <Dropdown
-                          isOpen={isModelDropdownOpen}
-                          onClose={() => setIsModelDropdownOpen(false)}
+                          isOpen={openDropdown === "model"}
+                          onClose={() => setOpenDropdown(null)}
                           className="w-full p-2"
                           search={false}
                         >
@@ -876,7 +813,7 @@ export default function EditAgentForm() {
                               key={option}
                               onItemClick={() => {
                                 field.onChange(option);
-                                setIsModelDropdownOpen(false);
+                                setOpenDropdown(null);
                               }}
                               className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                             >
@@ -906,19 +843,17 @@ export default function EditAgentForm() {
                   Address <span className="text-error-500">*</span>
                 </Label>
                 <Controller
-                  name="businessAddress"
+                  name="address"
                   control={control}
                   render={({ field }) => (
                     <Input
                       {...field}
                       type="text"
-                      id="businessAddress"
+                      id="address"
                       disabled={loading || uploadLoading}
-                      error={!!errors.businessAddress}
-                      success={
-                        dirtyFields.businessAddress && !errors.businessAddress
-                      }
-                      hint={errors.businessAddress?.message}
+                      error={!!errors.address}
+                      success={dirtyFields.address && !errors.address}
+                      hint={errors.address?.message}
                     />
                   )}
                 />
@@ -934,15 +869,12 @@ export default function EditAgentForm() {
                   render={({ field }) => (
                     <>
                       <div
-                        className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
+                        className={`relative dropdown-toggle h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
                           errors.district
                             ? "border-error-500"
                             : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                         }`}
-                        onClick={() => {
-                          if (loading || uploadLoading) return;
-                          setIsDistrictDropdownOpen(!isDistrictDropdownOpen);
-                        }}
+                        onClick={() => handleDropdownToggle("district")}
                       >
                         {field.value ? (
                           <span> {field.value}</span>
@@ -954,8 +886,8 @@ export default function EditAgentForm() {
                         <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
                       </div>
                       <Dropdown
-                        isOpen={isDistrictDropdownOpen}
-                        onClose={() => setIsDistrictDropdownOpen(false)}
+                        isOpen={openDropdown === "district"}
+                        onClose={() => setOpenDropdown(null)}
                         className="w-full p-2 h-50 overflow-y-auto"
                         search={false}
                       >
@@ -964,7 +896,7 @@ export default function EditAgentForm() {
                             key={option}
                             onItemClick={() => {
                               field.onChange(option);
-                              setIsDistrictDropdownOpen(false);
+                              setOpenDropdown(null);
                             }}
                             className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                           >
@@ -1078,7 +1010,7 @@ export default function EditAgentForm() {
                 </Label>
                 <div
                   className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
-                    errors.businessImageUrl
+                    errors.business_image
                       ? "border-error-500"
                       : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                   }`}
@@ -1142,8 +1074,12 @@ export default function EditAgentForm() {
                           disabled={loading || uploadLoading}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setValue("businessImageUrl", "");
+                            setValue("business_image", "");
                             setBusinessImageFile(null);
+                            setDeletedImageKeys((prev) => [
+                              ...prev,
+                              "business_image",
+                            ]);
                           }}
                           className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
                           title="delete uploaded file"
@@ -1182,7 +1118,7 @@ export default function EditAgentForm() {
                 </Label>
                 <div
                   className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
-                    errors.addressDocumentUrl
+                    errors.address_document
                       ? "border-error-500"
                       : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                   }`}
@@ -1246,8 +1182,12 @@ export default function EditAgentForm() {
                           disabled={loading || uploadLoading}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setValue("addressDocumentUrl", "");
+                            setValue("address_document", "");
                             setAddressDocumentFile(null);
+                            setDeletedImageKeys((prev) => [
+                              ...prev,
+                              "address_document",
+                            ]);
                           }}
                           className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
                           title="delete uploaded file"
@@ -1290,7 +1230,7 @@ export default function EditAgentForm() {
               </Label>
               <div
                 className={`overflow-hidden transition relative border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
-                  errors.businessRegDocumentUrl
+                  errors.business_registration
                     ? "border-error-500"
                     : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                 }`}
@@ -1354,8 +1294,12 @@ export default function EditAgentForm() {
                         disabled={loading || uploadLoading}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setValue("businessRegDocumentUrl", "");
+                          setValue("business_registration", "");
                           setBusinessRegDocumentFile(null);
+                          setDeletedImageKeys((prev) => [
+                            ...prev,
+                            "business_registration",
+                          ]);
                         }}
                         className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
                         title="delete uploaded file"
@@ -1392,20 +1336,17 @@ export default function EditAgentForm() {
                 ID Type <span className="text-error-500">*</span>
               </Label>
               <Controller
-                name="idType"
+                name="id_type"
                 control={control}
                 render={({ field }) => (
                   <>
                     <div
-                      className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
-                        errors.idType
+                      className={`relative dropdown-toggle h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
+                        errors.id_type
                           ? "border-error-500"
                           : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                       }`}
-                      onClick={() => {
-                        if (loading || uploadLoading) return;
-                        setIsIdTypeDropdownOpen(!isIdTypeDropdownOpen);
-                      }}
+                      onClick={() => handleDropdownToggle("idType")}
                     >
                       {field.value ? (
                         <span> {field.value}</span>
@@ -1417,8 +1358,8 @@ export default function EditAgentForm() {
                       <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
                     </div>
                     <Dropdown
-                      isOpen={isIdTypeDropdownOpen}
-                      onClose={() => setIsIdTypeDropdownOpen(false)}
+                      isOpen={openDropdown === "idType"}
+                      onClose={() => setOpenDropdown(null)}
                       className="w-full p-2"
                       search={false}
                     >
@@ -1427,7 +1368,7 @@ export default function EditAgentForm() {
                           key={option}
                           onItemClick={() => {
                             field.onChange(option);
-                            setIsIdTypeDropdownOpen(false);
+                            setOpenDropdown(null);
                           }}
                           className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                         >
@@ -1446,7 +1387,7 @@ export default function EditAgentForm() {
               </Label>
               <div
                 className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
-                  errors.idImageUrl
+                  errors.id_document
                     ? "border-error-500"
                     : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                 }`}
@@ -1510,8 +1451,12 @@ export default function EditAgentForm() {
                         disabled={loading || uploadLoading}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setValue("idImageUrl", "");
+                          setValue("id_document", "");
                           setIdImageFile(null);
+                          setDeletedImageKeys((prev) => [
+                            ...prev,
+                            "id_document",
+                          ]);
                         }}
                         className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
                         title="delete uploaded file"
@@ -1549,33 +1494,37 @@ export default function EditAgentForm() {
                   Update Agent Status <span className="text-error-500">*</span>
                 </Label>
                 <Controller
-                  name="agentStatus"
+                  name="status"
                   control={control}
                   render={({ field }) => (
                     <>
                       <div
-                        className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
-                          errors.agentStatus
+                        className={`relative dropdown-toggle h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
+                          errors.status
                             ? "border-error-500"
                             : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                         }`}
-                        onClick={() => {
-                          if (loading || uploadLoading) return;
-                          setIsStatusDropdownOpen(!isStatusDropdownOpen);
-                        }}
+                        onClick={() => handleDropdownToggle("status")}
                       >
-                        {field.value ? (
-                          <span> {field.value}</span>
+                        {field.value !== undefined ? (
+                          <span>
+                            {
+                              statusOptions.find(
+                                (option) => option.value === field.value
+                              )?.label
+                            }
+                          </span>
                         ) : (
                           <span className="text-gray-400 dark:text-white/30">
                             Select Status
                           </span>
                         )}
+
                         <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
                       </div>
                       <Dropdown
-                        isOpen={isStatusDropdownOpen}
-                        onClose={() => setIsStatusDropdownOpen(false)}
+                        isOpen={openDropdown === "status"}
+                        onClose={() => setOpenDropdown(null)}
                         className="w-full p-2"
                         search={false}
                       >
@@ -1583,8 +1532,8 @@ export default function EditAgentForm() {
                           <DropdownItem
                             key={option.label}
                             onItemClick={() => {
-                              field.onChange(option.label);
-                              setIsStatusDropdownOpen(false);
+                              field.onChange(option.value);
+                              setOpenDropdown(null);
                             }}
                             className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                           >

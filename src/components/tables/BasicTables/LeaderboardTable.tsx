@@ -13,7 +13,21 @@ interface Order {
   tableContent: BasicMarketerInfo[] | undefined;
 }
 
+const getOrdinal = (n: number) => {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+};
+
 const LeaderboardTable: React.FC<Order> = ({ tableContent, tableHeading }) => {
+  const sortedContent = tableContent
+    ? [...tableContent].sort(
+        (a, b) =>
+          (b.weekly_agents[0]?.agents_this_week || 0) -
+          (a.weekly_agents[0]?.agents_this_week || 0)
+      )
+    : [];
+
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
       <div className="max-w-full overflow-x-auto">
@@ -33,8 +47,8 @@ const LeaderboardTable: React.FC<Order> = ({ tableContent, tableHeading }) => {
           </TableHeader>
 
           <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-            {tableContent && tableContent.length !== 0 ? (
-              tableContent.map((item) => {
+            {sortedContent.length > 0 ? (
+              sortedContent.map((item, index) => {
                 const thisWeekAgents =
                   item.weekly_agents[0].agents_this_week || 0;
                 const lastWeekAgents =
@@ -61,12 +75,18 @@ const LeaderboardTable: React.FC<Order> = ({ tableContent, tableHeading }) => {
                 const showWeeklyBadge = weeklyDiffPercent !== 0;
                 return (
                   <TableRow key={item.marketer_id}>
+                    {/* Rank */}
+                    <TableCell className="px-5 py-4 sm:px-6 text-start">
+                      <span className="font-medium text-gray-800 text-theme-sm dark:text-white/90">
+                        {getOrdinal(index + 1)}
+                      </span>
+                    </TableCell>
+
                     {/* User info */}
                     <TableCell className="px-5 py-4 sm:px-6 text-start">
                       <div className="flex items-center gap-3">
-                        {/* Placeholder for user image if available */}
+                        {/* Placeholder for user image */}
                         <div className="w-10 h-10 overflow-hidden rounded-full bg-gray-200 flex items-center justify-center">
-                          {/* Replace with actual image if available */}
                           <span className="text-gray-500">👤</span>
                         </div>
                         <div>

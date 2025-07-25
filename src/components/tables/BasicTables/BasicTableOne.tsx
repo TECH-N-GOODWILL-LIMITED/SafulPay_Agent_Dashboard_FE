@@ -14,6 +14,7 @@ import Input from "../../form/input/InputField";
 import Label from "../../form/Label";
 import { useAuth } from "../../../context/AuthContext";
 import { useAllUsers } from "../../../context/UsersContext";
+import { useMyAgents } from "../../../context/MyAgentsContext";
 import {
   changeAgentStatus,
   changeUserStatus,
@@ -81,6 +82,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
   const { isOpen, openModal, closeModal } = useModal();
   const { user, token, logout } = useAuth();
   const { fetchUsers } = useAllUsers();
+  const { fetchMyAgents } = useMyAgents();
 
   const showResidualAmount = tableHeading?.includes("Residual Amount");
 
@@ -123,6 +125,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
 
       if (response.success) {
         await fetchUsers();
+        await fetchMyAgents();
         return true;
       } else {
         setAlertTitle("Validation Error");
@@ -271,7 +274,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
       return true;
     }
     if (userRole === MARKETER_ROLE) {
-      return row.temp === 0 || row.kycStatus === "incomplete";
+      return row.temp === 0 || row.kycStatus === "Incomplete";
     }
     return false;
   };
@@ -331,7 +334,15 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                   </TableCell>
 
                   <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                    {order.role}
+                    <span className="block font-medium text-gray-500 text-theme-sm dark:text-white/90">
+                      {order.role}
+                    </span>
+                    <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
+                      {(order.role === AGENT_ROLE ||
+                        order.role === SUPER_AGENT_ROLE ||
+                        order.role === MERCHANT_ROLE) &&
+                        order.model}
+                    </span>
                   </TableCell>
 
                   {order.code && (
@@ -395,7 +406,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                       onClick={() => handleOpenModal(order)}
                       className="hover:text-brand-500 dark:text-gray-400 dark:hover:text-gray-300"
                     >
-                      {canEditUser(user?.role, order) ? "Edit" : "View"}
+                      {canEditUser(user?.role, order) ? "View / Edit" : "View"}
                     </button>
                   </TableCell>
                 </TableRow>

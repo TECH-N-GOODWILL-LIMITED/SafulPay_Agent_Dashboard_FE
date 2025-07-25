@@ -6,7 +6,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import {
   addAgent,
-  checkUserExist,
+  // checkUserExist,
   checkPhoneType,
   getUserByReferralCode,
   uploadToCloudinary,
@@ -97,13 +97,7 @@ export default function OnboardAgentForm() {
   const [loading, setLoading] = useState<boolean>(false);
   const [geoLoading, setGeoLoading] = useState<boolean>(false);
   const [uploadLoading, setUploadLoading] = useState<boolean>(false);
-  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState<boolean>(false);
-  const [isModelDropdownOpen, setIsModelDropdownOpen] =
-    useState<boolean>(false);
-  const [isIdTypeDropdownOpen, setIsIdTypeDropdownOpen] =
-    useState<boolean>(false);
-  const [isDistrictDropdownOpen, setIsDistrictDropdownOpen] =
-    useState<boolean>(false);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
   const {
     handleSubmit,
@@ -156,6 +150,11 @@ export default function OnboardAgentForm() {
   const { setOnboardingUser } = useAuth();
 
   const { isOpen, openModal, closeModal } = useModal();
+
+  const handleDropdownToggle = (dropdownName: string) => {
+    if (loading || uploadLoading) return;
+    setOpenDropdown((prev) => (prev === dropdownName ? null : dropdownName));
+  };
 
   useEffect(() => {
     const validateReferralCode = async () => {
@@ -415,22 +414,22 @@ export default function OnboardAgentForm() {
         return;
       }
 
-      const userExistResponse = await checkUserExist(formattedPhoneNumber);
-      if (!userExistResponse.success) {
-        setFormError("phone", {
-          type: "manual",
-          message: "User not found. Advice to register on SafulPay app",
-        });
-      }
+      // const userExistResponse = await checkUserExist(formattedPhoneNumber);
+      // if (!userExistResponse.success) {
+      //   setFormError("phone", {
+      //     type: "manual",
+      //     message: "User not found. Advice to register on SafulPay app",
+      //   });
+      // }
     } else if (field === "businessPhone") {
-      const userExistResponse = await checkUserExist(formattedPhoneNumber);
-      if (userExistResponse.success) {
-        setFormError("businessPhone", {
-          type: "manual",
-          message: "User exists. Cannot use this line for business.",
-        });
-        return;
-      }
+      // const userExistResponse = await checkUserExist(formattedPhoneNumber);
+      // if (userExistResponse.success) {
+      //   setFormError("businessPhone", {
+      //     type: "manual",
+      //     message: "User exists. Cannot use this line for business.",
+      //   });
+      //   return;
+      // }
 
       const phoneTypeResponse = await checkPhoneType(formattedPhoneNumber);
       if (phoneTypeResponse.success && phoneTypeResponse.data?.type) {
@@ -870,15 +869,12 @@ export default function OnboardAgentForm() {
                   render={({ field }) => (
                     <>
                       <div
-                        className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer dark:text-white/90 ${
+                        className={`relative dropdown-toggle h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer dark:text-white/90 ${
                           errors.agentType
                             ? "border-error-500"
                             : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                         }`}
-                        onClick={() => {
-                          if (loading || uploadLoading) return;
-                          setIsTypeDropdownOpen(!isTypeDropdownOpen);
-                        }}
+                        onClick={() => handleDropdownToggle("agentType")}
                       >
                         {field.value ? (
                           <span>{field.value}</span>
@@ -890,8 +886,8 @@ export default function OnboardAgentForm() {
                         <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
                       </div>
                       <Dropdown
-                        isOpen={isTypeDropdownOpen}
-                        onClose={() => setIsTypeDropdownOpen(false)}
+                        isOpen={openDropdown === "agentType"}
+                        onClose={() => setOpenDropdown(null)}
                         className="w-full p-2"
                         search={false}
                       >
@@ -900,7 +896,7 @@ export default function OnboardAgentForm() {
                             key={option}
                             onItemClick={() => {
                               field.onChange(option);
-                              setIsTypeDropdownOpen(false);
+                              setOpenDropdown(null);
                             }}
                             className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                           >
@@ -929,15 +925,12 @@ export default function OnboardAgentForm() {
                     render={({ field }) => (
                       <>
                         <div
-                          className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer dark:text-white/90 ${
+                          className={`relative dropdown-toggle h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer dark:text-white/90 ${
                             errors.model
                               ? "border-error-500"
                               : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                           }`}
-                          onClick={() => {
-                            if (loading || uploadLoading) return;
-                            setIsModelDropdownOpen(!isModelDropdownOpen);
-                          }}
+                          onClick={() => handleDropdownToggle("model")}
                         >
                           {field.value ? (
                             <span>{field.value}</span>
@@ -949,8 +942,8 @@ export default function OnboardAgentForm() {
                           <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
                         </div>
                         <Dropdown
-                          isOpen={isModelDropdownOpen}
-                          onClose={() => setIsModelDropdownOpen(false)}
+                          isOpen={openDropdown === "model"}
+                          onClose={() => setOpenDropdown(null)}
                           className="w-full p-2"
                           search={false}
                         >
@@ -959,7 +952,7 @@ export default function OnboardAgentForm() {
                               key={option}
                               onItemClick={() => {
                                 field.onChange(option);
-                                setIsModelDropdownOpen(false);
+                                setOpenDropdown(null);
                               }}
                               className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                             >
@@ -1017,15 +1010,12 @@ export default function OnboardAgentForm() {
                   render={({ field }) => (
                     <>
                       <div
-                        className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer dark:text-white/90 ${
+                        className={`relative dropdown-toggle h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer dark:text-white/90 ${
                           errors.district
                             ? "border-error-500"
                             : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                         }`}
-                        onClick={() => {
-                          if (loading || uploadLoading) return;
-                          setIsDistrictDropdownOpen(!isDistrictDropdownOpen);
-                        }}
+                        onClick={() => handleDropdownToggle("district")}
                       >
                         {field.value ? (
                           <span>{field.value}</span>
@@ -1037,8 +1027,8 @@ export default function OnboardAgentForm() {
                         <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
                       </div>
                       <Dropdown
-                        isOpen={isDistrictDropdownOpen}
-                        onClose={() => setIsDistrictDropdownOpen(false)}
+                        isOpen={openDropdown === "district"}
+                        onClose={() => setOpenDropdown(null)}
                         className="w-full p-2 h-50 overflow-y-auto"
                         // search={true}
                       >
@@ -1047,7 +1037,7 @@ export default function OnboardAgentForm() {
                             key={option}
                             onItemClick={() => {
                               field.onChange(option);
-                              setIsDistrictDropdownOpen(false);
+                              setOpenDropdown(null);
                             }}
                             className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                           >
@@ -1475,15 +1465,12 @@ export default function OnboardAgentForm() {
                 render={({ field }) => (
                   <>
                     <div
-                      className={`relative h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer dark:text-white/90 ${
+                      className={`relative dropdown-toggle h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer dark:text-white/90 ${
                         errors.idType
                           ? "border-error-500"
                           : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                       }`}
-                      onClick={() => {
-                        if (loading || uploadLoading) return;
-                        setIsIdTypeDropdownOpen(!isIdTypeDropdownOpen);
-                      }}
+                      onClick={() => handleDropdownToggle("idType")}
                     >
                       {field.value ? (
                         <span>{field.value}</span>
@@ -1495,8 +1482,8 @@ export default function OnboardAgentForm() {
                       <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
                     </div>
                     <Dropdown
-                      isOpen={isIdTypeDropdownOpen}
-                      onClose={() => setIsIdTypeDropdownOpen(false)}
+                      isOpen={openDropdown === "idType"}
+                      onClose={() => setOpenDropdown(null)}
                       className="w-full p-2"
                       search={false}
                     >
@@ -1505,7 +1492,7 @@ export default function OnboardAgentForm() {
                           key={option}
                           onItemClick={() => {
                             field.onChange(option);
-                            setIsIdTypeDropdownOpen(false);
+                            setOpenDropdown(null);
                           }}
                           className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                         >
