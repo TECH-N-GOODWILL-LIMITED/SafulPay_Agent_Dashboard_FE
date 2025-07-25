@@ -10,6 +10,7 @@ export default function MarketersLeaderboard() {
   const { marketerStats: tableData, loading, error } = useAllMarketers();
 
   const tableHeader: string[] = [
+    "Rank",
     "Full name / Username",
     "Referral code",
     "Total agents",

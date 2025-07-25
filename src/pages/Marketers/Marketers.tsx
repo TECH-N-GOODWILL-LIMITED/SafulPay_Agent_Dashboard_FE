@@ -72,8 +72,8 @@ const AdminView: React.FC = () => {
       lastName: marketer.lastname,
       username: marketer.username,
       role: marketer.role,
-      code: marketer.referral_code,
-      phone: marketer.phone,
+      code: marketer.referral_code || "N/A",
+      phone: marketer.phone || "No Phone Number",
       status:
         marketer.status === 1
           ? "Active"
@@ -155,8 +155,8 @@ const MarketerView: React.FC = () => {
       lastName: marketer.lastname,
       username: marketer.username,
       role: marketer.role,
-      code: marketer.referral_code,
-      phone: marketer.phone,
+      code: marketer.referral_code || "N/A",
+      phone: marketer.phone || "No Phone Number",
       status:
         marketer.status === 1
           ? "Active"

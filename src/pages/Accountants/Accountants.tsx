@@ -65,14 +65,14 @@ const Accountants: React.FC = () => {
 
     return filteredAccountants.map((accountant: usersItem) => ({
       id: accountant.id,
-      image: "/images/user/user-17.jpg", // or actual image URL if available
+      image: "/images/user/accountant-icon.jpg", // or actual image URL if available
       name: accountant.name,
       firstName: accountant.firstname,
       lastName: accountant.lastname,
       username: accountant.username,
       role: accountant.role,
       cih: accountant.threshold_cash_in_hand || 0.0,
-      phone: accountant.phone,
+      phone: accountant.phone || "No Phone Number",
       status:
         accountant.status === 1
           ? "Active"

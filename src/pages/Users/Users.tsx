@@ -68,7 +68,8 @@ const Users: React.FC = () => {
 
     return filteredUsers.map((user: usersItem) => ({
       id: user.id,
-      image: user.image || "/images/user/user-12.jpg", // fallback image
+      // image: user.image || "/images/user/user-image.jpg", // fallback image
+      image: "/images/user/user-image.jpg", // fallback image
       name: user.name || "N/A",
       firstName: user.firstname,
       lastName: user.lastname,

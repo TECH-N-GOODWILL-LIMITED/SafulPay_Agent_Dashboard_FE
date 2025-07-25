@@ -63,14 +63,14 @@ const Riders: React.FC = () => {
 
     return filteredRiders.map((rider: usersItem) => ({
       id: rider.id,
-      image: "/images/user/user-20.jpg",
+      image: "/images/user/rider-icon.jpg",
       name: rider.name,
       firstName: rider.firstname,
       lastName: rider.lastname,
       username: rider.username || "No username",
       role: rider.role,
       cih: rider.threshold_cash_in_hand || 0.0,
-      phone: rider.phone,
+      phone: rider.phone || "No Phone Number",
       status:
         rider.status === 1
           ? "Active"
