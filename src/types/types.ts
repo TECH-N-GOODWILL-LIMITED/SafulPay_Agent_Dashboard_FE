@@ -160,7 +160,7 @@ interface TotalAgentsPerWeek extends BaseAgentsPerWeek {
 }
 
 interface AgentsThisWeek extends BaseAgentsPerWeek {
-  agents_this_week: number;
+  agents_this_week?: number;
 }
 
 interface BasicInfo {
