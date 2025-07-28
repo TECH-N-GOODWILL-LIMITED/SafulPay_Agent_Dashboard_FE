@@ -49,8 +49,6 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({
 
   const { user, token } = useAuth();
 
-  console.log(token);
-
   const fetchAgents = async () => {
     if (!token) {
       setTitle("Not authenticated");

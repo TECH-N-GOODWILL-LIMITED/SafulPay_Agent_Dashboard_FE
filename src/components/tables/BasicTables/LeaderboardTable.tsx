@@ -50,9 +50,9 @@ const LeaderboardTable: React.FC<Order> = ({ tableContent, tableHeading }) => {
             {sortedContent.length > 0 ? (
               sortedContent.map((item, index) => {
                 const thisWeekAgents =
-                  item.weekly_agents[0].agents_this_week || 0;
+                  item.weekly_agents[0]?.agents_this_week || 0;
                 const lastWeekAgents =
-                  item.weekly_agents[1].agents_this_week || 0;
+                  item.weekly_agents[1]?.agents_this_week || 0;
                 const currentTotal = item.total_agents || 0;
                 const previousTotal = currentTotal - thisWeekAgents;
 
@@ -134,14 +134,14 @@ const LeaderboardTable: React.FC<Order> = ({ tableContent, tableHeading }) => {
                     {/* Last week referred agents */}
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                       <div className="flex items-end gap-4">
-                        {item.weekly_agents[1].agents_this_week}
+                        {item.weekly_agents[1]?.agents_this_week || 0}
                       </div>
                     </TableCell>
 
                     {/* This week referred agents */}
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                       <div className="flex items-end gap-4">
-                        {item.weekly_agents[0].agents_this_week}
+                        {item.weekly_agents[0]?.agents_this_week || 0}
 
                         {showWeeklyBadge && (
                           <Badge
