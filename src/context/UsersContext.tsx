@@ -7,22 +7,14 @@ import {
   useCallback,
 } from "react";
 import { useAuth } from "./AuthContext";
-import { getAllUsers, getAllAgents } from "../utils/api";
-import type { Agent, Users } from "../types/types";
+import { getAllUsers } from "../utils/api";
+import type { Users } from "../types/types";
 import { ADMIN_ROLE } from "../utils/roles";
 
-interface AgentWithRole extends Agent {
-  role: string;
-}
-
-export type usersItem = Users | AgentWithRole;
-
 interface UsersContextType {
-  allAgents: Agent[];
-  allUsers: usersItem[];
-  filteredUsers: usersItem[];
+  allUsers: Users[];
+  filteredUsers: Users[];
   fetchUsers: () => Promise<void>;
-  fetchAgents: () => Promise<void>;
   filterByRole: (role: string | string[]) => void;
   title: string;
   error?: string;
@@ -31,7 +23,7 @@ interface UsersContextType {
 
 const UsersContext = createContext<UsersContextType | undefined>(undefined);
 
-export const useAllUsers = () => {
+export const useUsers = () => {
   const context = useContext(UsersContext);
   if (!context) throw new Error("useUser must be used within UserProvider");
   return context;
@@ -40,33 +32,13 @@ export const useAllUsers = () => {
 export const UsersProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [allUsers, setAllUsers] = useState<usersItem[]>([]);
-  const [allAgents, setAllAgents] = useState<Agent[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<usersItem[]>([]);
+  const [allUsers, setAllUsers] = useState<Users[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<Users[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [title, setTitle] = useState<string>("");
   const [error, setError] = useState<string>("");
 
   const { user, token } = useAuth();
-
-  const fetchAgents = async () => {
-    if (!token) {
-      setTitle("Not authenticated");
-      setError("Refresh page...");
-      setLoading(false);
-      return;
-    }
-
-    const response = await getAllAgents(token);
-    if (response.success && response.data) {
-      setAllAgents(response.data.agents);
-      console.log(allAgents.length);
-    } else {
-      setTitle("Failed to fetch agents");
-      setError(response.error || "Failed to fetch agents");
-    }
-    setLoading(false);
-  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -86,35 +58,15 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({
       return;
     }
 
-    const [userRes, agentRes] = await Promise.all([
-      getAllUsers(token),
-      getAllAgents(token),
-    ]);
+    const userRes = await getAllUsers(token);
 
-    if (userRes.success && userRes.data && agentRes.success && agentRes.data) {
-      const combined = [
-        ...userRes.data.users,
-        ...agentRes.data.agents.map((agent) => ({
-          ...agent,
-          role: agent.type,
-        })),
-      ];
-
-      setAllUsers(combined);
-      setFilteredUsers(combined);
-
+    if (userRes.success && userRes.data) {
+      setAllUsers(userRes.data.users);
+      setFilteredUsers(userRes.data.users);
       setError("");
     } else {
-      if (!userRes.success && !agentRes.success) {
-        setTitle("ERROR !!!");
-        setError("Failed to fetch users and agents");
-      } else if (!userRes.success) {
-        setTitle("Failed to fetch users");
-        setError(userRes.error || "Failed to fetch users");
-      } else if (!agentRes.success) {
-        setTitle("Failed to fetch agents");
-        setError(agentRes.error || "Failed to fetch agents");
-      }
+      setTitle("Failed to fetch users");
+      setError(userRes.error || "Failed to fetch users");
     }
     setLoading(false);
   };
@@ -142,10 +94,8 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({
     <UsersContext.Provider
       value={{
         allUsers,
-        allAgents,
         filteredUsers,
         fetchUsers,
-        fetchAgents,
         filterByRole,
         title,
         error,

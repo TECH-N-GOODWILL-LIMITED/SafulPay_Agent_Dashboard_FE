@@ -13,7 +13,7 @@ import Button from "../../ui/button/Button";
 import Input from "../../form/input/InputField";
 import Label from "../../form/Label";
 import { useAuth } from "../../../context/AuthContext";
-import { useAllUsers } from "../../../context/UsersContext";
+import { useUsers } from "../../../context/UsersContext";
 import { useMyAgents } from "../../../context/MyAgentsContext";
 import {
   changeAgentStatus,
@@ -81,7 +81,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
 
   const { isOpen, openModal, closeModal } = useModal();
   const { user, token, logout } = useAuth();
-  const { fetchUsers } = useAllUsers();
+  const { fetchUsers } = useUsers();
   const { fetchMyAgents } = useMyAgents();
 
   const showResidualAmount = tableHeading?.includes("Residual Amount");
@@ -274,7 +274,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
       return true;
     }
     if (userRole === MARKETER_ROLE) {
-      return row.temp === 0 || row.kycStatus === "Incomplete";
+      return row.temp === 0 && row.status === "Pending";
     }
     return false;
   };

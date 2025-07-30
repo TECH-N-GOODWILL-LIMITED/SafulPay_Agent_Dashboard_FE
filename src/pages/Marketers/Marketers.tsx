@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { userRoles, ADMIN_ROLE, MARKETER_ROLE } from "../../utils/roles";
-import { useAllUsers, usersItem } from "../../context/UsersContext";
+import { useUsers } from "../../context/UsersContext";
 import ComponentCard, {
   ActionButtonConfig,
   FilterConfig,
@@ -15,6 +15,7 @@ import type { UserBio } from "../../types/types";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../../components/ui/modal";
 import RegisterModal from "../../components/common/RegisterModal";
+import type { Users } from "../../types/types";
 
 const tableHeader: string[] = [
   "Name / Username",
@@ -26,7 +27,7 @@ const tableHeader: string[] = [
 
 const AdminView: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<string>("All");
-  const { title, error, loading, filteredUsers, filterByRole } = useAllUsers();
+  const { title, error, loading, filteredUsers, filterByRole } = useUsers();
   const { isOpen, openModal, closeModal } = useModal();
 
   const statusOptions = ["All", "Pending", "Active", "Suspended", "Rejected"];
@@ -51,7 +52,7 @@ const AdminView: React.FC = () => {
   ];
 
   const tableData = useMemo(() => {
-    const filteredMarketers = filteredUsers.filter((marketer: usersItem) => {
+    const filteredMarketers = filteredUsers.filter((marketer: Users) => {
       const status =
         marketer.status === 1
           ? "Active"
@@ -64,7 +65,7 @@ const AdminView: React.FC = () => {
       return statusMatch;
     });
 
-    return filteredMarketers.map((marketer: usersItem) => ({
+    return filteredMarketers.map((marketer: Users) => ({
       id: marketer.id,
       image: "/images/user/user-12.jpg", // or actual image URL if available
       name: marketer.name,

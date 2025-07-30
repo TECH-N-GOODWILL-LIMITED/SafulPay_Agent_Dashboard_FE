@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useAllUsers, usersItem } from "../../context/UsersContext";
+import { useUsers } from "../../context/UsersContext";
 import { userRoles, RIDER_ROLE } from "../../utils/roles";
 import ComponentCard, {
   ActionButtonConfig,
@@ -12,6 +12,7 @@ import Alert from "../../components/ui/alert/Alert";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../../components/ui/modal";
 import RegisterModal from "../../components/common/RegisterModal";
+import type { Users } from "../../types/types";
 
 const tableHeader: string[] = [
   "Name / Username",
@@ -23,7 +24,7 @@ const tableHeader: string[] = [
 
 const Riders: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<string>("All");
-  const { title, error, loading, filteredUsers, filterByRole } = useAllUsers();
+  const { title, error, loading, filteredUsers, filterByRole } = useUsers();
   const { isOpen, openModal, closeModal } = useModal();
 
   const statusOptions = ["All", "Pending", "Active", "Suspended", "Rejected"];
@@ -48,7 +49,7 @@ const Riders: React.FC = () => {
   ];
 
   const tableData = useMemo(() => {
-    const filteredRiders = filteredUsers.filter((rider: usersItem) => {
+    const filteredRiders = filteredUsers.filter((rider: Users) => {
       const status =
         rider.status === 1
           ? "Active"
@@ -61,7 +62,7 @@ const Riders: React.FC = () => {
       return statusMatch;
     });
 
-    return filteredRiders.map((rider: usersItem) => ({
+    return filteredRiders.map((rider: Users) => ({
       id: rider.id,
       image: "/images/user/rider-icon.jpg",
       name: rider.name,

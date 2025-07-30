@@ -9,7 +9,7 @@ import {
   getAgentById,
   updateAgentInfo,
 } from "../../utils/api";
-import { useAllUsers } from "../../context/UsersContext";
+import { useUsers } from "../../context/UsersContext";
 import ComponentCard from "../../components/common/ComponentCard";
 import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
@@ -111,7 +111,7 @@ export default function EditAgentForm() {
 
   const { isOpen, openModal, closeModal } = useModal();
 
-  const { fetchUsers } = useAllUsers();
+  const { fetchUsers } = useUsers();
 
   const statusOptions = [
     { label: "Pending", value: 0 },

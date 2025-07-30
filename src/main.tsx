@@ -8,6 +8,7 @@ import "./index.css";
 import "swiper/swiper-bundle.css";
 import "flatpickr/dist/flatpickr.css";
 import App from "./App.tsx";
+import { AgentsProvider } from "./context/AgentsContext.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -15,7 +16,9 @@ createRoot(document.getElementById("root")!).render(
       <AppWrapper>
         <AuthProvider>
           <UsersProvider>
-            <App />
+            <AgentsProvider>
+              <App />
+            </AgentsProvider>
           </UsersProvider>
         </AuthProvider>
       </AppWrapper>

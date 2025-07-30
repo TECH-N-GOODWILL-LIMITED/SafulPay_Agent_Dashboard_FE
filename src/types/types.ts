@@ -37,23 +37,6 @@ export interface LoginResponse {
   error?: [];
 }
 
-// export interface Marketer {
-//   id: number;
-//   firstname: string;
-//   lastname: string;
-//   name: string;
-//   username: string;
-//   phone: string;
-//   email: string;
-//   image?: string;
-//   status: number;
-//   role_id: number;
-//   country_code?: string;
-//   bearer_token: string;
-//   created_at: string;
-//   updated_at: string;
-// }
-
 // NOTE: Comon denomination of Agent and Users👇🏼
 export interface Users {
   id: number;
@@ -128,27 +111,23 @@ export interface Agent {
   // marketer: Marketer | null;
 }
 
+export interface AllAgentsData {
+  total_all_agents: number;
+  total_independent_agents: number;
+  total_target_agents: number;
+  total_super_agents: number;
+  total_merchants: number;
+  total_agents: number;
+  total_filter_result: number;
+  current_page: number;
+  per_page: number;
+  last_page: number;
+  data: Agent[];
+}
+
 export interface UpdatedAgentFields extends Partial<Agent> {
   reason: string;
 }
-
-// export interface AgentResponse {
-//   status: boolean;
-//   message: string;
-//   data: Agent[];
-// }
-
-// export interface AgentsPerWeek {
-//   year: string;
-//   week: string;
-//   total_agents: string;
-// }
-
-// export interface AgentsPerWeek<K extends keyof any> {
-//   year: string;
-//   week: string;
-//   [key in K]: string;
-// }
 
 interface BaseAgentsPerWeek {
   year: number;
@@ -179,6 +158,7 @@ export interface BasicMarketerInfo extends BasicInfo {
 export interface MarketerStats {
   total_agents_by_marketers: number;
   total_agents: number;
+  total_all_agents?: number;
   total_agents_per_week: TotalAgentsPerWeek[];
   data: BasicMarketerInfo[];
 }
@@ -213,6 +193,4 @@ export interface usersMetric {
   users: string;
   metric: number;
   currencySymbol?: boolean;
-  // cash: string;
-  // amount?: number;
 }

@@ -11,7 +11,7 @@ import {
   getUserByReferralCode,
   uploadToCloudinary,
 } from "../../utils/api";
-import { useAllUsers } from "../../context/UsersContext";
+import { useUsers } from "../../context/UsersContext";
 import { filterPhoneNumber } from "../../utils/utils";
 import PageBreadcrumb from "../common/PageBreadCrumb";
 import ComponentCard from "../common/ComponentCard";
@@ -146,7 +146,7 @@ export default function OnboardAgentForm() {
   const { marketer_ref } = useParams<{ marketer_ref: string }>();
   const marketer = marketer_ref && marketer_ref.toString().toUpperCase();
 
-  const { fetchUsers } = useAllUsers();
+  const { fetchUsers } = useUsers();
   const { setOnboardingUser } = useAuth();
 
   const { isOpen, openModal, closeModal } = useModal();
@@ -853,7 +853,7 @@ export default function OnboardAgentForm() {
                       />
                     )}
                   />
-                  <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none left-4 top-1/2 dark:text-gray-400">
+                  <span className="absolute text-gray-500  pointer-events-none left-4 top-2.5 dark:text-gray-400">
                     <EnvelopeIcon className="size-6" />
                   </span>
                 </div>
@@ -1087,7 +1087,7 @@ export default function OnboardAgentForm() {
                     control={control}
                     render={({ field }) => (
                       <Input
-                        type="number"
+                        type="text"
                         inputMode="numeric"
                         pattern="[0-9]*"
                         id="latitude"
@@ -1112,7 +1112,7 @@ export default function OnboardAgentForm() {
                     control={control}
                     render={({ field }) => (
                       <Input
-                        type="number"
+                        type="text"
                         inputMode="numeric"
                         pattern="[0-9]*"
                         id="longitude"

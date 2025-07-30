@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useAllUsers, usersItem } from "../../context/UsersContext";
+import { useUsers } from "../../context/UsersContext";
 import { userRoles, ADMIN_ROLE } from "../../utils/roles";
 import ComponentCard, {
   ActionButtonConfig,
@@ -12,6 +12,7 @@ import Alert from "../../components/ui/alert/Alert";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../../components/ui/modal";
 import RegisterModal from "../../components/common/RegisterModal";
+import type { Users } from "../../types/types";
 
 const tableHeader: string[] = [
   "Name / Username",
@@ -22,7 +23,7 @@ const tableHeader: string[] = [
 
 const Admin = () => {
   const [filterStatus, setFilterStatus] = useState<string>("All");
-  const { title, error, loading, filteredUsers, filterByRole } = useAllUsers();
+  const { title, error, loading, filteredUsers, filterByRole } = useUsers();
   const { isOpen, openModal, closeModal } = useModal();
 
   const statusOptions = ["All", "Pending", "Active", "Suspended", "Rejected"];
@@ -47,7 +48,7 @@ const Admin = () => {
   ];
 
   const tableData = useMemo(() => {
-    const filteredAdmins = filteredUsers.filter((admin: usersItem) => {
+    const filteredAdmins = filteredUsers.filter((admin: Users) => {
       const status =
         admin.status === 1
           ? "Active"
@@ -60,7 +61,7 @@ const Admin = () => {
       return statusMatch;
     });
 
-    return filteredAdmins.map((user: usersItem) => ({
+    return filteredAdmins.map((user: Users) => ({
       id: user.id,
       image: "/images/user/user-admin-vector.webp",
       name: user.name,

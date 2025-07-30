@@ -4,11 +4,13 @@ import MonthlyTarget from "../../components/ecommerce/MonthlyTarget";
 import RecentOrders from "../../components/ecommerce/RecentOrders";
 import DemographicCard from "../../components/ecommerce/DemographicCard";
 import PageMeta from "../../components/common/PageMeta";
-import { useAllUsers } from "../../context/UsersContext";
+import { useUsers } from "../../context/UsersContext";
 import { useAuth } from "../../context/AuthContext";
 import { generateUserMetrics } from "../../utils/utils";
 import type { usersMetric } from "../../types/types";
 import MarketerDashboard from "../../components/Dashboard/MarketerDashboard";
+import { GroupIcon } from "../../icons";
+import { useAgents } from "../../context/AgentsContext";
 
 const usersCashFLow: usersMetric[] = [
   { users: "Total Cumulative Cash", metric: 120000, currencySymbol: true },
@@ -38,11 +40,13 @@ const txType = [
 ];
 
 export default function Home() {
-  const { allUsers } = useAllUsers();
+  const { allUsers } = useUsers();
   const { user } = useAuth();
   const userRole = user?.role || "Admin";
 
   const userMetrics = generateUserMetrics(allUsers);
+
+  const { totalAgents } = useAgents();
 
   // Filter cash flow and transaction types based on role
   const filteredCashFlow =
@@ -79,6 +83,22 @@ export default function Home() {
                     {userMetrics.map((user) => (
                       <EcommerceMetrics data={user} key={user.users} />
                     ))}
+
+                    <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+                      <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800">
+                        <GroupIcon className="text-gray-800 size-6 dark:text-white/90" />
+                      </div>
+                      <div className="flex items-end justify-between mt-5">
+                        <div>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            Agents
+                          </span>
+                          <h4 className="mt-2 font-bold text-gray-800 text-2xl dark:text-white/90">
+                            {totalAgents}
+                          </h4>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

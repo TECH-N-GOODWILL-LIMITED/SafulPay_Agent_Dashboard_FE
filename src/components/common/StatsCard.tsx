@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Button from "../ui/button/Button";
+// import Button from "../ui/button/Button";
 import { MarketerStats } from "../../types/types";
 import Badge from "../ui/badge/Badge";
 
@@ -66,7 +66,7 @@ const StatsCard: React.FC<StatsProp> = ({ statsData }) => {
           </div>
 
           {/* Filter Button */}
-          <div>
+          {/* <div>
             <Button
               // onClick={toggleDropdown}
               size="sm"
@@ -110,7 +110,7 @@ const StatsCard: React.FC<StatsProp> = ({ statsData }) => {
               </svg>
               Filter
             </Button>
-          </div>
+          </div> */}
         </div>
       </div>
       <div className="grid rounded-2xl border border-gray-200 bg-white sm:grid-cols-2 xl:grid-cols-4 dark:border-gray-800 dark:bg-gray-900">
@@ -120,7 +120,7 @@ const StatsCard: React.FC<StatsProp> = ({ statsData }) => {
           </span>
           <div className="mt-2 flex items-end justify-between gap-3">
             <h4 className="text-title-xs sm:text-title-sm font-bold text-gray-800 dark:text-white/90">
-              {statsData?.total_agents}
+              {statsData?.total_all_agents}
             </h4>
             <div className="flex items-end gap-1">
               <Badge

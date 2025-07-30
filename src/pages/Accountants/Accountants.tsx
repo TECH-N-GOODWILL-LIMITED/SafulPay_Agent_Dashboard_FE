@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useAllUsers, usersItem } from "../../context/UsersContext";
+import { useUsers } from "../../context/UsersContext";
 import { userRoles, ACCOUNTANT_ROLE } from "../../utils/roles";
 import ComponentCard, {
   ActionButtonConfig,
@@ -12,6 +12,7 @@ import Alert from "../../components/ui/alert/Alert";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../../components/ui/modal";
 import RegisterModal from "../../components/common/RegisterModal";
+import type { Users } from "../../types/types";
 
 const tableHeader: string[] = [
   "Name / Username",
@@ -23,7 +24,7 @@ const tableHeader: string[] = [
 
 const Accountants: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<string>("All");
-  const { title, error, loading, filteredUsers, filterByRole } = useAllUsers();
+  const { title, error, loading, filteredUsers, filterByRole } = useUsers();
   const { isOpen, openModal, closeModal } = useModal();
 
   const statusOptions = ["All", "Pending", "Active", "Suspended", "Rejected"];
@@ -48,22 +49,20 @@ const Accountants: React.FC = () => {
   ];
 
   const tableData = useMemo(() => {
-    const filteredAccountants = filteredUsers.filter(
-      (accountant: usersItem) => {
-        const status =
-          accountant.status === 1
-            ? "Active"
-            : accountant.status === 2
-            ? "Suspended"
-            : accountant.status === 3
-            ? "Rejected"
-            : "Pending";
-        const statusMatch = filterStatus === "All" || status === filterStatus;
-        return statusMatch;
-      }
-    );
+    const filteredAccountants = filteredUsers.filter((accountant: Users) => {
+      const status =
+        accountant.status === 1
+          ? "Active"
+          : accountant.status === 2
+          ? "Suspended"
+          : accountant.status === 3
+          ? "Rejected"
+          : "Pending";
+      const statusMatch = filterStatus === "All" || status === filterStatus;
+      return statusMatch;
+    });
 
-    return filteredAccountants.map((accountant: usersItem) => ({
+    return filteredAccountants.map((accountant: Users) => ({
       id: accountant.id,
       image: "/images/user/accountant-icon.jpg", // or actual image URL if available
       name: accountant.name,

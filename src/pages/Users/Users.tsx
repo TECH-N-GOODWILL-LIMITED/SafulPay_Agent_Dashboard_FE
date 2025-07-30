@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useAllUsers, usersItem } from "../../context/UsersContext";
+import { useUsers } from "../../context/UsersContext";
 import { userRoles } from "../../utils/roles";
 import ComponentCard, {
   ActionButtonConfig,
@@ -12,6 +12,7 @@ import Alert from "../../components/ui/alert/Alert";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../../components/ui/modal";
 import RegisterModal from "../../components/common/RegisterModal";
+import type { Users } from "../../types/types";
 
 const tableHeader: string[] = [
   "Name / Username",
@@ -23,7 +24,7 @@ const tableHeader: string[] = [
 const Users: React.FC = () => {
   const [filterRole, setFilterRole] = useState<string>("All");
   const [filterStatus, setFilterStatus] = useState<string>("All");
-  const { allUsers, title, error, loading } = useAllUsers();
+  const { allUsers, title, error, loading } = useUsers();
   const { isOpen, openModal, closeModal } = useModal();
 
   const allRoles = ["All", ...userRoles];
@@ -51,7 +52,7 @@ const Users: React.FC = () => {
   };
 
   const tableData = useMemo(() => {
-    const filteredUsers = allUsers.filter((user: usersItem) => {
+    const filteredUsers = allUsers.filter((user: Users) => {
       const status =
         user.status === 1
           ? "Active"
@@ -66,7 +67,7 @@ const Users: React.FC = () => {
       return roleMatch && statusMatch;
     });
 
-    return filteredUsers.map((user: usersItem) => ({
+    return filteredUsers.map((user: Users) => ({
       id: user.id,
       // image: user.image || "/images/user/user-image.jpg", // fallback image
       image: "/images/user/user-image.jpg", // fallback image

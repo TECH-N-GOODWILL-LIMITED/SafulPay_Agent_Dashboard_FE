@@ -7,6 +7,7 @@ import type {
   Users,
   MarketerStats,
   AuditLogData,
+  AllAgentsData,
 } from "../types/types";
 
 const BASE_URL = import.meta.env.VITE_AGENCY_BASE_URL;
@@ -217,22 +218,46 @@ export const getAllUsers = async (
   }
 };
 
+export interface GetAllAgentsParams {
+  page?: number;
+  per_page?: number;
+  type?: string;
+  temp?: string | number;
+  status?: string | number;
+  name?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
 export const getAllAgents = async (
-  accessToken: string
-): Promise<ApiResponse<{ agents: Agent[] }>> => {
+  accessToken: string,
+  params: GetAllAgentsParams
+): Promise<ApiResponse<AllAgentsData>> => {
   try {
-    const response = await fetch(`${BASE_URL}/auth/agents/getAllAgents`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      redirect: "follow",
+    const queryParams = new URLSearchParams();
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        queryParams.append(key, String(value));
+      }
     });
+
+    const response = await fetch(
+      `${BASE_URL}/auth/agents/getAllAgents?${queryParams.toString()}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        redirect: "follow",
+      }
+    );
+
     const data = await response.json();
 
     if (response.ok && data.status) {
-      return { success: true, data: { agents: data.data } };
+      return { success: true, data };
     } else {
       return { success: false, error: data.message || "Failed to get agents" };
     }

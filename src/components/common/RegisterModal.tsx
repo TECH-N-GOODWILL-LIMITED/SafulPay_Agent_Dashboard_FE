@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { useAllUsers } from "../../context/UsersContext";
+import { useUsers } from "../../context/UsersContext";
 import { registerUser } from "../../utils/api";
 import { filterPhoneNumber } from "../../utils/utils";
 import { ChevronDownIcon } from "../../icons";
@@ -35,7 +35,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
   const [warnError, setWarnError] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const { token } = useAuth();
-  const { fetchUsers } = useAllUsers();
+  const { fetchUsers } = useUsers();
 
   const userOptions =
     userRoles?.filter(
