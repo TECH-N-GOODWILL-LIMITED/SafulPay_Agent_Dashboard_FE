@@ -1182,7 +1182,7 @@ export default function OnboardAgentForm() {
                     control={control}
                     render={({ field }) => (
                       <Input
-                        type="text"
+                        type="number"
                         id="latitude"
                         {...field}
                         value={
@@ -1205,7 +1205,7 @@ export default function OnboardAgentForm() {
                     control={control}
                     render={({ field }) => (
                       <Input
-                        type="text"
+                        type="number"
                         id="longitude"
                         {...field}
                         value={
