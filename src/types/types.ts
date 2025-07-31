@@ -6,21 +6,21 @@ export interface ApiResponse<T> {
 
 export interface UserBio {
   id: number;
-  name: string;
   firstname: string;
   middlename?: string;
   lastname: string;
-  username?: string;
+  name: string;
+  username: string;
   phone: string;
   email: string;
+  country_code: string;
   image?: string;
+  status: number;
   address?: string;
   referral_code: string;
-  country_code?: string;
   role: string;
-  status: number;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 export interface LoginResponseData {
@@ -193,4 +193,19 @@ export interface usersMetric {
   users: string;
   metric: number;
   currencySymbol?: boolean;
+}
+
+export interface AllUsersData {
+  total_all_users: number;
+  total_filter_result: number;
+  total_admin: number;
+  total_marketer: number;
+  total_accountant: number;
+  total_rider: number;
+  current_page: number;
+  per_page: number;
+  last_page: number;
+  data: {
+    users: UserBio[];
+  };
 }

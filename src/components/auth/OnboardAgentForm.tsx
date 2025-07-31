@@ -30,7 +30,13 @@ import {
   UserIcon,
 } from "../../icons";
 import { useAuth } from "../../context/AuthContext";
-import { ADMIN_ROLE, MARKETER_ROLE } from "../../utils/roles";
+import {
+  ADMIN_ROLE,
+  AGENT_ROLE,
+  MARKETER_ROLE,
+  MERCHANT_ROLE,
+  SUPER_AGENT_ROLE,
+} from "../../utils/roles";
 
 const phoneRegExp =
   /^(232|\+232|0)?(25|30|31|32|33|34|40|44|50|55|66|72|73|74|75|76|77|78|79|80|88|90|99)\d{6}$/;
@@ -85,14 +91,13 @@ export default function OnboardAgentForm() {
   const [error, setError] = useState<string>("");
   const [successAlert, setSuccessAlert] = useState<string>("");
   const [userExistError, setUserExistError] = useState<string | null>(null);
-
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const [idImage, setIdImage] = useState<File | null>(null);
   const [businessImage, setBusinessImage] = useState<File | null>(null);
   const [addressDocument, setAddressDocument] = useState<File | null>(null);
   const [businessRegDocument, setBusinessRegDocument] = useState<File | null>(
     null
   );
-
   const [missingUrl, setMissingUrl] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [geoLoading, setGeoLoading] = useState<boolean>(false);
@@ -136,6 +141,7 @@ export default function OnboardAgentForm() {
   });
 
   const agentType = watch("agentType");
+  const agentModel = watch("model");
   const idImageUrl = watch("idImageUrl");
   const businessImageUrl = watch("businessImageUrl");
   const addressDocumentUrl = watch("addressDocumentUrl");
@@ -145,6 +151,8 @@ export default function OnboardAgentForm() {
 
   const { marketer_ref } = useParams<{ marketer_ref: string }>();
   const marketer = marketer_ref && marketer_ref.toString().toUpperCase();
+
+  const TargetAgent = agentType === AGENT_ROLE && agentModel === "Target";
 
   const { fetchUsers } = useUsers();
   const { setOnboardingUser } = useAuth();
@@ -212,7 +220,7 @@ export default function OnboardAgentForm() {
     validateReferralCode();
   }, [marketer, navigate, setOnboardingUser]);
 
-  const typeOptions = ["Merchant", "Agent", "Super Agent"];
+  const typeOptions = [AGENT_ROLE, SUPER_AGENT_ROLE, MERCHANT_ROLE];
   const modelOptions = ["Target", "Independent"];
   const idTypeOptions = [
     "driver's license",
@@ -397,21 +405,54 @@ export default function OnboardAgentForm() {
 
     const formattedPhoneNumber = filterPhoneNumber(phoneNumber);
 
+    // Check if phone and business phone are the same
+    const currentPhone = watch("phone");
+    const currentBusinessPhone = watch("businessPhone");
+
+    if (currentPhone && currentBusinessPhone) {
+      const formattedCurrentPhone = filterPhoneNumber(currentPhone);
+      const formattedCurrentBusinessPhone =
+        filterPhoneNumber(currentBusinessPhone);
+
+      if (formattedCurrentPhone === formattedCurrentBusinessPhone) {
+        const errorMessage = "Phone and business phone cannot be the same.";
+        setFormError("phone", {
+          type: "manual",
+          message: errorMessage,
+        });
+        setFormError("businessPhone", {
+          type: "manual",
+          message: errorMessage,
+        });
+        setPhoneError(errorMessage);
+        return;
+      }
+    }
+
     if (field === "phone") {
       const phoneTypeResponse = await checkPhoneType(formattedPhoneNumber);
       if (phoneTypeResponse.success && phoneTypeResponse.data?.type) {
         if (phoneTypeResponse.data.type === "phone") {
+          const errorMessage =
+            "This number is already registered as a personal phone.";
           setFormError("phone", {
             type: "manual",
-            message: "This number is already registered as a personal phone.",
+            message: errorMessage,
           });
+          setPhoneError(errorMessage);
         } else if (phoneTypeResponse.data.type === "business_phone") {
+          const errorMessage =
+            "This number is already registered as a business phone.";
           setFormError("phone", {
             type: "manual",
-            message: "This number is already registered as a business phone.",
+            message: errorMessage,
           });
+          setPhoneError(errorMessage);
         }
         return;
+      } else {
+        // Clear phone error if validation passes
+        setPhoneError(null);
       }
 
       // const userExistResponse = await checkUserExist(formattedPhoneNumber);
@@ -434,16 +475,25 @@ export default function OnboardAgentForm() {
       const phoneTypeResponse = await checkPhoneType(formattedPhoneNumber);
       if (phoneTypeResponse.success && phoneTypeResponse.data?.type) {
         if (phoneTypeResponse.data.type === "phone") {
+          const errorMessage =
+            "This number is already registered as a personal phone.";
           setFormError("businessPhone", {
             type: "manual",
-            message: "This number is already registered as a personal phone.",
+            message: errorMessage,
           });
+          setPhoneError(errorMessage);
         } else if (phoneTypeResponse.data.type === "business_phone") {
+          const errorMessage =
+            "This number is already registered as a business phone.";
           setFormError("businessPhone", {
             type: "manual",
-            message: "This number is already registered as a business phone.",
+            message: errorMessage,
           });
+          setPhoneError(errorMessage);
         }
+      } else {
+        // Clear phone error if validation passes
+        setPhoneError(null);
       }
     }
   };
@@ -467,6 +517,15 @@ export default function OnboardAgentForm() {
       ];
 
       const updatedData = { ...data };
+
+      // Set registration document URL for Target agents
+      if (data.model === "Target") {
+        updatedData.businessRegDocumentUrl =
+          "https://res.cloudinary.com/safulpaycloud/image/upload/v1753362591/aqruzbsjvigawov2zfbl.jpg";
+        setValue("businessRegDocumentUrl", updatedData.businessRegDocumentUrl, {
+          shouldValidate: true,
+        });
+      }
 
       for (const { key, file } of filesToUpload) {
         if (
@@ -540,6 +599,7 @@ export default function OnboardAgentForm() {
         setAddressDocument(null);
         setBusinessRegDocument(null);
         setUserExistError(null);
+        setPhoneError(null);
       } else {
         setAlertTitle("Registration Failed");
         setError(response.error || "Agent registration failed");
@@ -560,13 +620,36 @@ export default function OnboardAgentForm() {
       return;
     }
 
+    // Check for phone errors first
+    if (phoneError) {
+      setAlertTitle("Phone Number Error");
+      setError(phoneError);
+      return;
+    }
+
+    // Check if phone and business phone are the same
+    if (data.phone && data.businessPhone) {
+      const formattedPhone = filterPhoneNumber(data.phone);
+      const formattedBusinessPhone = filterPhoneNumber(data.businessPhone);
+
+      if (formattedPhone === formattedBusinessPhone) {
+        setAlertTitle("Phone Number Error");
+        setError("Phone and business phone cannot be the same.");
+        return;
+      }
+    }
+
     const missingFiles: string[] = [];
     if (!data.idImageUrl) missingFiles.push("ID document");
-    if (!data.businessRegDocumentUrl)
-      missingFiles.push("Business registration document");
     if (!data.businessImageUrl) missingFiles.push("Business image");
+    // Only check for business registration document if it's not a Target agent
+    // For Target agents set the URL in processRegistration
+    if (!TargetAgent && !data.businessRegDocumentUrl) {
+      missingFiles.push("Business registration document");
+    }
     if (
-      (data.agentType === "Merchant" || data.agentType === "Super Agent") &&
+      (data.agentType === MERCHANT_ROLE ||
+        data.agentType === SUPER_AGENT_ROLE) &&
       !data.addressDocumentUrl
     ) {
       missingFiles.push("Proof of address document");
@@ -579,6 +662,13 @@ export default function OnboardAgentForm() {
     }
 
     await processRegistration(data, 1);
+
+    // For Target agents, if we have both ID document and business image, set temp = 1 (complete KYC)
+    // For other agents, use temp = 0 (incomplete KYC) if there are missing documents
+    // const tempValue =
+    //   TargetAgent && data.idImageUrl && data.businessImageUrl ? 1 : 0;
+
+    // await processRegistration(data, tempValue);
   };
 
   const handleProceedWithoutDocuments = async () => {
@@ -799,11 +889,11 @@ export default function OnboardAgentForm() {
                       {...field}
                       disabled={loading || uploadLoading}
                       onBlur={(e) => handlePhoneBlur(e, "businessPhone")}
-                      error={!!errors.businessPhone}
+                      error={!!errors.businessPhone || !!phoneError}
                       success={
                         dirtyFields.businessPhone && !errors.businessPhone
                       }
-                      hint={errors.businessPhone?.message}
+                      hint={errors.businessPhone?.message || phoneError || ""}
                       selectedCountries={["SL"]}
                     />
                   )}
@@ -824,9 +914,14 @@ export default function OnboardAgentForm() {
                       {...field}
                       disabled={loading || uploadLoading}
                       onBlur={(e) => handlePhoneBlur(e, "phone")}
-                      error={!!errors.phone}
+                      error={!!errors.phone || !!phoneError}
                       success={dirtyFields.phone && !errors.phone}
-                      hint={errors.phone?.message || userExistError || ""}
+                      hint={
+                        errors.phone?.message ||
+                        userExistError ||
+                        phoneError ||
+                        ""
+                      }
                       selectedCountries={["SL"]}
                     />
                   )}
@@ -914,7 +1009,7 @@ export default function OnboardAgentForm() {
                 )}
               </div>
 
-              {agentType && agentType !== "Merchant" && (
+              {agentType && agentType !== MERCHANT_ROLE && (
                 <div className="relative">
                   <Label>
                     Agency Model <span className="text-error-500">*</span>
@@ -1089,7 +1184,6 @@ export default function OnboardAgentForm() {
                       <Input
                         type="text"
                         inputMode="numeric"
-                        pattern="[0-9]*"
                         id="latitude"
                         {...field}
                         value={
@@ -1114,7 +1208,6 @@ export default function OnboardAgentForm() {
                       <Input
                         type="text"
                         inputMode="numeric"
-                        pattern="[0-9]*"
                         id="longitude"
                         {...field}
                         value={
@@ -1150,204 +1243,216 @@ export default function OnboardAgentForm() {
                 </Button>
               </div>
 
-              <div className={`${agentType === "Agent" && "col-span-full"}`}>
-                <Label>
-                  Upload Business Place Image{" "}
-                  <span className="text-error-500">*</span>
-                </Label>
+              {!TargetAgent && (
                 <div
-                  className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
-                    errors.businessImageUrl
-                      ? "border-error-500"
-                      : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
+                  className={`${
+                    agentType === AGENT_ROLE &&
+                    agentModel === "Independent" &&
+                    "col-span-full"
                   }`}
                 >
+                  <Label>
+                    Upload Business Place Image{" "}
+                    <span className="text-error-500">*</span>
+                  </Label>
                   <div
-                    {...getBusinessImageRootProps()}
-                    className={`dropzone relative rounded-xl border-dashed border-gray-300 p-7 lg:p-10
+                    className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
+                      errors.businessImageUrl
+                        ? "border-error-500"
+                        : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
+                    }`}
+                  >
+                    <div
+                      {...getBusinessImageRootProps()}
+                      className={`dropzone relative rounded-xl border-dashed border-gray-300 p-7 lg:p-10
                     ${
                       isBusinessImageDragActive
                         ? "border-brand-500 bg-gray-100 dark:bg-gray-800"
                         : "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
                     } `}
-                    id="id-image-upload"
-                  >
-                    <input {...getBusinessImageInputProps()} />
-                    <div
-                      className={`dz-message flex flex-col items-center upload ${
-                        businessImageUrl && "opacity-40"
-                      }`}
+                      id="id-image-upload"
                     >
-                      <div className="mb-[22px] flex justify-center">
-                        <div className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400">
-                          <svg
-                            className="fill-current"
-                            width="29"
-                            height="28"
-                            viewBox="0 0 29 28"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              clipRule="evenodd"
-                              d="M14.5019 3.91699C14.2852 3.91699 14.0899 4.00891 13.953 4.15589L8.57363 9.53186C8.28065 9.82466 8.2805 10.2995 8.5733 10.5925C8.8661 10.8855 9.34097 10.8857 9.63396 10.5929L13.7519 6.47752V18.667C13.7519 19.0812 14.0877 19.417 14.5019 19.417C14.9161 19.417 15.2519 19.0812 15.2519 18.667V6.48234L19.3653 10.5929C19.6583 10.8857 20.1332 10.8855 20.426 10.5925C20.7188 10.2995 20.7186 9.82463 20.4256 9.53184L15.0838 4.19378C14.9463 4.02488 14.7367 3.91699 14.5019 3.91699ZM5.91626 18.667C5.91626 18.2528 5.58047 17.917 5.16626 17.917C4.75205 17.917 4.41626 18.2528 4.41626 18.667V21.8337C4.41626 23.0763 5.42362 24.0837 6.66626 24.0837H22.3339C23.5766 24.0837 24.5839 23.0763 24.5839 21.8337V18.667C24.5839 18.2528 24.2482 17.917 23.8339 17.917C23.4197 17.917 23.0839 18.2528 23.0839 18.667V21.8337C23.0839 22.2479 22.7482 22.5837 22.3339 22.5837H6.66626C6.25205 22.5837 5.91626 22.2479 5.91626 21.8337V18.667Z"
-                            />
-                          </svg>
+                      <input {...getBusinessImageInputProps()} />
+                      <div
+                        className={`dz-message flex flex-col items-center upload ${
+                          businessImageUrl && "opacity-40"
+                        }`}
+                      >
+                        <div className="mb-[22px] flex justify-center">
+                          <div className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400">
+                            <svg
+                              className="fill-current"
+                              width="29"
+                              height="28"
+                              viewBox="0 0 29 28"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                clipRule="evenodd"
+                                d="M14.5019 3.91699C14.2852 3.91699 14.0899 4.00891 13.953 4.15589L8.57363 9.53186C8.28065 9.82466 8.2805 10.2995 8.5733 10.5925C8.8661 10.8855 9.34097 10.8857 9.63396 10.5929L13.7519 6.47752V18.667C13.7519 19.0812 14.0877 19.417 14.5019 19.417C14.9161 19.417 15.2519 19.0812 15.2519 18.667V6.48234L19.3653 10.5929C19.6583 10.8857 20.1332 10.8855 20.426 10.5925C20.7188 10.2995 20.7186 9.82463 20.4256 9.53184L15.0838 4.19378C14.9463 4.02488 14.7367 3.91699 14.5019 3.91699ZM5.91626 18.667C5.91626 18.2528 5.58047 17.917 5.16626 17.917C4.75205 17.917 4.41626 18.2528 4.41626 18.667V21.8337C4.41626 23.0763 5.42362 24.0837 6.66626 24.0837H22.3339C23.5766 24.0837 24.5839 23.0763 24.5839 21.8337V18.667C24.5839 18.2528 24.2482 17.917 23.8339 17.917C23.4197 17.917 23.0839 18.2528 23.0839 18.667V21.8337C23.0839 22.2479 22.7482 22.5837 22.3339 22.5837H6.66626C6.25205 22.5837 5.91626 22.2479 5.91626 21.8337V18.667Z"
+                              />
+                            </svg>
+                          </div>
                         </div>
+                        <h4 className="mb-3 text-center font-semibold text-gray-800 text-theme-xl dark:text-white/90">
+                          {isBusinessImageDragActive
+                            ? "Drop Files Here"
+                            : "Drag & Drop Files Here"}
+                        </h4>
+                        <span className="text-center mb-5 block w-full max-w-[290px] text-sm text-gray-700 dark:text-gray-400">
+                          Drag and drop your document or image files here or
+                          browse
+                        </span>
+                        <span className="font-medium underline text-theme-sm text-brand-500 truncate">
+                          {businessImage ? businessImage.name : "Browse File"}
+                        </span>
                       </div>
-                      <h4 className="mb-3 text-center font-semibold text-gray-800 text-theme-xl dark:text-white/90">
-                        {isBusinessImageDragActive
-                          ? "Drop Files Here"
-                          : "Drag & Drop Files Here"}
-                      </h4>
-                      <span className="text-center mb-5 block w-full max-w-[290px] text-sm text-gray-700 dark:text-gray-400">
-                        Drag and drop your document or image files here or
-                        browse
-                      </span>
-                      <span className="font-medium underline text-theme-sm text-brand-500 truncate">
-                        {businessImage ? businessImage.name : "Browse File"}
-                      </span>
+                      {businessImageUrl && (
+                        <>
+                          <button
+                            disabled={loading || uploadLoading}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setValue("businessImageUrl", "", {
+                                shouldValidate: true,
+                              });
+                              setBusinessImage(null);
+                            }}
+                            className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
+                            title="delete uploaded file"
+                          >
+                            <TrashBinIcon color="#e4e7ec" />
+                          </button>
+
+                          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
+                            <img
+                              src={businessImageUrl}
+                              alt="Uploaded ID Image Preview"
+                              className="object-contain h-full mx-auto"
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
-                    {businessImageUrl && (
-                      <>
-                        <button
-                          disabled={loading || uploadLoading}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setValue("businessImageUrl", "", {
-                              shouldValidate: true,
-                            });
-                            setBusinessImage(null);
-                          }}
-                          className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
-                          title="delete uploaded file"
-                        >
-                          <TrashBinIcon color="#e4e7ec" />
-                        </button>
-
-                        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
-                          <img
-                            src={businessImageUrl}
-                            alt="Uploaded ID Image Preview"
-                            className="object-contain h-full mx-auto"
-                          />
-                        </div>
-                      </>
-                    )}
                   </div>
+                  {businessImageUrl && (
+                    <div className="mt-2">
+                      <a
+                        href={businessImageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-brand-500 hover:underline"
+                      >
+                        View Uploaded Document
+                      </a>
+                    </div>
+                  )}
                 </div>
-                {businessImageUrl && (
-                  <div className="mt-2">
-                    <a
-                      href={businessImageUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-brand-500 hover:underline"
-                    >
-                      View Uploaded Document
-                    </a>
-                  </div>
-                )}
-              </div>
+              )}
 
-              <div className={`${agentType === "Agent" && "hidden"}`}>
-                <Label>
-                  Upload Proof of Address{" "}
-                  <span className="text-error-500">*</span>
-                </Label>
-                <div
-                  className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
-                    errors.addressDocumentUrl
-                      ? "border-error-500"
-                      : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
-                  }`}
-                >
+              {agentType !== AGENT_ROLE && (
+                <div>
+                  <Label>
+                    Upload Proof of Address{" "}
+                    <span className="text-error-500">*</span>
+                  </Label>
                   <div
-                    {...getAddressDocumentRootProps()}
-                    className={`dropzone relative rounded-xl border-dashed border-gray-300 p-7 lg:p-10
+                    className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
+                      errors.addressDocumentUrl
+                        ? "border-error-500"
+                        : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
+                    }`}
+                  >
+                    <div
+                      {...getAddressDocumentRootProps()}
+                      className={`dropzone relative rounded-xl border-dashed border-gray-300 p-7 lg:p-10
                     ${
                       isAddressDocumentDragActive
                         ? "border-brand-500 bg-gray-100 dark:bg-gray-800"
                         : "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
                     } `}
-                    id="id-image-upload"
-                  >
-                    <input {...getAddressDocumentInputProps()} />
-                    <div
-                      className={`dz-message flex flex-col items-center upload ${
-                        addressDocumentUrl && "opacity-40"
-                      }`}
+                      id="id-image-upload"
                     >
-                      <div className="mb-[22px] flex justify-center">
-                        <div className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400">
-                          <svg
-                            className="fill-current"
-                            width="29"
-                            height="28"
-                            viewBox="0 0 29 28"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              clipRule="evenodd"
-                              d="M14.5019 3.91699C14.2852 3.91699 14.0899 4.00891 13.953 4.15589L8.57363 9.53186C8.28065 9.82466 8.2805 10.2995 8.5733 10.5925C8.8661 10.8855 9.34097 10.8857 9.63396 10.5929L13.7519 6.47752V18.667C13.7519 19.0812 14.0877 19.417 14.5019 19.417C14.9161 19.417 15.2519 19.0812 15.2519 18.667V6.48234L19.3653 10.5929C19.6583 10.8857 20.1332 10.8855 20.426 10.5925C20.7188 10.2995 20.7186 9.82463 20.4256 9.53184L15.0838 4.19378C14.9463 4.02488 14.7367 3.91699 14.5019 3.91699ZM5.91626 18.667C5.91626 18.2528 5.58047 17.917 5.16626 17.917C4.75205 17.917 4.41626 18.2528 4.41626 18.667V21.8337C4.41626 23.0763 5.42362 24.0837 6.66626 24.0837H22.3339C23.5766 24.0837 24.5839 23.0763 24.5839 21.8337V18.667C24.5839 18.2528 24.2482 17.917 23.8339 17.917C23.4197 17.917 23.0839 18.2528 23.0839 18.667V21.8337C23.0839 22.2479 22.7482 22.5837 22.3339 22.5837H6.66626C6.25205 22.5837 5.91626 22.2479 5.91626 21.8337V18.667Z"
-                            />
-                          </svg>
+                      <input {...getAddressDocumentInputProps()} />
+                      <div
+                        className={`dz-message flex flex-col items-center upload ${
+                          addressDocumentUrl && "opacity-40"
+                        }`}
+                      >
+                        <div className="mb-[22px] flex justify-center">
+                          <div className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400">
+                            <svg
+                              className="fill-current"
+                              width="29"
+                              height="28"
+                              viewBox="0 0 29 28"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                clipRule="evenodd"
+                                d="M14.5019 3.91699C14.2852 3.91699 14.0899 4.00891 13.953 4.15589L8.57363 9.53186C8.28065 9.82466 8.2805 10.2995 8.5733 10.5925C8.8661 10.8855 9.34097 10.8857 9.63396 10.5929L13.7519 6.47752V18.667C13.7519 19.0812 14.0877 19.417 14.5019 19.417C14.9161 19.417 15.2519 19.0812 15.2519 18.667V6.48234L19.3653 10.5929C19.6583 10.8857 20.1332 10.8855 20.426 10.5925C20.7188 10.2995 20.7186 9.82463 20.4256 9.53184L15.0838 4.19378C14.9463 4.02488 14.7367 3.91699 14.5019 3.91699ZM5.91626 18.667C5.91626 18.2528 5.58047 17.917 5.16626 17.917C4.75205 17.917 4.41626 18.2528 4.41626 18.667V21.8337C4.41626 23.0763 5.42362 24.0837 6.66626 24.0837H22.3339C23.5766 24.0837 24.5839 23.0763 24.5839 21.8337V18.667C24.5839 18.2528 24.2482 17.917 23.8339 17.917C23.4197 17.917 23.0839 18.2528 23.0839 18.667V21.8337C23.0839 22.2479 22.7482 22.5837 22.3339 22.5837H6.66626C6.25205 22.5837 5.91626 22.2479 5.91626 21.8337V18.667Z"
+                              />
+                            </svg>
+                          </div>
                         </div>
+                        <h4 className="mb-3 text-center font-semibold text-gray-800 text-theme-xl dark:text-white/90">
+                          {isAddressDocumentDragActive
+                            ? "Drop Files Here"
+                            : "Drag & Drop Files Here"}
+                        </h4>
+                        <span className="text-center mb-5 block w-full max-w-[290px] text-sm text-gray-700 dark:text-gray-400">
+                          Drag and drop your document or image files here or
+                          browse
+                        </span>
+                        <span className="font-medium underline text-theme-sm text-brand-500 truncate">
+                          {addressDocument
+                            ? addressDocument.name
+                            : "Browse File"}
+                        </span>
                       </div>
-                      <h4 className="mb-3 text-center font-semibold text-gray-800 text-theme-xl dark:text-white/90">
-                        {isAddressDocumentDragActive
-                          ? "Drop Files Here"
-                          : "Drag & Drop Files Here"}
-                      </h4>
-                      <span className="text-center mb-5 block w-full max-w-[290px] text-sm text-gray-700 dark:text-gray-400">
-                        Drag and drop your document or image files here or
-                        browse
-                      </span>
-                      <span className="font-medium underline text-theme-sm text-brand-500 truncate">
-                        {addressDocument ? addressDocument.name : "Browse File"}
-                      </span>
+                      {addressDocumentUrl && (
+                        <>
+                          <button
+                            disabled={loading || uploadLoading}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setValue("addressDocumentUrl", "", {
+                                shouldValidate: true,
+                              });
+                              setAddressDocument(null);
+                            }}
+                            className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
+                            title="delete uploaded file"
+                          >
+                            <TrashBinIcon color="#e4e7ec" />
+                          </button>
+                          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
+                            <img
+                              src={addressDocumentUrl}
+                              alt="Uploaded ID Image Preview"
+                              className="object-contain h-full mx-auto"
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
-                    {addressDocumentUrl && (
-                      <>
-                        <button
-                          disabled={loading || uploadLoading}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setValue("addressDocumentUrl", "", {
-                              shouldValidate: true,
-                            });
-                            setAddressDocument(null);
-                          }}
-                          className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
-                          title="delete uploaded file"
-                        >
-                          <TrashBinIcon color="#e4e7ec" />
-                        </button>
-                        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
-                          <img
-                            src={addressDocumentUrl}
-                            alt="Uploaded ID Image Preview"
-                            className="object-contain h-full mx-auto"
-                          />
-                        </div>
-                      </>
-                    )}
                   </div>
+                  {addressDocumentUrl && (
+                    <div className="mt-2">
+                      <a
+                        href={addressDocumentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-brand-500 hover:underline"
+                      >
+                        View Uploaded Document
+                      </a>
+                    </div>
+                  )}
                 </div>
-                {addressDocumentUrl && (
-                  <div className="mt-2">
-                    <a
-                      href={addressDocumentUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-brand-500 hover:underline"
-                    >
-                      View Uploaded Document
-                    </a>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           </ComponentCard>
         </div>
@@ -1355,31 +1460,53 @@ export default function OnboardAgentForm() {
           <ComponentCard title="Business Document">
             <div>
               <Label>
-                Upload Business Registration Document{" "}
+                {TargetAgent
+                  ? "Upload Business Place Image"
+                  : "Upload Business Registration Document"}{" "}
                 <span className="text-error-500">*</span>
               </Label>
               <div
                 className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
-                  errors.businessRegDocumentUrl
+                  TargetAgent
+                    ? errors.businessImageUrl
+                      ? "border-error-500"
+                      : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
+                    : errors.businessRegDocumentUrl
                     ? "border-error-500"
                     : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                 }`}
               >
                 <div
-                  {...getRegDocumentRootProps()}
+                  {...(TargetAgent
+                    ? getBusinessImageRootProps()
+                    : getRegDocumentRootProps())}
                   className={`dropzone relative rounded-xl border-dashed border-gray-300 p-7 lg:p-10
                     ${
-                      isRegDocumentDragActive
+                      TargetAgent
+                        ? isBusinessImageDragActive
+                          ? "border-brand-500 bg-gray-100 dark:bg-gray-800"
+                          : "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
+                        : isRegDocumentDragActive
                         ? "border-brand-500 bg-gray-100 dark:bg-gray-800"
                         : "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
                     } `}
-                  id="business-document-upload"
+                  id={
+                    TargetAgent
+                      ? "business-image-upload"
+                      : "business-document-upload"
+                  }
                 >
-                  <input {...getRegDocumentInputProps()} />
+                  <input
+                    {...(TargetAgent
+                      ? getBusinessImageInputProps()
+                      : getRegDocumentInputProps())}
+                  />
 
                   <div
                     className={`dz-message flex flex-col items-center ${
-                      businessRegDocumentUrl && "opacity-40"
+                      TargetAgent
+                        ? businessImageUrl && "opacity-40"
+                        : businessRegDocumentUrl && "opacity-40"
                     }`}
                   >
                     <div className="mb-[22px] flex justify-center">
@@ -1400,7 +1527,11 @@ export default function OnboardAgentForm() {
                       </div>
                     </div>
                     <h4 className="mb-3 font-semibold text-gray-800 text-theme-xl dark:text-white/90">
-                      {isRegDocumentDragActive
+                      {TargetAgent
+                        ? isBusinessImageDragActive
+                          ? "Drop Files Here"
+                          : "Drag & Drop Files Here"
+                        : isRegDocumentDragActive
                         ? "Drop Files Here"
                         : "Drag & Drop Files Here"}
                     </h4>
@@ -1409,52 +1540,94 @@ export default function OnboardAgentForm() {
                       here or browse
                     </span>
                     <span className="font-medium underline text-theme-sm text-brand-500 truncate">
-                      {businessRegDocument
+                      {TargetAgent
+                        ? businessImage
+                          ? businessImage.name
+                          : "Browse File"
+                        : businessRegDocument
                         ? businessRegDocument.name
                         : "Browse File"}
                     </span>
                   </div>
-                  {businessRegDocumentUrl && (
-                    <>
-                      <button
-                        disabled={loading || uploadLoading}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setValue("businessRegDocumentUrl", "", {
-                            shouldValidate: true,
-                          });
-                          setBusinessRegDocument(null);
-                        }}
-                        className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
-                        title="delete uploaded file"
-                      >
-                        <TrashBinIcon color="#e4e7ec" />
-                      </button>
-                      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
-                        <img
-                          src={businessRegDocumentUrl}
-                          alt="Document Preview"
-                          className="object-cover h-full mx-auto"
-                        />
-                      </div>
-                    </>
-                  )}
+                  {TargetAgent
+                    ? businessImageUrl && (
+                        <>
+                          <button
+                            disabled={loading || uploadLoading}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setValue("businessImageUrl", "", {
+                                shouldValidate: true,
+                              });
+                              setBusinessImage(null);
+                            }}
+                            className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
+                            title="delete uploaded file"
+                          >
+                            <TrashBinIcon color="#e4e7ec" />
+                          </button>
+                          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
+                            <img
+                              src={businessImageUrl}
+                              alt="Uploaded Business Image Preview"
+                              className="object-contain h-full mx-auto"
+                            />
+                          </div>
+                        </>
+                      )
+                    : businessRegDocumentUrl && (
+                        <>
+                          <button
+                            disabled={loading || uploadLoading}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setValue("businessRegDocumentUrl", "", {
+                                shouldValidate: true,
+                              });
+                              setBusinessRegDocument(null);
+                            }}
+                            className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
+                            title="delete uploaded file"
+                          >
+                            <TrashBinIcon color="#e4e7ec" />
+                          </button>
+                          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
+                            <img
+                              src={businessRegDocumentUrl}
+                              alt="Document Preview"
+                              className="object-cover h-full mx-auto"
+                            />
+                          </div>
+                        </>
+                      )}
                 </div>
               </div>
-              {businessRegDocumentUrl && (
-                <div className="mt-2">
-                  <a
-                    href={businessRegDocumentUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-brand-500 hover:underline"
-                  >
-                    View Uploaded Document
-                  </a>
-                </div>
-              )}
+              {TargetAgent
+                ? businessImageUrl && (
+                    <div className="mt-2">
+                      <a
+                        href={businessImageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-brand-500 hover:underline"
+                      >
+                        View Uploaded Document
+                      </a>
+                    </div>
+                  )
+                : businessRegDocumentUrl && (
+                    <div className="mt-2">
+                      <a
+                        href={businessRegDocumentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-brand-500 hover:underline"
+                      >
+                        View Uploaded Document
+                      </a>
+                    </div>
+                  )}
             </div>
-
             <div className="relative">
               <Label>
                 ID Type <span className="text-error-500">*</span>
@@ -1509,7 +1682,6 @@ export default function OnboardAgentForm() {
                 </p>
               )}
             </div>
-
             <div>
               <Label>
                 Upload ID Document <span className="text-error-500">*</span>
@@ -1606,7 +1778,6 @@ export default function OnboardAgentForm() {
                 </div>
               )}
             </div>
-
             {Object.keys(errors).length > 0 && (
               <Alert variant="error" title="Please fix the following errors:">
                 <ul className="list-disc pl-5">
@@ -1631,7 +1802,6 @@ export default function OnboardAgentForm() {
                 message={successAlert}
               />
             )}
-
             <div className="col-span-2">
               <Button
                 className="w-full"

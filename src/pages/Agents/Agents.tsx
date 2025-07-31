@@ -209,6 +209,9 @@ const Agents: React.FC = () => {
         description="List of all agency agents - Management system for SafulPay's Agency Platform"
       />
       <PageBreadcrumb pageTitle="Agents &amp; Merchants" />
+      {/* {loading ? (
+        <div className="text-gray-500 dark:text-gray-400">Loading...</div>
+      ) : ( */}
       <div className="space-y-6">
         <ComponentCard
           title="Vendors Table"
@@ -228,6 +231,7 @@ const Agents: React.FC = () => {
           <BasicTableOne tableHeading={tableHeader} tableContent={tableData} />
         </ComponentCard>
       </div>
+      {/* )} */}
     </>
   );
 };

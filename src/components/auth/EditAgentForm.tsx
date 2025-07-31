@@ -28,7 +28,12 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import TextArea from "../form/input/TextArea";
 import { Agent } from "../../types/types";
-import { ADMIN_ROLE } from "../../utils/roles";
+import {
+  ADMIN_ROLE,
+  AGENT_ROLE,
+  MERCHANT_ROLE,
+  SUPER_AGENT_ROLE,
+} from "../../utils/roles";
 
 const validationSchema = yup.object().shape({
   firstname: yup.string().required("First name is required"),
@@ -168,7 +173,7 @@ export default function EditAgentForm() {
     fetchAgentData();
   }, [id, token, reset]);
 
-  const typeOptions = ["Merchant", "Super Agent", "Agent"];
+  const typeOptions = [AGENT_ROLE, SUPER_AGENT_ROLE, MERCHANT_ROLE];
   const modelOptions = ["Target", "Independent"];
   const idTypeOptions = [
     "driver's license",

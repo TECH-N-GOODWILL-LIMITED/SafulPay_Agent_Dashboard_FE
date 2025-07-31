@@ -6,10 +6,8 @@ import DemographicCard from "../../components/ecommerce/DemographicCard";
 import PageMeta from "../../components/common/PageMeta";
 import { useUsers } from "../../context/UsersContext";
 import { useAuth } from "../../context/AuthContext";
-import { generateUserMetrics } from "../../utils/utils";
 import type { usersMetric } from "../../types/types";
 import MarketerDashboard from "../../components/Dashboard/MarketerDashboard";
-import { GroupIcon } from "../../icons";
 import { useAgents } from "../../context/AgentsContext";
 
 const usersCashFLow: usersMetric[] = [
@@ -41,12 +39,19 @@ const txType = [
 
 export default function Home() {
   const { allUsers } = useUsers();
+  const { allAgents } = useAgents();
   const { user } = useAuth();
   const userRole = user?.role || "Admin";
 
-  const userMetrics = generateUserMetrics(allUsers);
-
-  const { totalAgents } = useAgents();
+  // Generate user metrics from the new API response structure
+  const userMetrics: usersMetric[] = [
+    { users: "Total Users", metric: allUsers?.total_all_users || 0 },
+    { users: "Admins", metric: allUsers?.total_admin || 0 },
+    { users: "Marketers", metric: allUsers?.total_marketer || 0 },
+    { users: "Accountants", metric: allUsers?.total_accountant || 0 },
+    { users: "Riders", metric: allUsers?.total_rider || 0 },
+    { users: "Agents", metric: allAgents?.total_agents || 0 },
+  ];
 
   // Filter cash flow and transaction types based on role
   const filteredCashFlow =
@@ -83,22 +88,6 @@ export default function Home() {
                     {userMetrics.map((user) => (
                       <EcommerceMetrics data={user} key={user.users} />
                     ))}
-
-                    <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-                      <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800">
-                        <GroupIcon className="text-gray-800 size-6 dark:text-white/90" />
-                      </div>
-                      <div className="flex items-end justify-between mt-5">
-                        <div>
-                          <span className="text-sm text-gray-500 dark:text-gray-400">
-                            Agents
-                          </span>
-                          <h4 className="mt-2 font-bold text-gray-800 text-2xl dark:text-white/90">
-                            {totalAgents}
-                          </h4>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>

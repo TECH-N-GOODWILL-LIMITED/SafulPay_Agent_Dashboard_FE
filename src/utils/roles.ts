@@ -3,9 +3,9 @@ export const userRoles: string[] = [
   "Marketer",
   "Rider",
   "Accountant",
-  "Agent",
-  "Super Agent",
-  "Merchant",
+  // "Agent",
+  // "Super Agent",
+  // "Merchant",
 ];
 
 export const ADMIN_ROLE = "Admin";

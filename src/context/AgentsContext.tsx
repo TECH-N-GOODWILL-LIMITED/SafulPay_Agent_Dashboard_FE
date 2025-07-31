@@ -14,7 +14,7 @@ import { ADMIN_ROLE } from "../utils/roles";
 interface AgentsContextType {
   allAgents: AllAgentsData | null;
   fetchAgents: (params: GetAllAgentsParams) => Promise<void>;
-  totalAgents: number;
+  // totalAgents: number;
   title: string;
   error?: string;
   loading: boolean;
@@ -32,7 +32,7 @@ export const AgentsProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [allAgents, setAllAgents] = useState<AllAgentsData | null>(null);
-  const [totalAgents, setTotalAgents] = useState<number>(0);
+  // const [totalAgents, setTotalAgents] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const [title, setTitle] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -53,7 +53,7 @@ export const AgentsProvider: React.FC<{ children: ReactNode }> = ({
       const response = await getAllAgents(token, params);
       if (response.success && response.data) {
         setAllAgents(response.data);
-        setTotalAgents(response.data.total_agents);
+        // setTotalAgents(response.data.total_agents);
       } else {
         setTitle("Failed to fetch agents");
         setError(response.error || "Failed to fetch agents");
@@ -73,7 +73,7 @@ export const AgentsProvider: React.FC<{ children: ReactNode }> = ({
     <AgentsContext.Provider
       value={{
         allAgents,
-        totalAgents,
+        // totalAgents,
         fetchAgents,
         title,
         error,

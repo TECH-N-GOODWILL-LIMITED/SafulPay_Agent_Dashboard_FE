@@ -1,9 +1,10 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useUsers } from "../../context/UsersContext";
 import { userRoles } from "../../utils/roles";
 import ComponentCard, {
   ActionButtonConfig,
   FilterConfig,
+  SearchConfig,
 } from "../../components/common/ComponentCard";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
@@ -12,7 +13,7 @@ import Alert from "../../components/ui/alert/Alert";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../../components/ui/modal";
 import RegisterModal from "../../components/common/RegisterModal";
-import type { Users } from "../../types/types";
+import type { UserBio } from "../../types/types";
 
 const tableHeader: string[] = [
   "Name / Username",
@@ -24,23 +25,65 @@ const tableHeader: string[] = [
 const Users: React.FC = () => {
   const [filterRole, setFilterRole] = useState<string>("All");
   const [filterStatus, setFilterStatus] = useState<string>("All");
-  const { allUsers, title, error, loading } = useUsers();
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+
+  const { allUsers, title, error, loading, fetchUsers } = useUsers();
   const { isOpen, openModal, closeModal } = useModal();
 
   const allRoles = ["All", ...userRoles];
   const statusOptions = ["All", "Pending", "Active", "Suspended", "Rejected"];
 
+  useEffect(() => {
+    const params: { [key: string]: number | string } = {
+      page: currentPage,
+      per_page: 10,
+    };
+
+    if (filterRole !== "All") {
+      params.role = filterRole;
+    }
+
+    const statusMap: { [key: string]: number } = {
+      Pending: 0,
+      Active: 1,
+      Suspended: 2,
+      Rejected: 3,
+    };
+    if (filterStatus !== "All") {
+      params.status = statusMap[filterStatus];
+    }
+
+    // Add search term to params if it exists
+    if (searchTerm.trim()) {
+      params.name = searchTerm.trim();
+    }
+
+    fetchUsers(params);
+  }, [currentPage, filterRole, filterStatus, searchTerm, fetchUsers]);
+
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
   const filters: FilterConfig[] = [
     {
       label: `Role: ${filterRole}`,
       options: allRoles,
-      onSelect: (role) => setFilterRole(role),
+      onSelect: (role) => {
+        setFilterRole(role);
+        setCurrentPage(1);
+      },
       value: filterRole,
     },
     {
       label: `Status: ${filterStatus}`,
       options: statusOptions,
-      onSelect: (status) => setFilterStatus(status),
+      onSelect: (status) => {
+        setFilterStatus(status);
+        setCurrentPage(1);
+      },
       value: filterStatus,
     },
   ];
@@ -51,46 +94,26 @@ const Users: React.FC = () => {
     onClick: openModal,
   };
 
+  const searchConfig: SearchConfig = {
+    placeholder: "Search by name or username...",
+    onSearch: handleSearch,
+    debounceMs: 500,
+  };
+
   const tableData = useMemo(() => {
-    const filteredUsers = allUsers.filter((user: Users) => {
-      const status =
-        user.status === 1
-          ? "Active"
-          : user.status === 2
-          ? "Suspended"
-          : user.status === 3
-          ? "Rejected"
-          : "Pending";
-      const statusMatch = filterStatus === "All" || status === filterStatus;
-      const roleMatch = filterRole === "All" || user.role === filterRole;
-
-      return roleMatch && statusMatch;
-    });
-
-    return filteredUsers.map((user: Users) => ({
+    if (!allUsers?.data?.users) {
+      return [];
+    }
+    return allUsers.data.users.map((user: UserBio) => ({
       id: user.id,
-      // image: user.image || "/images/user/user-image.jpg", // fallback image
-      image: "/images/user/user-image.jpg", // fallback image
+      image: user.image || "/images/user/user-image.jpg", // fallback image
       name: user.name || "N/A",
       firstName: user.firstname,
       lastName: user.lastname,
-      businessName: user.business_name || "No Business name",
       username: user.username || "No username",
-      role:
-        user.role === "Agent" || user.role === "Merchant"
-          ? user.type
-          : user.role,
-      model: user.model,
+      role: user.role,
       phone: user.phone || "No Phone number",
-      businessPhone: user.business_phone || "No Business phone",
-      address: user.address,
-      latitude: user.latitude,
-      longitude: user.longitude,
-      idType: user.id_type,
-      idDocument: user.id_document,
-      bizRegDocument: user.business_registration,
-      businessImage: user.business_image,
-      temp: user.temp,
+      email: user.email,
       status:
         user.status === 1
           ? "Active"
@@ -100,7 +123,20 @@ const Users: React.FC = () => {
           ? "Rejected"
           : "Pending",
     }));
-  }, [allUsers, filterRole, filterStatus]);
+  }, [allUsers]);
+
+  if (error) {
+    return (
+      <>
+        <PageMeta
+          title="Error | SafulPay's Agency Dashboard - Finance just got better"
+          description="You are not authorized to view this page."
+        />
+        <PageBreadcrumb pageTitle="All Users" />
+        <Alert variant="error" title={title} message={error} />
+      </>
+    );
+  }
 
   return (
     <>
@@ -109,26 +145,25 @@ const Users: React.FC = () => {
         description="List of all agency users - Management system for SafulPay's Agency Platform"
       />
       <PageBreadcrumb pageTitle="All Users" />
-
-      {error ? (
-        <Alert variant="error" title={title} message={error} showLink={false} />
-      ) : loading ? (
-        <div className="text-gray-500 dark:text-gray-400">Loading...</div>
-      ) : (
-        <div className="space-y-6">
-          <ComponentCard
-            title="Users Table"
-            desc="Details of all users with various account types"
-            filters={filters}
-            actionButton={actionButton}
-          >
-            <BasicTableOne
-              tableHeading={tableHeader}
-              tableContent={tableData}
-            />
-          </ComponentCard>
-        </div>
-      )}
+      <div className="space-y-6">
+        <ComponentCard
+          title="Users Table"
+          desc="Details of all users with various account types"
+          filters={filters}
+          actionButton={actionButton}
+          searchConfig={searchConfig}
+          pagination={{
+            currentPage,
+            totalPages: allUsers?.last_page || 1,
+            totalItems: allUsers?.total_filter_result || 0,
+            perPage: allUsers?.per_page || 10,
+            loading: loading,
+            onPageChange: (page) => setCurrentPage(page),
+          }}
+        >
+          <BasicTableOne tableHeading={tableHeader} tableContent={tableData} />
+        </ComponentCard>
+      </div>
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
         <RegisterModal
           modalHeading="Add a new user"
