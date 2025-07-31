@@ -13,6 +13,7 @@ import {
 } from "../../utils/api";
 import { useUsers } from "../../context/UsersContext";
 import { filterPhoneNumber } from "../../utils/utils";
+import { getCurrentPosition } from "../../utils/geolocation";
 import PageBreadcrumb from "../common/PageBreadCrumb";
 import ComponentCard from "../common/ComponentCard";
 import Label from "../form/Label";
@@ -352,46 +353,28 @@ export default function OnboardAgentForm() {
     },
   });
 
-  const handleGetLocation = () => {
-    if (!navigator.geolocation) {
-      setAlertTitle("Geolocation Not Supported");
-      setError("Your browser does not support geolocation.");
-      return;
-    }
-
+  const handleGetLocation = async () => {
     setGeoLoading(true);
     setAlertTitle("");
     setError("");
     setSuccessAlert("");
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude.toFixed(6);
-        const lon = position.coords.longitude.toFixed(6);
+    try {
+      const result = await getCurrentPosition();
 
-        setValue("latitude", lat, { shouldValidate: true });
-        setValue("longitude", lon, { shouldValidate: true });
-        setGeoLoading(false);
-      },
-      (err) => {
-        setGeoLoading(false);
+      if (result.success) {
+        setValue("latitude", result.latitude, { shouldValidate: true });
+        setValue("longitude", result.longitude, { shouldValidate: true });
+      } else {
         setAlertTitle("Geolocation Error");
-        switch (err.code) {
-          case err.PERMISSION_DENIED:
-            setError("Permission to access location was denied.");
-            break;
-          case err.POSITION_UNAVAILABLE:
-            setError("Location information is unavailable.");
-            break;
-          case err.TIMEOUT:
-            setError("The request to get location timed out.");
-            break;
-          default:
-            setError("An error occurred while fetching location.");
-        }
-      },
-      { timeout: 10000, maximumAge: 60000 }
-    );
+        setError(result.error || "Failed to get location");
+      }
+    } catch {
+      setAlertTitle("Geolocation Error");
+      setError("An unexpected error occurred while getting location");
+    } finally {
+      setGeoLoading(false);
+    }
   };
 
   const handlePhoneBlur = async (
@@ -1182,15 +1165,20 @@ export default function OnboardAgentForm() {
                     control={control}
                     render={({ field }) => (
                       <Input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="^-?[0-9]+\.?[0-9]*$"
                         id="latitude"
                         {...field}
                         value={
-                          !geoLoading ? field.value : "Fetching Location..."
+                          !geoLoading
+                            ? field.value || ""
+                            : "Fetching Location..."
                         }
                         disabled={geoLoading || loading || uploadLoading}
                         error={!!errors.latitude}
                         hint={errors.latitude?.message}
+                        placeholder="e.g., 8.4606"
                       />
                     )}
                   />
@@ -1205,15 +1193,20 @@ export default function OnboardAgentForm() {
                     control={control}
                     render={({ field }) => (
                       <Input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="^-?[0-9]+\.?[0-9]*$"
                         id="longitude"
                         {...field}
                         value={
-                          !geoLoading ? field.value : "Fetching Location..."
+                          !geoLoading
+                            ? field.value || ""
+                            : "Fetching Location..."
                         }
                         disabled={geoLoading || loading || uploadLoading}
                         error={!!errors.longitude}
                         hint={errors.longitude?.message}
+                        placeholder="e.g., -13.2317"
                       />
                     )}
                   />

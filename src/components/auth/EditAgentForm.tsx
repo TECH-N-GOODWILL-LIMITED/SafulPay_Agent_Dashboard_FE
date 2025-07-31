@@ -10,6 +10,7 @@ import {
   updateAgentInfo,
 } from "../../utils/api";
 import { useUsers } from "../../context/UsersContext";
+import { getCurrentPosition } from "../../utils/geolocation";
 import ComponentCard from "../../components/common/ComponentCard";
 import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
@@ -34,6 +35,7 @@ import {
   MERCHANT_ROLE,
   SUPER_AGENT_ROLE,
 } from "../../utils/roles";
+import LoadingSpinner from "../common/LoadingSpinner";
 
 const validationSchema = yup.object().shape({
   firstname: yup.string().required("First name is required"),
@@ -309,58 +311,32 @@ export default function EditAgentForm() {
     setOpenDropdown((prev) => (prev === dropdownName ? null : dropdownName));
   };
 
-  const handleGetLocation = () => {
-    if (!navigator.geolocation) {
-      setAlertTitle("Geolocation Not Supported");
-      setError("Your browser does not support geolocation.");
-      return;
-    }
-
+  const handleGetLocation = async () => {
     setGeoLoading(true);
     setAlertTitle("");
     setError("");
     setUpdateSuccess("");
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude.toFixed(6);
-        const lon = position.coords.longitude.toFixed(6);
+    try {
+      const result = await getCurrentPosition();
 
-        setValue("latitude", lat, { shouldValidate: true });
-        setValue("longitude", lon, { shouldValidate: true });
-        setGeoLoading(false);
-      },
-      (err) => {
-        setGeoLoading(false);
+      if (result.success) {
+        setValue("latitude", result.latitude, { shouldValidate: true });
+        setValue("longitude", result.longitude, { shouldValidate: true });
+      } else {
         setAlertTitle("Geolocation Error");
-        switch (err.code) {
-          case err.PERMISSION_DENIED:
-            setAlertTitle("Error");
-            setError("Permission to access location was denied.");
-            break;
-          case err.POSITION_UNAVAILABLE:
-            setAlertTitle("Error");
-            setError("Location information is unavailable.");
-            break;
-          case err.TIMEOUT:
-            setAlertTitle("Error");
-            setError("The request to get location timed out.");
-            break;
-          default:
-            setAlertTitle("Error");
-            setError("An error occurred while fetching location.");
-        }
-      },
-      { timeout: 10000, maximumAge: 60000 }
-    );
+        setError(result.error || "Failed to get location");
+      }
+    } catch {
+      setAlertTitle("Geolocation Error");
+      setError("An unexpected error occurred while getting location");
+    } finally {
+      setGeoLoading(false);
+    }
   };
 
   if (loading) {
-    return (
-      <div className="text-gray-500 dark:text-gray-400">
-        Loading agent data...
-      </div>
-    );
+    return <LoadingSpinner text="Loading agent data..." />;
   }
 
   const onSubmit = () => {
@@ -402,7 +378,7 @@ export default function EditAgentForm() {
 
       dirtyKeys.forEach((key) => {
         if (key in originalAgentData!) {
-          updatedFields[key as keyof Agent] = data[key] as any;
+          (updatedFields as Record<string, unknown>)[key] = data[key];
         }
       });
 
@@ -949,16 +925,19 @@ export default function EditAgentForm() {
                     render={({ field }) => (
                       <Input
                         {...field}
-                        type="number"
+                        type="text"
                         inputMode="numeric"
-                        pattern="[0-9]*"
+                        pattern="^-?[0-9]+\.?[0-9]*$"
                         id="latitude"
                         value={
-                          !geoLoading ? field.value : "Fetching Location..."
+                          !geoLoading
+                            ? field.value || ""
+                            : "Fetching Location..."
                         }
                         disabled={geoLoading || loading || uploadLoading}
                         error={!!errors.latitude}
                         hint={errors.latitude?.message}
+                        placeholder="e.g., 8.4606"
                       />
                     )}
                   />
@@ -974,16 +953,19 @@ export default function EditAgentForm() {
                     render={({ field }) => (
                       <Input
                         {...field}
-                        type="number"
+                        type="text"
                         inputMode="numeric"
-                        pattern="[0-9]*"
+                        pattern="^-?[0-9]+\.?[0-9]*$"
                         id="longitude"
                         value={
-                          !geoLoading ? field.value : "Fetching Location..."
+                          !geoLoading
+                            ? field.value || ""
+                            : "Fetching Location..."
                         }
                         disabled={geoLoading || loading || uploadLoading}
                         error={!!errors.longitude}
                         hint={errors.longitude?.message}
+                        placeholder="e.g., -13.2317"
                       />
                     )}
                   />
