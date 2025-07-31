@@ -591,7 +591,10 @@ export default function OnboardAgentForm() {
       const response = await addAgent(formData);
 
       if (response.success && response.data) {
-        await fetchUsers();
+        await fetchUsers({
+          page: 1,
+          per_page: 10,
+        });
         setAlertTitle("Successful");
         setSuccessAlert(`${finalData.agentType} registered successfully!`);
         reset();

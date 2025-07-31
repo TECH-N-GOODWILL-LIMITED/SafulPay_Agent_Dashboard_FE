@@ -86,7 +86,10 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
     const response = await registerUser(token, phoneNumber, selectedRole);
 
     if (response.success && response.data) {
-      await fetchUsers();
+      await fetchUsers({
+        page: 1,
+        per_page: 10,
+      });
     } else {
       setAlertTitle("Registration Failed");
       setError(response.error || "Registration failed");

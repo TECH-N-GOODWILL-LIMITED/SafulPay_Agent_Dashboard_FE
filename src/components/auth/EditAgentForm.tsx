@@ -469,7 +469,10 @@ export default function EditAgentForm() {
       );
 
       if (response.success && response.data) {
-        await fetchUsers();
+        await fetchUsers({
+          page: 1,
+          per_page: 10,
+        });
         setAlertTitle("Successful");
         setUpdateSuccess(
           `${data.type} ${data.business_name}'s info updated successfully!`

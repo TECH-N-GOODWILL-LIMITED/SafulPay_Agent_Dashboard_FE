@@ -54,7 +54,6 @@ const Users: React.FC = () => {
       params.status = statusMap[filterStatus];
     }
 
-    // Add search term to params if it exists
     if (searchTerm.trim()) {
       params.name = searchTerm.trim();
     }
@@ -64,7 +63,7 @@ const Users: React.FC = () => {
 
   const handleSearch = (term: string) => {
     setSearchTerm(term);
-    setCurrentPage(1); // Reset to first page when searching
+    setCurrentPage(1);
   };
 
   const filters: FilterConfig[] = [
