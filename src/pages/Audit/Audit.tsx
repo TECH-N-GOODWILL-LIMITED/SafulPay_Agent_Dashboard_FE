@@ -7,6 +7,7 @@ import { getAuditLogs } from "../../utils/api";
 import Alert from "../../components/ui/alert/Alert";
 import LogTable from "../../components/tables/BasicTables/LogTable";
 import { useAuth } from "../../context/AuthContext";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 
 const tableHeader: string[] = [
   "Action type",
@@ -43,8 +44,9 @@ const Audit: React.FC = () => {
     fetchData();
   }, []);
 
-  if (loading)
-    return <div className="text-gray-500 dark:text-gray-400">Loading...</div>;
+  if (loading) {
+    return <LoadingSpinner text="Loading audit logs..." />;
+  }
 
   return (
     <>

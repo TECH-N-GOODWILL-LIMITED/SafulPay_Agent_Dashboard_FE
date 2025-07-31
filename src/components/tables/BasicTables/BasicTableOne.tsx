@@ -124,7 +124,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
         : await changeUserStatus(token, user.id, newStatus, reason);
 
       if (response.success) {
-        await fetchUsers();
+        await fetchUsers({ page: 1, per_page: 10 });
         await fetchMyAgents();
         return true;
       } else {
@@ -486,7 +486,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                   <div>
                     {isAgent ? (
                       <div className="flex flex-col gap-5">
-                        {(!currentUser?.temp || currentUser?.temp === 0) && (
+                        {canEditUser(user?.role, currentUser) && (
                           <Alert
                             variant="warning"
                             title="Incomplete Agent Information"

@@ -37,6 +37,7 @@ import {
   MERCHANT_ROLE,
   SUPER_AGENT_ROLE,
 } from "../../utils/roles";
+import LoadingSpinner from "../common/LoadingSpinner";
 
 const phoneRegExp =
   /^(232|\+232|0)?(25|30|31|32|33|34|40|44|50|55|66|72|73|74|75|76|77|78|79|80|88|90|99)\d{6}$/;
@@ -678,11 +679,7 @@ export default function OnboardAgentForm() {
   };
 
   if (refLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen text-gray-500 dark:text-gray-400">
-        Validating referral code...
-      </div>
-    );
+    return <LoadingSpinner text=" Validating referral code..." />;
   }
 
   if (refError)
@@ -1183,7 +1180,6 @@ export default function OnboardAgentForm() {
                     render={({ field }) => (
                       <Input
                         type="text"
-                        inputMode="numeric"
                         id="latitude"
                         {...field}
                         value={
@@ -1207,7 +1203,6 @@ export default function OnboardAgentForm() {
                     render={({ field }) => (
                       <Input
                         type="text"
-                        inputMode="numeric"
                         id="longitude"
                         {...field}
                         value={

@@ -5,6 +5,7 @@ import PageMeta from "../../components/common/PageMeta";
 import StatsCard from "../../components/common/StatsCard";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import LeaderboardTable from "../../components/tables/BasicTables/LeaderboardTable";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 
 export default function MarketersLeaderboard() {
   const { marketerStats: tableData, loading, error } = useAllMarketers();
@@ -19,12 +20,15 @@ export default function MarketersLeaderboard() {
     "Agents this week",
   ];
 
-  if (loading)
-    return <div className="text-gray-500 dark:text-gray-400">Loading...</div>;
-  if (error)
+  if (loading) {
+    return <LoadingSpinner text="Loading marketers data..." />;
+  }
+
+  if (error) {
     return (
       <Alert variant="error" title="Error" message={error} showLink={false} />
     );
+  }
 
   return (
     <>
