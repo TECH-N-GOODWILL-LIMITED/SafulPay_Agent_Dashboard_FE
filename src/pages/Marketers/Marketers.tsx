@@ -128,37 +128,26 @@ const AdminView: React.FC = () => {
 
   return (
     <>
-      <PageMeta
-        title="Marketers | SafulPay Agency Dashboard - Finance just got better"
-        description="List of all agency marketers - Management system for SafulPay's Agency Platform"
-      />
-      <PageBreadcrumb pageTitle="Marketers" />
-      {loading ? (
-        <div className="text-gray-500 dark:text-gray-400">Loading...</div>
-      ) : (
-        <div className="space-y-6">
-          <ComponentCard
-            title="Marketers Table"
-            desc="Details of all Marketers"
-            actionButton={actionButton}
-            filters={filters}
-            searchConfig={searchConfig}
-            pagination={{
-              currentPage,
-              totalPages: allUsers?.last_page || 1,
-              totalItems: allUsers?.total_filter_result || 0,
-              perPage: allUsers?.per_page || 10,
-              loading: loading,
-              onPageChange: (page) => setCurrentPage(page),
-            }}
-          >
-            <BasicTableOne
-              tableHeading={tableHeader}
-              tableContent={tableData}
-            />
-          </ComponentCard>
-        </div>
-      )}
+      <div className="space-y-6">
+        <ComponentCard
+          title="Marketers Table"
+          desc="Details of all Marketers"
+          actionButton={actionButton}
+          filters={filters}
+          searchConfig={searchConfig}
+          pagination={{
+            currentPage,
+            totalPages: allUsers?.last_page || 1,
+            totalItems: allUsers?.total_filter_result || 0,
+            perPage: allUsers?.per_page || 10,
+            loading: loading,
+            onPageChange: (page) => setCurrentPage(page),
+          }}
+        >
+          <BasicTableOne tableHeading={tableHeader} tableContent={tableData} />
+        </ComponentCard>
+      </div>
+
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
         <RegisterModal
           modalHeading="Add a new user"

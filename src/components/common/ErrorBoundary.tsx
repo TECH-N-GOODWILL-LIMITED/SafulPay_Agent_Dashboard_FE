@@ -1,4 +1,7 @@
 import React, { Component, ReactNode } from "react";
+import Button from "../ui/button/Button";
+import GridShape from "./GridShape";
+import PageMeta from "./PageMeta";
 
 interface Props {
   children: ReactNode;
@@ -28,22 +31,46 @@ class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         this.props.fallback || (
-          <div className="flex items-center justify-center min-h-screen">
-            <div className="text-center">
-              <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
-                Something went wrong
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                We're sorry, but something went wrong while loading this page.
+          <>
+            <PageMeta
+              title="SafulPay Agency Dashboard | Finance just got better"
+              description="This is SafulPay Agency's Dashboard - Management system for SafulPay's Agency Platform"
+            />
+            <div className="relative flex flex-col items-center justify-center min-h-screen p-6 overflow-hidden z-1">
+              <GridShape />
+              <div className="mx-auto w-full max-w-[242px] text-center sm:max-w-[472px]">
+                <h1 className="mb-8 font-bold text-gray-800 text-title-md dark:text-white/90 xl:text-title-2xl">
+                  ERROR
+                </h1>
+
+                <img
+                  src="/images/error/503.svg"
+                  alt="404"
+                  className="dark:hidden"
+                />
+                <img
+                  src="/images/error/503-dark.svg"
+                  alt="404"
+                  className="hidden dark:block"
+                />
+
+                <p className="mt-10 mb-6 text-base text-gray-700 dark:text-gray-400 sm:text-lg">
+                  We're sorry, but something went wrong while loading this page.
+                </p>
+
+                <Button
+                  onClick={() => window.location.reload()}
+                  // className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-5 py-3.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
+                >
+                  Reload Page
+                </Button>
+              </div>
+              {/* <!-- Footer --> */}
+              <p className="absolute text-sm text-center text-gray-500 -translate-x-1/2 bottom-6 left-1/2 dark:text-gray-400">
+                &copy; {new Date().getFullYear()} - SafulPay
               </p>
-              <button
-                onClick={() => window.location.reload()}
-                className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors"
-              >
-                Reload Page
-              </button>
             </div>
-          </div>
+          </>
         )
       );
     }

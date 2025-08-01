@@ -36,6 +36,7 @@ import {
   SUPER_AGENT_ROLE,
 } from "../../utils/roles";
 import LoadingSpinner from "../common/LoadingSpinner";
+import PageMeta from "../common/PageMeta";
 
 const validationSchema = yup.object().shape({
   firstname: yup.string().required("First name is required"),
@@ -495,6 +496,10 @@ export default function EditAgentForm() {
 
   return (
     <>
+      <PageMeta
+        title="Agent & Merchant | SafulPay Agency Dashboard - Finance just got better"
+        description="Update an Agent or Merchant Info - Management system for SafulPay's Agency Platform"
+      />
       {fetchError && (
         <Alert variant="error" title="Error" message={fetchError} />
       )}

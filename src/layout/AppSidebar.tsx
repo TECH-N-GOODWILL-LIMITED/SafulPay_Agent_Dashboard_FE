@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router";
 import { useSidebar } from "../context/SidebarContext";
 import { useAuth } from "../context/AuthContext";
 import { ACCOUNTANT_ROLE, ADMIN_ROLE, MARKETER_ROLE } from "../utils/roles";
+import { useClickOutside } from "../hooks/useClickOutside";
 import {
   BoxCubeIcon,
   ChevronDownIcon,
@@ -32,7 +33,13 @@ type NavItem = {
 };
 
 const AppSidebar: React.FC = () => {
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const {
+    isExpanded,
+    isMobileOpen,
+    isHovered,
+    setIsHovered,
+    closeMobileSidebar,
+  } = useSidebar();
   const { user } = useAuth();
   const userRole = user?.role || "Guest";
   const location = useLocation();
@@ -141,6 +148,7 @@ const AppSidebar: React.FC = () => {
     {}
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const sidebarRef = useRef<HTMLElement | null>(null);
 
   const isActive = useCallback(
     (path: string) => location.pathname === path,
@@ -214,6 +222,13 @@ const AppSidebar: React.FC = () => {
   const filteredNavItems = filterItemsByRole(navItems);
   const filteredOthersItems = filterItemsByRole(othersItems);
 
+  // Close mobile sidebar when clicking outside
+  useClickOutside(sidebarRef, () => {
+    if (isMobileOpen) {
+      closeMobileSidebar();
+    }
+  });
+
   const getFilteredSubItems = (
     subItems: NavItem["subItems"],
     role: string
@@ -286,6 +301,12 @@ const AppSidebar: React.FC = () => {
               nav.path && (
                 <Link
                   to={nav.path}
+                  onClick={() => {
+                    // Close mobile sidebar when navigating
+                    if (isMobileOpen) {
+                      closeMobileSidebar();
+                    }
+                  }}
                   className={`menu-item group ${
                     isActive(nav.path)
                       ? "menu-item-active"
@@ -328,6 +349,12 @@ const AppSidebar: React.FC = () => {
                       <li key={subItem.name}>
                         <Link
                           to={subItem.path}
+                          onClick={() => {
+                            // Close mobile sidebar when navigating
+                            if (isMobileOpen) {
+                              closeMobileSidebar();
+                            }
+                          }}
                           className={`menu-dropdown-item ${
                             isActive(subItem.path)
                               ? "menu-dropdown-item-active"
@@ -373,6 +400,7 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
+      ref={sidebarRef}
       className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
         ${
           isExpanded || isMobileOpen

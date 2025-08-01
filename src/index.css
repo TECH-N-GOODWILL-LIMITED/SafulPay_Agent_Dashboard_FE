@@ -203,6 +203,7 @@ layer(base);
   input,
   textarea {
     resize: none !important;
+    font-size: 14px !important; /* Prevents zoom on iOS */
   }
 }
 

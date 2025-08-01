@@ -39,6 +39,7 @@ import {
   SUPER_AGENT_ROLE,
 } from "../../utils/roles";
 import LoadingSpinner from "../common/LoadingSpinner";
+import PageMeta from "../common/PageMeta";
 
 const phoneRegExp =
   /^(232|\+232|0)?(25|30|31|32|33|34|40|44|50|55|66|72|73|74|75|76|77|78|79|80|88|90|99)\d{6}$/;
@@ -649,13 +650,6 @@ export default function OnboardAgentForm() {
     }
 
     await processRegistration(data, 1);
-
-    // For Target agents, if we have both ID document and business image, set temp = 1 (complete KYC)
-    // For other agents, use temp = 0 (incomplete KYC) if there are missing documents
-    // const tempValue =
-    //   TargetAgent && data.idImageUrl && data.businessImageUrl ? 1 : 0;
-
-    // await processRegistration(data, tempValue);
   };
 
   const handleProceedWithoutDocuments = async () => {
@@ -673,6 +667,10 @@ export default function OnboardAgentForm() {
 
   return (
     <>
+      <PageMeta
+        title="Agent & Merchant | SafulPay Agency Dashboard - Finance just got better"
+        description="Register an Agent or Merchant - Management system for SafulPay's Agency Platform"
+      />
       <PageBreadcrumb pageTitle="Register Agent & Merchant" />
 
       <form

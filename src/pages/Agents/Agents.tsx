@@ -19,6 +19,7 @@ const tableHeader: string[] = [
   "Role / Model",
   "Residual Amount",
   "Business Phone / Primary Phone",
+  "Referred By",
   "Status",
   "KYC Status",
 ];
@@ -176,6 +177,7 @@ const Agents: React.FC = () => {
       idDocument: agent.id_document,
       bizRegDocument: agent.business_registration,
       businessImage: agent.business_image,
+      refBy: agent.ref_by,
       status:
         agent.status === 1
           ? "Active"
