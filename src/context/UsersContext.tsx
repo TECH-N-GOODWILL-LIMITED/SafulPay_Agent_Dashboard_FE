@@ -7,14 +7,13 @@ import {
   useCallback,
 } from "react";
 import { useAuth } from "./AuthContext";
-import { getAllUsers, type GetAllUsersParams } from "../utils/api";
-import type { AllUsersData } from "../types/types";
+import { getAllUsers } from "../utils/api";
+import type { AllUsersData, GetAllUsersParams } from "../types/types";
 import { ADMIN_ROLE } from "../utils/roles";
 
 interface UsersContextType {
   allUsers: AllUsersData | null;
   fetchUsers: (params: GetAllUsersParams) => Promise<void>;
-  totalUsers: number;
   title: string;
   error?: string;
   loading: boolean;
@@ -32,7 +31,6 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [allUsers, setAllUsers] = useState<AllUsersData | null>(null);
-  const [totalUsers, setTotalUsers] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const [title, setTitle] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -62,7 +60,6 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({
 
       if (response.success && response.data) {
         setAllUsers(response.data);
-        setTotalUsers(response.data.total_all_users);
         setError("");
       } else {
         setTitle("Failed to fetch users");
@@ -83,7 +80,6 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({
     <UsersContext.Provider
       value={{
         allUsers,
-        totalUsers,
         fetchUsers,
         title,
         error,

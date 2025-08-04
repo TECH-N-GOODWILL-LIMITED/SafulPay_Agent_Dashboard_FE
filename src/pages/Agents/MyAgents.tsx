@@ -78,7 +78,6 @@ const MyAgents: React.FC = () => {
 
   const actionButton: ActionButtonConfig = {
     label: "Add Agent",
-    icon: "✚",
     onClick: handleAddAgent,
   };
 

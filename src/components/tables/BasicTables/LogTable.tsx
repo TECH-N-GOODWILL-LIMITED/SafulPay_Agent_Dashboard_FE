@@ -6,21 +6,11 @@ import {
   TableRow,
 } from "../../ui/table";
 import { AuditLogData } from "../../../types/types";
-
-const formatDateTime = (isoString: string): string => {
-  const date = new Date(isoString);
-  return date.toLocaleString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-};
+import { formatDateTime } from "../../../utils/utils";
 
 interface Order {
-  tableHeading?: string[];
+  tableHeading: string[];
+  // tableContent: BaseListData<AuditLogData[]> | undefined;
   tableContent: AuditLogData[] | undefined;
 }
 

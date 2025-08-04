@@ -50,3 +50,51 @@ export const formatPhoneNumber = (number: string, country: countryType) => {
 
   return formatted.slice(0, example.length);
 };
+
+export const formatDateTime = (isoString: string): string => {
+  const date = new Date(isoString);
+  return date.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
+// Helper function to validate date format (YYYY-MM-DD)
+export const isValidDateFormat = (date: string): boolean => {
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(date)) return false;
+
+  const parsedDate = new Date(date);
+  return (
+    !isNaN(parsedDate.getTime()) &&
+    parsedDate.toISOString().split("T")[0] === date
+  );
+};
+
+// Helper function to validate date range
+export const validateDateRange = (start: string, end: string): string => {
+  if (!start || !end) return ""; // Allow empty dates
+
+  if (!isValidDateFormat(start) || !isValidDateFormat(end)) {
+    return "Please enter valid dates in YYYY-MM-DD format";
+  }
+
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  const today = new Date();
+  today.setHours(23, 59, 59, 999); // Set to end of today
+
+  if (startDate > today || endDate > today) {
+    return "Date cannot be greater than today";
+  }
+
+  if (startDate > endDate) {
+    return "Start date cannot be greater than end date";
+  }
+
+  return "";
+};

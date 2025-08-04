@@ -90,12 +90,12 @@ export default function UserDropdown() {
         className="mt-[17px] flex w-[260px] flex-col rounded-2xl p-3"
       >
         <div>
-          <span className="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">
+          <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
             {displayUser?.firstname}
-          </span>
-          <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
+          </p>
+          <p className="mt-0.5 text-theme-xs text-gray-500 dark:text-gray-400">
             {displayUser?.email}
-          </span>
+          </p>
         </div>
 
         <ul className="flex flex-col gap-1 pt-4 pb-3 border-b border-gray-200 dark:border-gray-800">

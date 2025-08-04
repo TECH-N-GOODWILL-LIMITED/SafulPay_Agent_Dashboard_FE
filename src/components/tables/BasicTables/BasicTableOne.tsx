@@ -29,6 +29,7 @@ import {
   MERCHANT_ROLE,
   SUPER_AGENT_ROLE,
 } from "../../../utils/roles";
+import { formatDateTime } from "../../../utils/utils";
 
 interface TableContentItem {
   id: number;
@@ -56,6 +57,8 @@ interface TableContentItem {
   status: string;
   temp?: number;
   kycStatus?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface Order {
@@ -239,6 +242,8 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
   const handleSuspend = async (): Promise<void> => {
     if (!currentUser || !token) return;
     if (await changeStatus(currentUser, token, 2, "suspend", reason)) {
+      setSelectedAction(null);
+      setReason("");
       closeModal();
     }
   };
@@ -246,6 +251,8 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
   const handleApprove = async (): Promise<void> => {
     if (!currentUser || !token) return;
     if (await changeStatus(currentUser, token, 1, "approve", reason)) {
+      setSelectedAction(null);
+      setReason("");
       closeModal();
     }
   };
@@ -253,6 +260,8 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
   const handleReActivate = async (): Promise<void> => {
     if (!currentUser || !token) return;
     if (await changeStatus(currentUser, token, 1, "reActivate", reason)) {
+      setSelectedAction(null);
+      setReason("");
       closeModal();
     }
   };
@@ -260,6 +269,8 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
   const handleReject = async (): Promise<void> => {
     if (!currentUser || !token) return;
     if (await changeStatus(currentUser, token, 3, "reject", reason)) {
+      setSelectedAction(null);
+      setReason("");
       closeModal();
     }
   };
@@ -406,6 +417,12 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                   {order.kycStatus && (
                     <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
                       {order.kycStatus}
+                    </TableCell>
+                  )}
+
+                  {order.createdAt && (
+                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                      {formatDateTime(order.createdAt || "")}
                     </TableCell>
                   )}
                   <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
@@ -618,6 +635,28 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                                 No Business Place Image
                               </p>
                             )}
+                          </div>
+
+                          <div className="col-span-2 lg:col-span-1">
+                            <Label>Date Registered</Label>
+                            <Input
+                              type="text"
+                              value={formatDateTime(
+                                currentUser.createdAt || ""
+                              )}
+                              readOnly
+                            />
+                          </div>
+
+                          <div className="col-span-2 lg:col-span-1">
+                            <Label>Date Modified</Label>
+                            <Input
+                              type="text"
+                              value={formatDateTime(
+                                currentUser.updatedAt || ""
+                              )}
+                              readOnly
+                            />
                           </div>
                         </div>
                       </div>

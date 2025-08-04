@@ -7,8 +7,8 @@ import {
   useEffect,
 } from "react";
 import { useAuth } from "./AuthContext";
-import { getAllAgents, type GetAllAgentsParams } from "../utils/api";
-import type { AllAgentsData } from "../types/types";
+import { getAllAgents } from "../utils/api";
+import type { AllAgentsData, GetAllAgentsParams } from "../types/types";
 import { ADMIN_ROLE } from "../utils/roles";
 
 interface AgentsContextType {

@@ -3,9 +3,12 @@ import { useUsers } from "../../context/UsersContext";
 import { userRoles, ADMIN_ROLE } from "../../utils/roles";
 import ComponentCard, {
   ActionButtonConfig,
+} from "../../components/common/ComponentCard";
+import TableFilters, {
   FilterConfig,
   SearchConfig,
-} from "../../components/common/ComponentCard";
+} from "../../components/common/TableFilters";
+import TablePagination from "../../components/common/TablePagination";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
@@ -30,7 +33,7 @@ const Admin = () => {
   const { allUsers, title, error, loading, fetchUsers } = useUsers();
   const { isOpen, openModal, closeModal } = useModal();
 
-  const statusOptions = ["All", "Pending", "Active", "Suspended", "Rejected"];
+  const statusOptions = ["All", "Pending", "Active", "Suspended"];
 
   useEffect(() => {
     const params: { [key: string]: number | string } = {
@@ -63,7 +66,6 @@ const Admin = () => {
 
   const actionButton: ActionButtonConfig = {
     label: "Add Admin",
-    icon: "✚",
     onClick: openModal,
   };
 
@@ -103,8 +105,6 @@ const Admin = () => {
           ? "Active"
           : user.status === 2
           ? "Suspended"
-          : user.status === 3
-          ? "Rejected"
           : "Pending",
     }));
   }, [allUsers]);
@@ -137,18 +137,19 @@ const Admin = () => {
           title="Admin Table"
           desc="Details of all Admins"
           actionButton={actionButton}
-          filters={filters}
-          searchConfig={searchConfig}
-          pagination={{
-            currentPage,
-            totalPages: allUsers?.last_page || 1,
-            totalItems: allUsers?.total_filter_result || 0,
-            perPage: allUsers?.per_page || 10,
-            loading: loading,
-            onPageChange: (page) => setCurrentPage(page),
-          }}
         >
+          <TableFilters filters={filters} searchConfig={searchConfig} />
           <BasicTableOne tableHeading={tableHeader} tableContent={tableData} />
+          <TablePagination
+            pagination={{
+              currentPage,
+              totalPages: allUsers?.last_page || 1,
+              totalItems: allUsers?.total_filter_result || 0,
+              perPage: allUsers?.per_page || 10,
+              loading: loading,
+              onPageChange: (page: number) => setCurrentPage(page),
+            }}
+          />
         </ComponentCard>
       </div>
       {/* )} */}

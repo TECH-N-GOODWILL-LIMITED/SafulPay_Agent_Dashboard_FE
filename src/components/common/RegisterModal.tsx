@@ -60,9 +60,21 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
   };
 
   const handleRegister = async () => {
-    if (!phone || !selectedRole) {
+    if (!phone && !selectedRole) {
       setAlertTitle("Fill the required field");
       setError("Input a phone number and select role");
+      return;
+    }
+
+    if (!phone) {
+      setAlertTitle("Fill the required field");
+      setError("Input a phone number");
+      return;
+    }
+
+    if (!selectedRole) {
+      setAlertTitle("Fill the required field");
+      setError("Select role");
       return;
     }
 

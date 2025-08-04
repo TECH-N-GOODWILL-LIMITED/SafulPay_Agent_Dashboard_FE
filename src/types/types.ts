@@ -1,7 +1,7 @@
 export interface ApiResponse<T> {
   success: boolean;
-  data?: T;
   error?: string;
+  data?: T;
 }
 
 export interface UserBio {
@@ -111,18 +111,21 @@ export interface Agent {
   // marketer: Marketer | null;
 }
 
-export interface AllAgentsData {
+export interface BaseListData<T> {
+  total_filter_result: number;
+  current_page: number;
+  per_page: number;
+  last_page: number;
+  data: T;
+}
+
+export interface AllAgentsData extends BaseListData<Agent[]> {
   total_all_agents: number;
   total_independent_agents: number;
   total_target_agents: number;
   total_super_agents: number;
   total_merchants: number;
   total_agents: number;
-  total_filter_result: number;
-  current_page: number;
-  per_page: number;
-  last_page: number;
-  data: Agent[];
 }
 
 export interface UpdatedAgentFields extends Partial<Agent> {
@@ -168,16 +171,83 @@ export interface AuditLogData {
   action: string;
   table: string;
   performed_by: {
-    user_id: number;
+    user_id: string;
     name: string;
     role: string;
   };
-  description: number;
+  description: string;
   reason: string;
   ip_address: string;
   user_agent: string;
   created_at: string;
-  updated_at: string;
+}
+
+export interface AllUsersData extends BaseListData<{ users: UserBio[] }> {
+  total_all_users: number;
+  total_admin: number;
+  total_marketer: number;
+  total_accountant: number;
+  total_rider: number;
+}
+
+interface BasicParams {
+  page?: number;
+  per_page?: number;
+  startDate?: string;
+  endDate?: string;
+}
+
+// API Parameter Types
+export interface GetAllUsersParams extends BasicParams {
+  role?: string;
+  status?: string | number;
+  name?: string;
+}
+
+export interface GetAllAgentsParams extends BasicParams {
+  type?: string;
+  model?: string;
+  ref_by?: string;
+  temp?: string | number;
+  status?: string | number;
+  name?: string;
+}
+
+export interface GetAllMarketersParams extends BasicParams {
+  status?: string | number;
+  name?: string;
+}
+export interface GetAllAgentsByReferralParams extends BasicParams {
+  status?: string | number;
+  type?: string;
+  model?: string;
+}
+
+export interface GetAuditLogsParams extends BasicParams {
+  action?: string;
+  performed_by?: string;
+  description?: string;
+}
+
+export interface DownloadAuditLogsParams extends BasicParams {
+  format: "csv" | "excel";
+  action?: string;
+  table?: string;
+  performed_by?: string;
+  description?: string;
+}
+
+export interface AllMarketersData
+  extends BaseListData<{ marketers: UserBio[] }> {
+  total_marketers: number;
+}
+
+export interface DownloadParams extends GetAllUsersParams {
+  format: "csv" | "excel";
+}
+
+export interface DownloadAgentsParams extends GetAllAgentsParams {
+  format: "csv" | "excel";
 }
 
 export interface countryType {
@@ -193,19 +263,4 @@ export interface usersMetric {
   users: string;
   metric: number;
   currencySymbol?: boolean;
-}
-
-export interface AllUsersData {
-  total_all_users: number;
-  total_filter_result: number;
-  total_admin: number;
-  total_marketer: number;
-  total_accountant: number;
-  total_rider: number;
-  current_page: number;
-  per_page: number;
-  last_page: number;
-  data: {
-    users: UserBio[];
-  };
 }
