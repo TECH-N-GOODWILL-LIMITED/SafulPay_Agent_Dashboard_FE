@@ -17,15 +17,15 @@ const TableShimmer: React.FC<TableShimmerProps> = ({
     <div className="animate-pulse">
       {/* Header Shimmer */}
       <div className="border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center px-5 py-3">
+        <div className="flex items-center px-5 py-2">
           {Array.from({ length: columns }).map((_, index) => (
-            <div key={index} className="flex-1 px-4 py-2">
-              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
+            <div key={index} className="flex-1 px-4 py-1">
+              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
             </div>
           ))}
           {showAction && (
-            <div className="px-4 py-2 w-20">
-              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
+            <div className="px-4 py-1 w-20">
+              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
             </div>
           )}
         </div>
@@ -36,13 +36,13 @@ const TableShimmer: React.FC<TableShimmerProps> = ({
         {Array.from({ length: rows }).map((_, rowIndex) => (
           <div key={rowIndex} className="flex items-center px-5 py-4">
             {Array.from({ length: columns }).map((_, colIndex) => (
-              <div key={colIndex} className="flex-1 px-4 py-2">
+              <div key={colIndex} className="flex-1 px-2 py-1">
                 {colIndex === 0 && showAvatar ? (
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+                    <div className="size-8 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
                     <div className="flex-1">
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 mb-1"></div>
-                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
+                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-24 mb-1"></div>
+                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
                     </div>
                   </div>
                 ) : colIndex === columns - 1 ? (
@@ -55,7 +55,7 @@ const TableShimmer: React.FC<TableShimmerProps> = ({
               </div>
             ))}
             {showAction && (
-              <div className="px-4 py-2 w-20">
+              <div className="px-4 py-1 w-20">
                 <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
               </div>
             )}
