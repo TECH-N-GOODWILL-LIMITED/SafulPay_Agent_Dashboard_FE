@@ -106,7 +106,8 @@ const Audit: React.FC = () => {
       exportTableData(
         preparedData,
         headers,
-        `audit-logs-export-${new Date().toISOString().split("T")[0]}`
+        `audit-logs-export-${new Date().toISOString().split("T")[0]}`,
+        format
       );
     } else {
       throw new Error(response.error || "Failed to download audit logs data");

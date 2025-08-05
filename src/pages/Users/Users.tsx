@@ -221,18 +221,19 @@ const Users: React.FC = () => {
       const headers = [
         "Name",
         "Username",
+        "Role",
         "Phone",
         "Email",
-        "Role",
-        "Status",
         "Referral Code",
         "Country",
+        "Status",
         "Created At",
       ];
       exportTableData(
         preparedData,
         headers,
-        `users-export-${new Date().toISOString().split("T")[0]}`
+        `users-export-${new Date().toISOString().split("T")[0]}`,
+        format
       );
     } else {
       throw new Error(response.error || "Failed to download users data");

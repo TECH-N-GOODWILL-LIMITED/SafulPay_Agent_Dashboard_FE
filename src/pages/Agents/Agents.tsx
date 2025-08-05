@@ -31,8 +31,8 @@ const tableHeader: string[] = [
   "Residual Amount",
   "Business Phone / Primary Phone",
   "Referred By",
-  "Status",
   "KYC Status",
+  "Status",
   "Date Created",
 ];
 
@@ -56,6 +56,8 @@ const Agents: React.FC = () => {
 
   const { allAgents, title, error, loading, fetchAgents } = useAgents();
   const { user, token } = useAuth();
+  console.log(token);
+
   const navigate = useNavigate();
 
   const roleOptions = ["All", AGENT_ROLE, SUPER_AGENT_ROLE, MERCHANT_ROLE];
@@ -250,17 +252,17 @@ const Agents: React.FC = () => {
 
     const response = await downloadAgentsData(token, params);
     if (response.success && response.data) {
-      const preparedData = prepareAgentsForExport(response.data.data);
+      const preparedData = await prepareAgentsForExport(response.data.data);
       const headers = [
         "Name",
         "Business Name",
         "Role/Model",
-        "Residual Amount",
+        "KYC Status",
+        "Status",
         "Primary Phone",
         "Business Phone",
+        "Residual Amount",
         "Referred By",
-        "Status",
-        "KYC Status",
         "Address",
         "Region",
         "District",
@@ -276,7 +278,8 @@ const Agents: React.FC = () => {
       exportTableData(
         preparedData,
         headers,
-        `agents-export-${new Date().toISOString().split("T")[0]}`
+        `agents-export-${new Date().toISOString().split("T")[0]}`,
+        format
       );
     } else {
       throw new Error(response.error || "Failed to download agents data");
