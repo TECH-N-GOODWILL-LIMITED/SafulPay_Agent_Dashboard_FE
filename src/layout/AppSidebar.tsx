@@ -82,7 +82,7 @@ const AppSidebar: React.FC = () => {
           roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
         },
         {
-          name: "Register Agents",
+          name: "Register Agent",
           path: `/onboardagent/${user?.referral_code}`,
           roles: [MARKETER_ROLE, ADMIN_ROLE],
         },

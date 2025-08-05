@@ -512,13 +512,13 @@ span.flatpickr-weekday,
 .flatpickr-day:focus,
 .flatpickr-day.prevMonthDay:focus,
 .flatpickr-day.nextMonthDay:focus {
-  @apply border-gray-50! bg-gray-50! dark:border-0! dark:border-white/5! dark:bg-white/5!;
+  @apply border-brand-50! bg-brand-50! dark:border-0! dark:border-white/5! dark:bg-white/5!;
 }
 .flatpickr-day.selected,
 .flatpickr-day.startRange,
 .flatpickr-day.selected,
 .flatpickr-day.endRange {
-  @apply text-white! dark:text-white!;
+  @apply text-brand-accent! dark:text-brand-accent-100!;
 }
 .flatpickr-day.selected,
 .flatpickr-day.startRange,

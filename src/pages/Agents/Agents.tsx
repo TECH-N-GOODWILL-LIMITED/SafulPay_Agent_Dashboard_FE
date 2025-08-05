@@ -31,8 +31,8 @@ const tableHeader: string[] = [
   "Residual Amount",
   "Business Phone / Primary Phone",
   "Referred By",
-  "Status",
   "KYC Status",
+  "Status",
   "Date Created",
 ];
 
@@ -56,6 +56,8 @@ const Agents: React.FC = () => {
 
   const { allAgents, title, error, loading, fetchAgents } = useAgents();
   const { user, token } = useAuth();
+  console.log(token);
+
   const navigate = useNavigate();
 
   const roleOptions = ["All", AGENT_ROLE, SUPER_AGENT_ROLE, MERCHANT_ROLE];
@@ -105,7 +107,6 @@ const Agents: React.FC = () => {
       params.temp = kycStatusMap[filterKycStatus];
     }
 
-    // Add search term to params if it exists
     if (searchTerm.trim()) {
       params.name = searchTerm.trim();
     }
@@ -239,7 +240,6 @@ const Agents: React.FC = () => {
       params.ref_by = filterRefBy.trim();
     }
 
-    // Only add dates if they are properly formatted
     if (dateRange.startDate && isValidDateFormat(dateRange.startDate)) {
       params.startDate = dateRange.startDate;
     }
@@ -250,17 +250,17 @@ const Agents: React.FC = () => {
 
     const response = await downloadAgentsData(token, params);
     if (response.success && response.data) {
-      const preparedData = prepareAgentsForExport(response.data.data);
+      const preparedData = await prepareAgentsForExport(response.data.data);
       const headers = [
         "Name",
         "Business Name",
         "Role/Model",
-        "Residual Amount",
+        "KYC Status",
+        "Status",
         "Primary Phone",
         "Business Phone",
+        "Residual Amount",
         "Referred By",
-        "Status",
-        "KYC Status",
         "Address",
         "Region",
         "District",
@@ -276,7 +276,8 @@ const Agents: React.FC = () => {
       exportTableData(
         preparedData,
         headers,
-        `agents-export-${new Date().toISOString().split("T")[0]}`
+        `agents-export-${new Date().toISOString().split("T")[0]}`,
+        format
       );
     } else {
       throw new Error(response.error || "Failed to download agents data");
@@ -295,7 +296,6 @@ const Agents: React.FC = () => {
     }
     return allAgents.data.map((agent: Agent) => ({
       id: agent.id,
-      // image: agent.image || "/images/user/user-12.jpg", // fallback image
       image: agent.image || "/images/user/agent-image.png", // fallback image
       name: agent.name || "N/A",
       firstName: agent.firstname,

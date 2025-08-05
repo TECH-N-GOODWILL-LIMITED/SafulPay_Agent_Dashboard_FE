@@ -400,6 +400,12 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                     </TableCell>
                   )}
 
+                  {order.kycStatus && (
+                    <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                      {order.kycStatus}
+                    </TableCell>
+                  )}
+
                   <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                     <Badge
                       size="sm"
@@ -414,15 +420,10 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                       {order.status}
                     </Badge>
                   </TableCell>
-                  {order.kycStatus && (
-                    <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                      {order.kycStatus}
-                    </TableCell>
-                  )}
 
                   {order.createdAt && (
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      {formatDateTime(order.createdAt || "")}
+                    <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                      {formatDateTime(order.createdAt || "No date found")}
                     </TableCell>
                   )}
                   <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
@@ -642,7 +643,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                             <Input
                               type="text"
                               value={formatDateTime(
-                                currentUser.createdAt || ""
+                                currentUser.createdAt || "No date found"
                               )}
                               readOnly
                             />

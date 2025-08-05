@@ -4,8 +4,9 @@ import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard, {
   ActionButtonConfig,
-  FilterConfig,
 } from "../../components/common/ComponentCard";
+import { FilterConfig } from "../../components/common/TableFilters";
+import TableFilters from "../../components/common/TableFilters";
 import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
 import Alert from "../../components/ui/alert/Alert";
 import { useAuth } from "../../context/AuthContext";
@@ -53,25 +54,25 @@ const MyAgents: React.FC = () => {
     {
       label: `Role: ${filterRole}`,
       options: roleOptions,
-      onSelect: (role) => setFilterRole(role),
+      onSelect: (role: string) => setFilterRole(role),
       value: filterRole,
     },
     {
       label: `Model: ${filterModel}`,
       options: modelOptions,
-      onSelect: (model) => setFilterModel(model),
+      onSelect: (model: string) => setFilterModel(model),
       value: filterModel,
     },
     {
       label: `KYC: ${filterKycStatus}`,
       options: kycStatusOptions,
-      onSelect: (status) => setFilterKycStatus(status),
+      onSelect: (status: string) => setFilterKycStatus(status),
       value: filterKycStatus,
     },
     {
       label: `Status: ${filterStatus}`,
       options: statusOptions,
-      onSelect: (status) => setFilterStatus(status),
+      onSelect: (status: string) => setFilterStatus(status),
       value: filterStatus,
     },
   ];
@@ -192,9 +193,9 @@ const MyAgents: React.FC = () => {
         <ComponentCard
           title="My Agents Table"
           desc="Details of agents & merchants under your referral code"
-          filters={filters}
           actionButton={actionButton}
         >
+          <TableFilters filters={filters} />
           <BasicTableOne
             tableHeading={tableHeader}
             tableContent={myAgentsData}

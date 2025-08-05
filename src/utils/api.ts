@@ -695,7 +695,7 @@ export const downloadUsersData = async (
     });
 
     const response = await fetch(
-      `${BASE_URL}/users/export?${queryParams.toString()}`,
+      `${BASE_URL}/auth/users/export?${queryParams.toString()}`,
       {
         method: "GET",
         headers: {
@@ -708,7 +708,7 @@ export const downloadUsersData = async (
     const data = await response.json();
 
     if (response.ok && data.status) {
-      return { success: true, data: { data: data.data } };
+      return { success: true, data: { data: data.data.records } };
     } else {
       return {
         success: false,
@@ -733,7 +733,7 @@ export const downloadAgentsData = async (
     });
 
     const response = await fetch(
-      `${BASE_URL}/agents/export?${queryParams.toString()}`,
+      `${BASE_URL}/auth/agents/export?${queryParams.toString()}`,
       {
         method: "GET",
         headers: {
@@ -746,7 +746,7 @@ export const downloadAgentsData = async (
     const data = await response.json();
 
     if (response.ok && data.status) {
-      return { success: true, data: { data: data.data } };
+      return { success: true, data: { data: data.data.records } };
     } else {
       return {
         success: false,
@@ -771,7 +771,7 @@ export const downloadAuditLogsData = async (
     });
 
     const response = await fetch(
-      `${BASE_URL}/logs/export?${queryParams.toString()}`,
+      `${BASE_URL}/auth/logs/export?${queryParams.toString()}`,
       {
         method: "GET",
         headers: {
@@ -784,7 +784,7 @@ export const downloadAuditLogsData = async (
     const data = await response.json();
 
     if (response.ok && data.status) {
-      return { success: true, data: { data: data.data } };
+      return { success: true, data: { data: data.data.records } };
     } else {
       return {
         success: false,

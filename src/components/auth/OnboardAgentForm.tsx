@@ -4,6 +4,7 @@ import { useDropzone } from "react-dropzone";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
+import { useFormPersistence } from "../../hooks/useFormPersistence";
 import {
   addAgent,
   // checkUserExist,
@@ -145,6 +146,14 @@ export default function OnboardAgentForm() {
     },
   });
 
+  // Form persistence
+  const watchedValues = watch();
+  const { loadSavedData, clearSavedData } = useFormPersistence(watchedValues, {
+    storageKey: "onboardAgentForm",
+    autoClearTimeout: 30, // 30 minutes
+    debounceMs: 500,
+  });
+
   const agentType = watch("agentType");
   const agentModel = watch("model");
   const idImageUrl = watch("idImageUrl");
@@ -225,6 +234,19 @@ export default function OnboardAgentForm() {
 
     validateReferralCode();
   }, [marketer, navigate, setOnboardingUser]);
+
+  // Load saved form data on component mount
+  useEffect(() => {
+    const savedData = loadSavedData();
+    if (Object.keys(savedData).length > 0) {
+      // Restore saved form data
+      Object.entries(savedData).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+          setValue(key as keyof FormData, value, { shouldValidate: false });
+        }
+      });
+    }
+  }, []); // Only run once on mount
 
   const typeOptions = [AGENT_ROLE, SUPER_AGENT_ROLE, MERCHANT_ROLE];
   const modelOptions = ["Target", "Independent"];
@@ -600,6 +622,8 @@ export default function OnboardAgentForm() {
         setBusinessRegDocument(null);
         setUserExistError(null);
         setPhoneError(null);
+        // Clear saved form data on successful submission
+        clearSavedData();
         if (!isOpen) {
           openModal();
         }
