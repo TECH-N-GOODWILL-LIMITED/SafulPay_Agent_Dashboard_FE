@@ -62,7 +62,6 @@ const Audit: React.FC = () => {
 
   const { token } = useAuth();
 
-  // Download handler
   const handleDownloadAuditLogs = async (format: "csv" | "excel") => {
     if (!token) return;
 
@@ -147,7 +146,6 @@ const Audit: React.FC = () => {
     const fetchData = async () => {
       if (!token) return;
 
-      // Validate date range
       const dateRangeError = validateDateRange(
         dateRange.startDate,
         dateRange.endDate
@@ -155,7 +153,7 @@ const Audit: React.FC = () => {
       setDateError(dateRangeError);
 
       if (dateRangeError) {
-        return; // Don't make API call if there's a date error
+        return;
       }
 
       setLoading(true);
@@ -210,10 +208,6 @@ const Audit: React.FC = () => {
     currentPage,
   ]);
 
-  // if (loading) {
-  //   return <LoadingSpinner text="Loading audit logs..." />;
-  // }
-
   return (
     <>
       <PageMeta
@@ -246,7 +240,11 @@ const Audit: React.FC = () => {
               placeholder: "Enter performed by name",
             }}
           />
-          <LogTable tableHeading={tableHeader} tableContent={tableData} />
+          <LogTable
+            tableHeading={tableHeader}
+            tableContent={tableData}
+            loading={loading}
+          />
           <TablePagination
             pagination={{
               currentPage,

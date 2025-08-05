@@ -52,7 +52,6 @@ const Accountants: React.FC = () => {
       params.status = statusMap[filterStatus];
     }
 
-    // Add search term to params if it exists
     if (searchTerm.trim()) {
       params.name = searchTerm.trim();
     }
@@ -62,7 +61,7 @@ const Accountants: React.FC = () => {
 
   const handleSearch = (term: string) => {
     setSearchTerm(term);
-    setCurrentPage(1); // Reset to first page when searching
+    setCurrentPage(1);
   };
 
   const actionButton: ActionButtonConfig = {
@@ -100,7 +99,7 @@ const Accountants: React.FC = () => {
       lastName: user.lastname,
       username: user.username || "No username",
       role: user.role,
-      cih: 0.0, // Removed threshold_cash_in_hand since it doesn't exist on UserBio
+      cih: 0.0,
       phone: user.phone || "No Phone Number",
       status:
         user.status === 1
@@ -131,9 +130,7 @@ const Accountants: React.FC = () => {
         description="List of all agency accountants - Management system for SafulPay's Agency Platform"
       />
       <PageBreadcrumb pageTitle="Accountants" />
-      {/* {loading ? (
-        <div className="text-gray-500 dark:text-gray-400">Loading...</div>
-      ) : ( */}
+
       <div className="space-y-6">
         <ComponentCard
           title="Accountants Table"
@@ -141,7 +138,11 @@ const Accountants: React.FC = () => {
           actionButton={actionButton}
         >
           <TableFilters filters={filters} searchConfig={searchConfig} />
-          <BasicTableOne tableHeading={tableHeader} tableContent={tableData} />
+          <BasicTableOne
+            tableHeading={tableHeader}
+            tableContent={tableData}
+            loading={loading}
+          />
           <TablePagination
             pagination={{
               currentPage,
@@ -154,7 +155,7 @@ const Accountants: React.FC = () => {
           />
         </ComponentCard>
       </div>
-      {/* )} */}
+
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
         <RegisterModal
           modalHeading="Add a new user"

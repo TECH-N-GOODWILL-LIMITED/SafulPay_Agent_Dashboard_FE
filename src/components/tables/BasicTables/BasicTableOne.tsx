@@ -30,6 +30,7 @@ import {
   SUPER_AGENT_ROLE,
 } from "../../../utils/roles";
 import { formatDateTime } from "../../../utils/utils";
+import TableShimmer from "../../common/TableShimmer";
 
 interface TableContentItem {
   id: number;
@@ -64,6 +65,7 @@ interface TableContentItem {
 interface Order {
   tableHeading?: string[];
   tableContent: TableContentItem[];
+  loading?: boolean;
 }
 
 // Handlers type
@@ -75,7 +77,11 @@ interface Handlers {
   reject?: () => void;
 }
 
-const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
+const BasicTableOne: React.FC<Order> = ({
+  tableContent,
+  tableHeading,
+  loading = false,
+}) => {
   const [currentUser, setCurrentUser] = useState<TableContentItem | null>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -294,157 +300,168 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
       <div className="max-w-full overflow-x-auto">
-        <Table>
-          {/* Table Header */}
-          <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
-            <TableRow>
-              {tableHeading?.map((tableHead) => (
+        {loading ? (
+          <TableShimmer
+            rows={5}
+            columns={tableHeading?.length || 6}
+            showAvatar={true}
+            showAction={true}
+          />
+        ) : (
+          <Table>
+            {/* Table Header */}
+            <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
+              <TableRow>
+                {tableHeading?.map((tableHead) => (
+                  <TableCell
+                    key={tableHead}
+                    isHeader
+                    className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                  >
+                    {tableHead}
+                  </TableCell>
+                ))}
                 <TableCell
-                  key={tableHead}
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
-                  {tableHead}
+                  Action
                 </TableCell>
-              ))}
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Action
-              </TableCell>
-            </TableRow>
-          </TableHeader>
-          {/* Table Body */}
-          <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-            {tableContent.length > 0 ? (
-              tableContent.map((order) => (
-                <TableRow key={`${order.id}${order.role}`}>
-                  <TableCell className="px-5 py-4 sm:px-6 text-start  max-w-60">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 overflow-hidden rounded-full">
-                        <img
-                          width={40}
-                          height={40}
-                          src={order?.image}
-                          alt={order.name}
-                        />
+              </TableRow>
+            </TableHeader>
+            {/* Table Body */}
+            <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
+              {tableContent.length > 0 ? (
+                tableContent.map((order) => (
+                  <TableRow key={`${order.id}${order.role}`}>
+                    <TableCell className="px-5 py-4 sm:px-6 text-start  max-w-60">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 overflow-hidden rounded-full">
+                          <img
+                            width={40}
+                            height={40}
+                            src={order?.image}
+                            alt={order.name}
+                          />
+                        </div>
+                        <div className="truncate shrink">
+                          <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90 truncate">
+                            {order.name}
+                          </span>
+                          <span className="block text-gray-500 text-theme-xs dark:text-gray-400 truncate">
+                            {order.role === "Agent" ||
+                            order.role === "Super Agent" ||
+                            order.role === "Merchant"
+                              ? order.businessName
+                              : order.username}
+                          </span>
+                        </div>
                       </div>
-                      <div className="truncate shrink">
-                        <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90 truncate">
-                          {order.name}
-                        </span>
-                        <span className="block text-gray-500 text-theme-xs dark:text-gray-400 truncate">
-                          {order.role === "Agent" ||
-                          order.role === "Super Agent" ||
-                          order.role === "Merchant"
-                            ? order.businessName
-                            : order.username}
-                        </span>
-                      </div>
-                    </div>
-                  </TableCell>
-
-                  <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                    <span className="block font-medium text-gray-500 text-theme-sm dark:text-white/90">
-                      {order.role}
-                    </span>
-                    <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
-                      {(order.role === AGENT_ROLE ||
-                        order.role === SUPER_AGENT_ROLE ||
-                        order.role === MERCHANT_ROLE) &&
-                        order.model}
-                    </span>
-                  </TableCell>
-
-                  {order.code && (
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      {order.code}
                     </TableCell>
-                  )}
 
-                  {showResidualAmount && (
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      Le {order.residualAmount?.toFixed(2)}
+                      <span className="block font-medium text-gray-500 text-theme-sm dark:text-white/90">
+                        {order.role}
+                      </span>
+                      <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
+                        {(order.role === AGENT_ROLE ||
+                          order.role === SUPER_AGENT_ROLE ||
+                          order.role === MERCHANT_ROLE) &&
+                          order.model}
+                      </span>
                     </TableCell>
-                  )}
 
-                  {(order.cih || order.cih == 0) && (
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      Le {order.cih?.toFixed(2)}
-                    </TableCell>
-                  )}
-                  {/* {!order.user.code} ||
+                    {order.code && (
+                      <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                        {order.code}
+                      </TableCell>
+                    )}
+
+                    {showResidualAmount && (
+                      <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                        Le {order.residualAmount?.toFixed(2)}
+                      </TableCell>
+                    )}
+
+                    {(order.cih || order.cih == 0) && (
+                      <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                        Le {order.cih?.toFixed(2)}
+                      </TableCell>
+                    )}
+                    {/* {!order.user.code} ||
                 <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                   {order.user.role}
                 </TableCell> */}
-                  {/* <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                    {/* <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                   {order.user.code}
                 </TableCell> */}
 
-                  <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                    <span className="block font-medium text-gray-500 text-theme-sm dark:text-white/90">
-                      {(order.role === AGENT_ROLE ||
-                        order.role === SUPER_AGENT_ROLE ||
-                        order.role === MERCHANT_ROLE) &&
-                        order.businessPhone}
-                    </span>
-                    <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
-                      {order.phone}
-                    </span>
-                  </TableCell>
-
-                  {order.refBy && (
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      {order.refBy}
+                      <span className="block font-medium text-gray-500 text-theme-sm dark:text-white/90">
+                        {(order.role === AGENT_ROLE ||
+                          order.role === SUPER_AGENT_ROLE ||
+                          order.role === MERCHANT_ROLE) &&
+                          order.businessPhone}
+                      </span>
+                      <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
+                        {order.phone}
+                      </span>
                     </TableCell>
-                  )}
 
-                  {order.kycStatus && (
+                    {order.refBy && (
+                      <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                        {order.refBy}
+                      </TableCell>
+                    )}
+
+                    {order.kycStatus && (
+                      <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                        {order.kycStatus}
+                      </TableCell>
+                    )}
+
+                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                      <Badge
+                        size="sm"
+                        color={
+                          order.status === "Active"
+                            ? "success"
+                            : order.status === "Pending"
+                            ? "warning"
+                            : "error"
+                        }
+                      >
+                        {order.status}
+                      </Badge>
+                    </TableCell>
+
+                    {order.createdAt && (
+                      <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                        {formatDateTime(order.createdAt || "No date found")}
+                      </TableCell>
+                    )}
                     <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                      {order.kycStatus}
+                      <button
+                        onClick={() => handleOpenModal(order)}
+                        className="hover:text-brand-500 dark:text-gray-400 dark:hover:text-gray-300"
+                      >
+                        {canEditUser(user?.role, order)
+                          ? "View / Edit"
+                          : "View"}
+                      </button>
                     </TableCell>
-                  )}
-
-                  <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                    <Badge
-                      size="sm"
-                      color={
-                        order.status === "Active"
-                          ? "success"
-                          : order.status === "Pending"
-                          ? "warning"
-                          : "error"
-                      }
-                    >
-                      {order.status}
-                    </Badge>
-                  </TableCell>
-
-                  {order.createdAt && (
-                    <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                      {formatDateTime(order.createdAt || "No date found")}
-                    </TableCell>
-                  )}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
                   <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    <button
-                      onClick={() => handleOpenModal(order)}
-                      className="hover:text-brand-500 dark:text-gray-400 dark:hover:text-gray-300"
-                    >
-                      {canEditUser(user?.role, order) ? "View / Edit" : "View"}
-                    </button>
+                    No Data found
                   </TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  No Data found
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              )}
+            </TableBody>
+          </Table>
+        )}
 
         <Modal
           isOpen={isOpen}

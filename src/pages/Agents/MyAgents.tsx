@@ -163,7 +163,6 @@ const MyAgents: React.FC = () => {
     );
   }
 
-  // Check if the logged-in user has the allowed role to view this page
   if (isUnauthorized) {
     return (
       <>
