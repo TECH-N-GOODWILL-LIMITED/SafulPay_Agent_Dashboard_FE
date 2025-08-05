@@ -25,7 +25,7 @@ const LogTable: React.FC<Order> = ({
       <div className="max-w-full overflow-x-auto">
         {loading ? (
           <TableShimmer
-            rows={5}
+            rows={tableContent?.length || 10}
             columns={tableHeading?.length || 6}
             showAvatar={true}
             showAction={true}

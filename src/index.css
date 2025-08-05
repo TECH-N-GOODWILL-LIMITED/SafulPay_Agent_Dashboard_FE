@@ -199,12 +199,6 @@ layer(base);
   body {
     @apply relative font-normal font-outfit z-1 bg-gray-50;
   }
-
-  input,
-  textarea {
-    resize: none !important;
-    font-size: 14px !important; /* Prevents zoom on iOS */
-  }
 }
 
 @utility menu-item {
@@ -796,4 +790,10 @@ span.flatpickr-weekday,
 
 .simplebar-scrollbar.simplebar-visible:before {
   @apply opacity-100;
+}
+
+input,
+textarea {
+  resize: none !important;
+  font-size: 14px !important; /* Prevents zoom on iOS */
 }
