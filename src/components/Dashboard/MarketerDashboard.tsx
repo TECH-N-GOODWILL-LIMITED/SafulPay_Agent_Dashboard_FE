@@ -14,8 +14,7 @@ import {
 const MarketerDashboard: React.FC = () => {
   const { user, token } = useAuth();
   const {
-    // allMarketers,
-    totalMarketers,
+    allMarketers,
     marketerStats,
     fetchMarketers,
     fetchMarketerStats,
@@ -179,7 +178,7 @@ const MarketerDashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="p-4 bg-white rounded shadow">
             <h4>Total Marketers</h4>
-            <p>{totalMarketers}</p>
+            <p>{allMarketers?.total_marketers ?? 0}</p>
           </div>
           <div className="p-4 bg-white rounded shadow">
             <h4>Total Agents</h4>

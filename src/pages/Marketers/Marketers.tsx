@@ -54,7 +54,6 @@ const AdminView: React.FC = () => {
       params.status = statusMap[filterStatus];
     }
 
-    // Add search term to params if it exists
     if (searchTerm.trim()) {
       params.name = searchTerm.trim();
     }
@@ -64,7 +63,7 @@ const AdminView: React.FC = () => {
 
   const handleSearch = (term: string) => {
     setSearchTerm(term);
-    setCurrentPage(1); // Reset to first page when searching
+    setCurrentPage(1);
   };
 
   const actionButton: ActionButtonConfig = {
@@ -164,8 +163,6 @@ const AdminView: React.FC = () => {
 const MarketerView: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<string>("All");
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const { error, loading, allMarketers, fetchMarketers } = useAllMarketers();
 
@@ -209,23 +206,8 @@ const MarketerView: React.FC = () => {
       params.name = searchTerm.trim();
     }
 
-    if (startDate) {
-      params.startDate = startDate;
-    }
-
-    if (endDate) {
-      params.endDate = endDate;
-    }
-
     fetchMarketers(params);
-  }, [
-    filterStatus,
-    searchTerm,
-    startDate,
-    endDate,
-    currentPage,
-    fetchMarketers,
-  ]);
+  }, [filterStatus, searchTerm, currentPage, fetchMarketers]);
 
   const tableData = useMemo(() => {
     if (!allMarketers?.data.marketers) {
@@ -264,16 +246,7 @@ const MarketerView: React.FC = () => {
             title="Marketers Table"
             desc="Details of all Marketers"
           >
-            <TableFilters
-              filters={filters}
-              searchConfig={searchConfig}
-              dateFilter={{
-                startDate,
-                endDate,
-                onStartDateChange: setStartDate,
-                onEndDateChange: setEndDate,
-              }}
-            />
+            <TableFilters filters={filters} searchConfig={searchConfig} />
             <BasicTableOne
               tableHeading={tableHeader}
               tableContent={tableData}
@@ -281,7 +254,7 @@ const MarketerView: React.FC = () => {
             <TablePagination
               pagination={{
                 currentPage,
-                totalPages: allMarketers?.last_page || 1, // TODO: Get from API response when available
+                totalPages: allMarketers?.last_page || 1,
                 totalItems: allMarketers?.total_filter_result || 0,
                 perPage: allMarketers?.per_page || 10,
                 loading: loading,

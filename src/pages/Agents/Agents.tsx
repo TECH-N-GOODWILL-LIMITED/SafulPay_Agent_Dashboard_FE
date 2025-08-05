@@ -107,7 +107,6 @@ const Agents: React.FC = () => {
       params.temp = kycStatusMap[filterKycStatus];
     }
 
-    // Add search term to params if it exists
     if (searchTerm.trim()) {
       params.name = searchTerm.trim();
     }
@@ -241,7 +240,6 @@ const Agents: React.FC = () => {
       params.ref_by = filterRefBy.trim();
     }
 
-    // Only add dates if they are properly formatted
     if (dateRange.startDate && isValidDateFormat(dateRange.startDate)) {
       params.startDate = dateRange.startDate;
     }
@@ -298,7 +296,6 @@ const Agents: React.FC = () => {
     }
     return allAgents.data.map((agent: Agent) => ({
       id: agent.id,
-      // image: agent.image || "/images/user/user-12.jpg", // fallback image
       image: agent.image || "/images/user/agent-image.png", // fallback image
       name: agent.name || "N/A",
       firstName: agent.firstname,
