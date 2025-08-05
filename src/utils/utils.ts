@@ -1,14 +1,4 @@
-import { usersItem } from "../context/UsersContext";
 import type { countryType } from "../types/types";
-import {
-  ACCOUNTANT_ROLE,
-  ADMIN_ROLE,
-  AGENT_ROLE,
-  MARKETER_ROLE,
-  MERCHANT_ROLE,
-  RIDER_ROLE,
-  SUPER_AGENT_ROLE,
-} from "./roles";
 
 export function filterPhoneNumber(phoneNumber: string) {
   // Remove all whitespace characters
@@ -61,28 +51,50 @@ export const formatPhoneNumber = (number: string, country: countryType) => {
   return formatted.slice(0, example.length);
 };
 
-export const generateUserMetrics = (users: usersItem[]) => {
-  const totalUsers = users.length;
+export const formatDateTime = (isoString: string): string => {
+  const date = new Date(isoString);
+  return date.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
 
-  const roleCounts = users.reduce((acc, user) => {
-    acc[user.role] = (acc[user.role] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+// Helper function to validate date format (YYYY-MM-DD)
+export const isValidDateFormat = (date: string): boolean => {
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(date)) return false;
 
-  const agentCounts =
-    (roleCounts[AGENT_ROLE] || 0) +
-    (roleCounts[MERCHANT_ROLE] || 0) +
-    (roleCounts[SUPER_AGENT_ROLE] || 0);
+  const parsedDate = new Date(date);
+  return (
+    !isNaN(parsedDate.getTime()) &&
+    parsedDate.toISOString().split("T")[0] === date
+  );
+};
 
-  return [
-    { users: "Total Users", metric: totalUsers },
-    { users: "Admins", metric: roleCounts[ADMIN_ROLE] || 0 },
-    { users: "Marketers", metric: roleCounts[MARKETER_ROLE] || 0 },
-    {
-      users: "Agents",
-      metric: agentCounts,
-    },
-    { users: "Accountants", metric: roleCounts[ACCOUNTANT_ROLE] || 0 },
-    { users: "Riders", metric: roleCounts[RIDER_ROLE] || 0 },
-  ];
+// Helper function to validate date range
+export const validateDateRange = (start: string, end: string): string => {
+  if (!start || !end) return ""; // Allow empty dates
+
+  if (!isValidDateFormat(start) || !isValidDateFormat(end)) {
+    return "Please enter valid dates in YYYY-MM-DD format";
+  }
+
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  const today = new Date();
+  today.setHours(23, 59, 59, 999); // Set to end of today
+
+  if (startDate > today || endDate > today) {
+    return "Date cannot be greater than today";
+  }
+
+  if (startDate > endDate) {
+    return "Start date cannot be greater than end date";
+  }
+
+  return "";
 };

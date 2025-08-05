@@ -7,7 +7,7 @@ export default function SignIn() {
     <>
       <PageMeta
         title="SafulPay Agency Dashboard | Finance just got better"
-        description="This is SafulPay Agency's Dashboard - Management system for SafulPay's Agency Platform"
+        description="Welcome to SafulPay Agency's Dashboard - Management system for SafulPay's Agency Platform"
       />
       <AuthLayout>
         <SignInForm />

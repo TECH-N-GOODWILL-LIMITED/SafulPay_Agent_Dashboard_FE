@@ -202,7 +202,8 @@ layer(base);
 
   input,
   textarea {
-    resize: none;
+    resize: none !important;
+    font-size: 14px !important; /* Prevents zoom on iOS */
   }
 }
 
@@ -428,6 +429,10 @@ layer(base);
 .flatpickr-current-month .cur-month,
 .flatpickr-current-month input.cur-year {
   @apply h-auto! pt-0! text-lg! font-medium! text-gray-800! dark:text-white/90!;
+}
+
+.flatpickr-current-month input.cur-year {
+  @apply pl-3! font-semibold!;
 }
 
 .flatpickr-prev-month,

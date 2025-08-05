@@ -7,14 +7,17 @@ import {
 } from "react";
 import { useAuth } from "./AuthContext";
 import { getAllMarketers, getMarketersStats } from "../utils/api";
-import type { UserBio, MarketerStats } from "../types/types";
+import type {
+  MarketerStats,
+  GetAllMarketersParams,
+  AllMarketersData,
+} from "../types/types";
 import { MARKETER_ROLE } from "../utils/roles";
 
 interface MarketersContextType {
-  allMarketers: UserBio[];
-  totalMarketers: number;
+  allMarketers: AllMarketersData | null;
   marketerStats?: MarketerStats;
-  fetchMarketers: () => Promise<void>;
+  fetchMarketers: (params?: GetAllMarketersParams) => Promise<void>;
   fetchMarketerStats: () => Promise<void>;
   error?: string;
   loading: boolean;
@@ -34,8 +37,9 @@ export const useAllMarketers = () => {
 export const MarketersProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [allMarketers, setAllMarketers] = useState<UserBio[]>([]);
-  const [totalMarketers, setTotalMarketers] = useState<number>(0);
+  const [allMarketers, setAllMarketers] = useState<AllMarketersData | null>(
+    null
+  );
   const [marketerStats, setMarketerStats] = useState<MarketerStats | undefined>(
     undefined
   );
@@ -44,7 +48,7 @@ export const MarketersProvider: React.FC<{ children: ReactNode }> = ({
 
   const { user, token } = useAuth();
 
-  const fetchMarketers = async () => {
+  const fetchMarketers = async (params: GetAllMarketersParams = {}) => {
     setLoading(true);
     setError("");
 
@@ -54,10 +58,10 @@ export const MarketersProvider: React.FC<{ children: ReactNode }> = ({
       return;
     }
 
-    const response = await getAllMarketers(token);
+    const response = await getAllMarketers(token, params);
     if (response.success && response.data) {
-      setAllMarketers(response.data.marketers);
-      setTotalMarketers(response.data.total);
+      setAllMarketers(response.data);
+      // setTotalMarketers(response.data.total_marketers);
     } else {
       setError(response.error || "Failed to fetch marketers");
     }
@@ -90,7 +94,6 @@ export const MarketersProvider: React.FC<{ children: ReactNode }> = ({
     <MarketersContext.Provider
       value={{
         allMarketers,
-        totalMarketers,
         marketerStats,
         fetchMarketers,
         fetchMarketerStats,

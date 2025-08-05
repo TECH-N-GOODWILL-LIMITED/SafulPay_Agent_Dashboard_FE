@@ -4,11 +4,11 @@ import MonthlyTarget from "../../components/ecommerce/MonthlyTarget";
 import RecentOrders from "../../components/ecommerce/RecentOrders";
 import DemographicCard from "../../components/ecommerce/DemographicCard";
 import PageMeta from "../../components/common/PageMeta";
-import { useAllUsers } from "../../context/UsersContext";
+import { useUsers } from "../../context/UsersContext";
 import { useAuth } from "../../context/AuthContext";
-import { generateUserMetrics } from "../../utils/utils";
 import type { usersMetric } from "../../types/types";
 import MarketerDashboard from "../../components/Dashboard/MarketerDashboard";
+import { useAgents } from "../../context/AgentsContext";
 
 const usersCashFLow: usersMetric[] = [
   { users: "Total Cumulative Cash", metric: 120000, currencySymbol: true },
@@ -38,11 +38,20 @@ const txType = [
 ];
 
 export default function Home() {
-  const { allUsers } = useAllUsers();
+  const { allUsers } = useUsers();
+  const { allAgents } = useAgents();
   const { user } = useAuth();
   const userRole = user?.role || "Admin";
 
-  const userMetrics = generateUserMetrics(allUsers);
+  // Generate user metrics from the new API response structure
+  const userMetrics: usersMetric[] = [
+    { users: "Total Users", metric: allUsers?.total_all_users || 0 },
+    { users: "Admins", metric: allUsers?.total_admin || 0 },
+    { users: "Marketers", metric: allUsers?.total_marketer || 0 },
+    { users: "Accountants", metric: allUsers?.total_accountant || 0 },
+    { users: "Riders", metric: allUsers?.total_rider || 0 },
+    { users: "Agents", metric: allAgents?.total_agents || 0 },
+  ];
 
   // Filter cash flow and transaction types based on role
   const filteredCashFlow =

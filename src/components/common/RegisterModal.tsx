@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { useAllUsers } from "../../context/UsersContext";
+import { useUsers } from "../../context/UsersContext";
 import { registerUser } from "../../utils/api";
 import { filterPhoneNumber } from "../../utils/utils";
 import { ChevronDownIcon } from "../../icons";
@@ -35,7 +35,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
   const [warnError, setWarnError] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const { token } = useAuth();
-  const { fetchUsers } = useAllUsers();
+  const { fetchUsers } = useUsers();
 
   const userOptions =
     userRoles?.filter(
@@ -60,9 +60,21 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
   };
 
   const handleRegister = async () => {
-    if (!phone || !selectedRole) {
+    if (!phone && !selectedRole) {
       setAlertTitle("Fill the required field");
       setError("Input a phone number and select role");
+      return;
+    }
+
+    if (!phone) {
+      setAlertTitle("Fill the required field");
+      setError("Input a phone number");
+      return;
+    }
+
+    if (!selectedRole) {
+      setAlertTitle("Fill the required field");
+      setError("Select role");
       return;
     }
 
@@ -86,7 +98,10 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
     const response = await registerUser(token, phoneNumber, selectedRole);
 
     if (response.success && response.data) {
-      await fetchUsers();
+      await fetchUsers({
+        page: 1,
+        per_page: 10,
+      });
     } else {
       setAlertTitle("Registration Failed");
       setError(response.error || "Registration failed");

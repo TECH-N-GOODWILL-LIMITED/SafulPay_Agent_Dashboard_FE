@@ -4,9 +4,20 @@ import type {
   LoginResponseData,
   UserBio,
   LoginResponse,
-  Users,
   MarketerStats,
+  BaseListData,
   AuditLogData,
+  AllAgentsData,
+  AllUsersData,
+  GetAllUsersParams,
+  GetAllAgentsParams,
+  GetAllMarketersParams,
+  GetAllAgentsByReferralParams,
+  GetAuditLogsParams,
+  DownloadParams,
+  DownloadAgentsParams,
+  DownloadAuditLogsParams,
+  AllMarketersData,
 } from "../types/types";
 
 const BASE_URL = import.meta.env.VITE_AGENCY_BASE_URL;
@@ -194,21 +205,33 @@ export const checkPhoneType = async (
 };
 
 export const getAllUsers = async (
-  accessToken: string
-): Promise<ApiResponse<{ users: Users[] }>> => {
+  accessToken: string,
+  params: GetAllUsersParams = {}
+): Promise<ApiResponse<AllUsersData>> => {
   try {
-    const response = await fetch(`${BASE_URL}/auth/getAllUsers`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      redirect: "follow",
+    const queryParams = new URLSearchParams();
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        queryParams.append(key, String(value));
+      }
     });
+
+    const response = await fetch(
+      `${BASE_URL}/auth/getAllUsers?${queryParams.toString()}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        redirect: "follow",
+      }
+    );
     const data = await response.json();
 
     if (response.ok && data.status) {
-      return { success: true, data: { users: data.data.users } };
+      return { success: true, data };
     } else {
       return { success: false, error: data.message || "Failed to get users" };
     }
@@ -218,21 +241,34 @@ export const getAllUsers = async (
 };
 
 export const getAllAgents = async (
-  accessToken: string
-): Promise<ApiResponse<{ agents: Agent[] }>> => {
+  accessToken: string,
+  params: GetAllAgentsParams
+): Promise<ApiResponse<AllAgentsData>> => {
   try {
-    const response = await fetch(`${BASE_URL}/auth/agents/getAllAgents`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      redirect: "follow",
+    const queryParams = new URLSearchParams();
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        queryParams.append(key, String(value));
+      }
     });
+
+    const response = await fetch(
+      `${BASE_URL}/auth/agents/getAllAgents?${queryParams.toString()}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        redirect: "follow",
+      }
+    );
+
     const data = await response.json();
 
     if (response.ok && data.status) {
-      return { success: true, data: { agents: data.data } };
+      return { success: true, data };
     } else {
       return { success: false, error: data.message || "Failed to get agents" };
     }
@@ -242,23 +278,35 @@ export const getAllAgents = async (
 };
 
 export const getAllMarketers = async (
-  accessToken: string
-): Promise<ApiResponse<{ total: number; marketers: UserBio[] }>> => {
+  accessToken: string,
+  params: GetAllMarketersParams = {}
+): Promise<ApiResponse<AllMarketersData>> => {
   try {
-    const response = await fetch(`${BASE_URL}/auth/getAllMarketers`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      redirect: "follow",
+    const queryParams = new URLSearchParams();
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        queryParams.append(key, String(value));
+      }
     });
+
+    const response = await fetch(
+      `${BASE_URL}/auth/getAllMarketers?${queryParams.toString()}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        redirect: "follow",
+      }
+    );
     const data = await response.json();
 
     if (response.ok && data.status) {
       return {
         success: true,
-        data: { total: data.total_marketers, marketers: data.data.marketers },
+        data,
       };
     } else {
       return {
@@ -273,11 +321,20 @@ export const getAllMarketers = async (
 
 export const getAllAgentsByReferral = async (
   accessToken: string,
-  ref: string
+  ref: string,
+  params: GetAllAgentsByReferralParams = {}
 ): Promise<ApiResponse<{ total: number; user: UserBio; agents: Agent[] }>> => {
   try {
+    const queryParams = new URLSearchParams();
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        queryParams.append(key, String(value));
+      }
+    });
+
     const response = await fetch(
-      `${BASE_URL}/auth/agents/getAllAgentByReferrals/${ref}`,
+      `${BASE_URL}/auth/agents/getAllAgentByReferrals/${ref}?${queryParams.toString()}`,
       {
         method: "GET",
         headers: {
@@ -558,21 +615,33 @@ export const getMarketersStats = async (): Promise<
 };
 
 export const getAuditLogs = async (
-  accessToken: string
-): Promise<ApiResponse<{ log: AuditLogData[] }>> => {
+  accessToken: string,
+  params: GetAuditLogsParams = {}
+): Promise<ApiResponse<BaseListData<AuditLogData[]>>> => {
   try {
-    const response = await fetch(`${BASE_URL}/auth/logs/audit-logs`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      redirect: "follow",
+    const queryParams = new URLSearchParams();
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        queryParams.append(key, String(value));
+      }
     });
+
+    const response = await fetch(
+      `${BASE_URL}/auth/logs/audit-logs?${queryParams.toString()}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        redirect: "follow",
+      }
+    );
     const data = await response.json();
 
     if (response.ok && data.status) {
-      return { success: true, data: { log: data.data.data } };
+      return { success: true, data };
     } else {
       return {
         success: false,
@@ -611,30 +680,121 @@ export const uploadToCloudinary = async (
     return { success: false, error: (error as Error).message };
   }
 };
-// ! Check this out, to implement pagination in the future
-/**
- * 
- * 
- * pagination
-: 
-{current_page: 1, per_page: 10, total: 9, last_page: 1, next_page_url: null, prev_page_url: null}
-current_page
-: 
-1
-last_page
-: 
-1
-next_page_url
-: 
-null
-per_page
-: 
-10
-prev_page_url
-: 
-null
-total
-: 
-9
 
- */
+// Download/Export API functions
+export const downloadUsersData = async (
+  accessToken: string,
+  params: DownloadParams
+): Promise<ApiResponse<{ data: UserBio[] }>> => {
+  try {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const response = await fetch(
+      `${BASE_URL}/users/export?${queryParams.toString()}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        redirect: "follow",
+      }
+    );
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return { success: true, data: { data: data.data } };
+    } else {
+      return {
+        success: false,
+        error: data.message || "Error downloading users data",
+      };
+    }
+  } catch (err) {
+    return { success: false, error: `Error downloading users data: ${err}` };
+  }
+};
+
+export const downloadAgentsData = async (
+  accessToken: string,
+  params: DownloadAgentsParams
+): Promise<ApiResponse<{ data: Agent[] }>> => {
+  try {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const response = await fetch(
+      `${BASE_URL}/agents/export?${queryParams.toString()}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        redirect: "follow",
+      }
+    );
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return { success: true, data: { data: data.data } };
+    } else {
+      return {
+        success: false,
+        error: data.message || "Error downloading agents data",
+      };
+    }
+  } catch (err) {
+    return { success: false, error: `Error downloading agents data: ${err}` };
+  }
+};
+
+export const downloadAuditLogsData = async (
+  accessToken: string,
+  params: DownloadAuditLogsParams
+): Promise<ApiResponse<{ data: AuditLogData[] }>> => {
+  try {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const response = await fetch(
+      `${BASE_URL}/logs/export?${queryParams.toString()}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        redirect: "follow",
+      }
+    );
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return { success: true, data: { data: data.data } };
+    } else {
+      return {
+        success: false,
+        error: data.message || "Error downloading audit logs data",
+      };
+    }
+  } catch (err) {
+    return {
+      success: false,
+      error: `Error downloading audit logs data: ${err}`,
+    };
+  }
+};

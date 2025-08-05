@@ -13,7 +13,7 @@ import Button from "../../ui/button/Button";
 import Input from "../../form/input/InputField";
 import Label from "../../form/Label";
 import { useAuth } from "../../../context/AuthContext";
-import { useAllUsers } from "../../../context/UsersContext";
+import { useUsers } from "../../../context/UsersContext";
 import { useMyAgents } from "../../../context/MyAgentsContext";
 import {
   changeAgentStatus,
@@ -29,6 +29,7 @@ import {
   MERCHANT_ROLE,
   SUPER_AGENT_ROLE,
 } from "../../../utils/roles";
+import { formatDateTime } from "../../../utils/utils";
 
 interface TableContentItem {
   id: number;
@@ -52,9 +53,12 @@ interface TableContentItem {
   residualAmount?: number;
   phone: string;
   businessPhone?: string;
+  refBy?: string;
   status: string;
   temp?: number;
   kycStatus?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface Order {
@@ -81,7 +85,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
 
   const { isOpen, openModal, closeModal } = useModal();
   const { user, token, logout } = useAuth();
-  const { fetchUsers } = useAllUsers();
+  const { fetchUsers } = useUsers();
   const { fetchMyAgents } = useMyAgents();
 
   const showResidualAmount = tableHeading?.includes("Residual Amount");
@@ -124,7 +128,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
         : await changeUserStatus(token, user.id, newStatus, reason);
 
       if (response.success) {
-        await fetchUsers();
+        await fetchUsers({ page: 1, per_page: 10 });
         await fetchMyAgents();
         return true;
       } else {
@@ -238,6 +242,8 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
   const handleSuspend = async (): Promise<void> => {
     if (!currentUser || !token) return;
     if (await changeStatus(currentUser, token, 2, "suspend", reason)) {
+      setSelectedAction(null);
+      setReason("");
       closeModal();
     }
   };
@@ -245,6 +251,8 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
   const handleApprove = async (): Promise<void> => {
     if (!currentUser || !token) return;
     if (await changeStatus(currentUser, token, 1, "approve", reason)) {
+      setSelectedAction(null);
+      setReason("");
       closeModal();
     }
   };
@@ -252,6 +260,8 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
   const handleReActivate = async (): Promise<void> => {
     if (!currentUser || !token) return;
     if (await changeStatus(currentUser, token, 1, "reActivate", reason)) {
+      setSelectedAction(null);
+      setReason("");
       closeModal();
     }
   };
@@ -259,6 +269,8 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
   const handleReject = async (): Promise<void> => {
     if (!currentUser || !token) return;
     if (await changeStatus(currentUser, token, 3, "reject", reason)) {
+      setSelectedAction(null);
+      setReason("");
       closeModal();
     }
   };
@@ -274,7 +286,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
       return true;
     }
     if (userRole === MARKETER_ROLE) {
-      return row.temp === 0 || row.kycStatus === "Incomplete";
+      return row.temp === 0 && row.status === "Pending";
     }
     return false;
   };
@@ -382,6 +394,12 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                     </span>
                   </TableCell>
 
+                  {order.refBy && (
+                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                      {order.refBy}
+                    </TableCell>
+                  )}
+
                   <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                     <Badge
                       size="sm"
@@ -399,6 +417,12 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                   {order.kycStatus && (
                     <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
                       {order.kycStatus}
+                    </TableCell>
+                  )}
+
+                  {order.createdAt && (
+                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                      {formatDateTime(order.createdAt || "")}
                     </TableCell>
                   )}
                   <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
@@ -486,7 +510,7 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                   <div>
                     {isAgent ? (
                       <div className="flex flex-col gap-5">
-                        {(!currentUser?.temp || currentUser?.temp === 0) && (
+                        {canEditUser(user?.role, currentUser) && (
                           <Alert
                             variant="warning"
                             title="Incomplete Agent Information"
@@ -611,6 +635,28 @@ const BasicTableOne: React.FC<Order> = ({ tableContent, tableHeading }) => {
                                 No Business Place Image
                               </p>
                             )}
+                          </div>
+
+                          <div className="col-span-2 lg:col-span-1">
+                            <Label>Date Registered</Label>
+                            <Input
+                              type="text"
+                              value={formatDateTime(
+                                currentUser.createdAt || ""
+                              )}
+                              readOnly
+                            />
+                          </div>
+
+                          <div className="col-span-2 lg:col-span-1">
+                            <Label>Date Modified</Label>
+                            <Input
+                              type="text"
+                              value={formatDateTime(
+                                currentUser.updatedAt || ""
+                              )}
+                              readOnly
+                            />
                           </div>
                         </div>
                       </div>

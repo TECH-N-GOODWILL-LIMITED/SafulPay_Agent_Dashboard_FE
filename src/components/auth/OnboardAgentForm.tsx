@@ -11,8 +11,9 @@ import {
   getUserByReferralCode,
   uploadToCloudinary,
 } from "../../utils/api";
-import { useAllUsers } from "../../context/UsersContext";
+import { useUsers } from "../../context/UsersContext";
 import { filterPhoneNumber } from "../../utils/utils";
+import { getCurrentPosition } from "../../utils/geolocation";
 import PageBreadcrumb from "../common/PageBreadCrumb";
 import ComponentCard from "../common/ComponentCard";
 import Label from "../form/Label";
@@ -24,13 +25,23 @@ import { Modal } from "../ui/modal";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import {
+  AlertIcon,
+  CheckCircleIcon,
   ChevronDownIcon,
   EnvelopeIcon,
   TrashBinIcon,
   UserIcon,
 } from "../../icons";
 import { useAuth } from "../../context/AuthContext";
-import { ADMIN_ROLE, MARKETER_ROLE } from "../../utils/roles";
+import {
+  ADMIN_ROLE,
+  AGENT_ROLE,
+  MARKETER_ROLE,
+  MERCHANT_ROLE,
+  SUPER_AGENT_ROLE,
+} from "../../utils/roles";
+import LoadingSpinner from "../common/LoadingSpinner";
+import PageMeta from "../common/PageMeta";
 
 const phoneRegExp =
   /^(232|\+232|0)?(25|30|31|32|33|34|40|44|50|55|66|72|73|74|75|76|77|78|79|80|88|90|99)\d{6}$/;
@@ -85,14 +96,13 @@ export default function OnboardAgentForm() {
   const [error, setError] = useState<string>("");
   const [successAlert, setSuccessAlert] = useState<string>("");
   const [userExistError, setUserExistError] = useState<string | null>(null);
-
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const [idImage, setIdImage] = useState<File | null>(null);
   const [businessImage, setBusinessImage] = useState<File | null>(null);
   const [addressDocument, setAddressDocument] = useState<File | null>(null);
   const [businessRegDocument, setBusinessRegDocument] = useState<File | null>(
     null
   );
-
   const [missingUrl, setMissingUrl] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [geoLoading, setGeoLoading] = useState<boolean>(false);
@@ -136,6 +146,7 @@ export default function OnboardAgentForm() {
   });
 
   const agentType = watch("agentType");
+  const agentModel = watch("model");
   const idImageUrl = watch("idImageUrl");
   const businessImageUrl = watch("businessImageUrl");
   const addressDocumentUrl = watch("addressDocumentUrl");
@@ -146,7 +157,9 @@ export default function OnboardAgentForm() {
   const { marketer_ref } = useParams<{ marketer_ref: string }>();
   const marketer = marketer_ref && marketer_ref.toString().toUpperCase();
 
-  const { fetchUsers } = useAllUsers();
+  const TargetAgent = agentType === AGENT_ROLE && agentModel === "Target";
+
+  const { fetchUsers } = useUsers();
   const { setOnboardingUser } = useAuth();
 
   const { isOpen, openModal, closeModal } = useModal();
@@ -154,6 +167,7 @@ export default function OnboardAgentForm() {
   const handleDropdownToggle = (dropdownName: string) => {
     if (loading || uploadLoading) return;
     setOpenDropdown((prev) => (prev === dropdownName ? null : dropdownName));
+    // setSuccessAlert("");
   };
 
   useEffect(() => {
@@ -212,7 +226,7 @@ export default function OnboardAgentForm() {
     validateReferralCode();
   }, [marketer, navigate, setOnboardingUser]);
 
-  const typeOptions = ["Merchant", "Agent", "Super Agent"];
+  const typeOptions = [AGENT_ROLE, SUPER_AGENT_ROLE, MERCHANT_ROLE];
   const modelOptions = ["Target", "Independent"];
   const idTypeOptions = [
     "driver's license",
@@ -343,46 +357,28 @@ export default function OnboardAgentForm() {
     },
   });
 
-  const handleGetLocation = () => {
-    if (!navigator.geolocation) {
-      setAlertTitle("Geolocation Not Supported");
-      setError("Your browser does not support geolocation.");
-      return;
-    }
-
+  const handleGetLocation = async () => {
     setGeoLoading(true);
     setAlertTitle("");
     setError("");
-    setSuccessAlert("");
+    // setSuccessAlert("");
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude.toFixed(6);
-        const lon = position.coords.longitude.toFixed(6);
+    try {
+      const result = await getCurrentPosition();
 
-        setValue("latitude", lat, { shouldValidate: true });
-        setValue("longitude", lon, { shouldValidate: true });
-        setGeoLoading(false);
-      },
-      (err) => {
-        setGeoLoading(false);
+      if (result.success) {
+        setValue("latitude", result.latitude, { shouldValidate: true });
+        setValue("longitude", result.longitude, { shouldValidate: true });
+      } else {
         setAlertTitle("Geolocation Error");
-        switch (err.code) {
-          case err.PERMISSION_DENIED:
-            setError("Permission to access location was denied.");
-            break;
-          case err.POSITION_UNAVAILABLE:
-            setError("Location information is unavailable.");
-            break;
-          case err.TIMEOUT:
-            setError("The request to get location timed out.");
-            break;
-          default:
-            setError("An error occurred while fetching location.");
-        }
-      },
-      { timeout: 10000, maximumAge: 60000 }
-    );
+        setError(result.error || "Failed to get location");
+      }
+    } catch {
+      setAlertTitle("Geolocation Error");
+      setError("An unexpected error occurred while getting location");
+    } finally {
+      setGeoLoading(false);
+    }
   };
 
   const handlePhoneBlur = async (
@@ -397,21 +393,53 @@ export default function OnboardAgentForm() {
 
     const formattedPhoneNumber = filterPhoneNumber(phoneNumber);
 
+    // Check if phone and business phone are the same
+    const currentPhone = watch("phone");
+    const currentBusinessPhone = watch("businessPhone");
+
+    if (currentPhone && currentBusinessPhone) {
+      const formattedCurrentPhone = filterPhoneNumber(currentPhone);
+      const formattedCurrentBusinessPhone =
+        filterPhoneNumber(currentBusinessPhone);
+
+      if (formattedCurrentPhone === formattedCurrentBusinessPhone) {
+        const errorMessage = "Phone and business phone cannot be the same.";
+        setFormError("phone", {
+          type: "manual",
+          message: errorMessage,
+        });
+        setFormError("businessPhone", {
+          type: "manual",
+          message: errorMessage,
+        });
+        setPhoneError(errorMessage);
+        return;
+      }
+    }
+
     if (field === "phone") {
       const phoneTypeResponse = await checkPhoneType(formattedPhoneNumber);
       if (phoneTypeResponse.success && phoneTypeResponse.data?.type) {
         if (phoneTypeResponse.data.type === "phone") {
+          const errorMessage =
+            "This number is already registered as a personal phone.";
           setFormError("phone", {
             type: "manual",
-            message: "This number is already registered as a personal phone.",
+            message: errorMessage,
           });
+          setPhoneError(errorMessage);
         } else if (phoneTypeResponse.data.type === "business_phone") {
+          const errorMessage =
+            "This number is already registered as a business phone.";
           setFormError("phone", {
             type: "manual",
-            message: "This number is already registered as a business phone.",
+            message: errorMessage,
           });
+          setPhoneError(errorMessage);
         }
         return;
+      } else {
+        setPhoneError(null);
       }
 
       // const userExistResponse = await checkUserExist(formattedPhoneNumber);
@@ -434,16 +462,25 @@ export default function OnboardAgentForm() {
       const phoneTypeResponse = await checkPhoneType(formattedPhoneNumber);
       if (phoneTypeResponse.success && phoneTypeResponse.data?.type) {
         if (phoneTypeResponse.data.type === "phone") {
+          const errorMessage =
+            "This number is already registered as a personal phone.";
           setFormError("businessPhone", {
             type: "manual",
-            message: "This number is already registered as a personal phone.",
+            message: errorMessage,
           });
+          setPhoneError(errorMessage);
         } else if (phoneTypeResponse.data.type === "business_phone") {
+          const errorMessage =
+            "This number is already registered as a business phone.";
           setFormError("businessPhone", {
             type: "manual",
-            message: "This number is already registered as a business phone.",
+            message: errorMessage,
           });
+          setPhoneError(errorMessage);
         }
+      } else {
+        // Clear phone error if validation passes
+        setPhoneError(null);
       }
     }
   };
@@ -453,7 +490,7 @@ export default function OnboardAgentForm() {
     setUploadLoading(true);
     setAlertTitle("Uploading files...");
     setError("");
-    setSuccessAlert("");
+    // setSuccessAlert("");
 
     try {
       const filesToUpload: {
@@ -467,6 +504,15 @@ export default function OnboardAgentForm() {
       ];
 
       const updatedData = { ...data };
+
+      // Set registration document URL for Target agents
+      if (data.model === "Target") {
+        updatedData.businessRegDocumentUrl =
+          "https://res.cloudinary.com/safulpaycloud/image/upload/v1753362591/aqruzbsjvigawov2zfbl.jpg";
+        setValue("businessRegDocumentUrl", updatedData.businessRegDocumentUrl, {
+          shouldValidate: true,
+        });
+      }
 
       for (const { key, file } of filesToUpload) {
         if (
@@ -531,25 +577,50 @@ export default function OnboardAgentForm() {
       const response = await addAgent(formData);
 
       if (response.success && response.data) {
-        await fetchUsers();
-        setAlertTitle("Successful");
-        setSuccessAlert(`${finalData.agentType} registered successfully!`);
+        await fetchUsers({
+          page: 1,
+          per_page: 10,
+        });
+        setAlertTitle("Registration Successful!");
+        setSuccessAlert(
+          `You have successfully registered ${finalData.lastName} ${
+            finalData.firstName
+          } (${finalData.businessName}) as a ${finalData?.model} ${
+            finalData.agentType
+          }. ${
+            tempValue === 1
+              ? "All documents have been uploaded."
+              : `Kindly follow up with the ${finalData.agentType} to upload the required documents.`
+          }`
+        );
         reset();
         setIdImage(null);
         setBusinessImage(null);
         setAddressDocument(null);
         setBusinessRegDocument(null);
         setUserExistError(null);
+        setPhoneError(null);
+        if (!isOpen) {
+          openModal();
+        }
       } else {
         setAlertTitle("Registration Failed");
         setError(response.error || "Agent registration failed");
+
+        closeModal();
       }
     } catch (err) {
       setAlertTitle("Operation Failed");
       setError((err as Error).message);
+
+      closeModal();
     } finally {
       setLoading(false);
       setUploadLoading(false);
+
+      if (successAlert) {
+        setMissingUrl([]);
+      }
     }
   };
 
@@ -560,13 +631,36 @@ export default function OnboardAgentForm() {
       return;
     }
 
+    // Check for phone errors first
+    if (phoneError) {
+      setAlertTitle("Phone Number Error");
+      setError(phoneError);
+      return;
+    }
+
+    // Check if phone and business phone are the same
+    if (data.phone && data.businessPhone) {
+      const formattedPhone = filterPhoneNumber(data.phone);
+      const formattedBusinessPhone = filterPhoneNumber(data.businessPhone);
+
+      if (formattedPhone === formattedBusinessPhone) {
+        setAlertTitle("Phone Number Error");
+        setError("Phone and business phone cannot be the same.");
+        return;
+      }
+    }
+
     const missingFiles: string[] = [];
     if (!data.idImageUrl) missingFiles.push("ID document");
-    if (!data.businessRegDocumentUrl)
-      missingFiles.push("Business registration document");
     if (!data.businessImageUrl) missingFiles.push("Business image");
+    // Only check for business registration document if it's not a Target agent
+    // For Target agents set the URL in processRegistration
+    if (!TargetAgent && !data.businessRegDocumentUrl) {
+      missingFiles.push("Business registration document");
+    }
     if (
-      (data.agentType === "Merchant" || data.agentType === "Super Agent") &&
+      (data.agentType === MERCHANT_ROLE ||
+        data.agentType === SUPER_AGENT_ROLE) &&
       !data.addressDocumentUrl
     ) {
       missingFiles.push("Proof of address document");
@@ -582,17 +676,11 @@ export default function OnboardAgentForm() {
   };
 
   const handleProceedWithoutDocuments = async () => {
-    setMissingUrl([]);
-    closeModal();
     handleSubmit((data) => processRegistration(data, 0))();
   };
 
   if (refLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen text-gray-500 dark:text-gray-400">
-        Validating referral code...
-      </div>
-    );
+    return <LoadingSpinner text=" Validating referral code..." />;
   }
 
   if (refError)
@@ -600,81 +688,153 @@ export default function OnboardAgentForm() {
 
   return (
     <>
+      <PageMeta
+        title="Agent & Merchant | SafulPay Agency Dashboard - Finance just got better"
+        description="Register an Agent or Merchant - Management system for SafulPay's Agency Platform"
+      />
       <PageBreadcrumb pageTitle="Register Agent & Merchant" />
 
       <form
         onSubmit={handleSubmit(onSubmitHandler)}
         className="grid grid-cols-1 gap-6 xl:grid-cols-2"
       >
-        <Modal isOpen={isOpen} onClose={closeModal} className="max-w-xl m-4">
+        <Modal
+          isOpen={isOpen}
+          onClose={() => {
+            setSuccessAlert("");
+            closeModal();
+          }}
+          className="max-w-xl m-4"
+        >
           <div className="relative w-full rounded-3xl bg-white  dark:bg-gray-900  max-w-[600px] p-5 lg:p-10">
             <div>
               <div className="text-center">
                 <div className="relative flex items-center justify-center z-1 mb-7">
-                  <svg
-                    className="fill-warning-50 dark:fill-warning-500/15"
-                    width={90}
-                    height={90}
-                    viewBox="0 0 90 90"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M34.364 6.85053C38.6205 -2.28351 51.3795 -2.28351 55.636 6.85053C58.0129 11.951 63.5594 14.6722 68.9556 13.3853C78.6192 11.0807 86.5743 21.2433 82.2185 30.3287C79.7862 35.402 81.1561 41.5165 85.5082 45.0122C93.3019 51.2725 90.4628 63.9451 80.7747 66.1403C75.3648 67.3661 71.5265 72.2695 71.5572 77.9156C71.6123 88.0265 60.1169 93.6664 52.3918 87.3184C48.0781 83.7737 41.9219 83.7737 37.6082 87.3184C29.8831 93.6664 18.3877 88.0266 18.4428 77.9156C18.4735 72.2695 14.6352 67.3661 9.22531 66.1403C-0.462787 63.9451 -3.30193 51.2725 4.49185 45.0122C8.84391 41.5165 10.2138 35.402 7.78151 30.3287C3.42572 21.2433 11.3808 11.0807 21.0444 13.3853C26.4406 14.6722 31.9871 11.951 34.364 6.85053Z"
-                      fill=""
-                      fillOpacity=""
-                    />
-                  </svg>
-                  <span className="absolute -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2">
+                  {successAlert ? (
                     <svg
-                      className="fill-warning-600 dark:fill-orange-400"
-                      width={38}
-                      height={38}
-                      viewBox="0 0 38 38"
+                      className="fill-success-50 dark:fill-success-500/15"
+                      width="90"
+                      height="90"
+                      viewBox="0 0 90 90"
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
                     >
                       <path
-                        fillRule="evenodd"
-                        clipRule="evenodd"
-                        d="M32.1445 19.0002C32.1445 26.2604 26.2589 32.146 18.9987 32.146C11.7385 32.146 5.85287 26.2604 5.85287 19.0002C5.85287 11.7399 11.7385 5.85433 18.9987 5.85433C26.2589 5.85433 32.1445 11.7399 32.1445 19.0002ZM18.9987 35.146C27.9158 35.146 35.1445 27.9173 35.1445 19.0002C35.1445 10.0831 27.9158 2.85433 18.9987 2.85433C10.0816 2.85433 2.85287 10.0831 2.85287 19.0002C2.85287 27.9173 10.0816 35.146 18.9987 35.146ZM21.0001 26.0855C21.0001 24.9809 20.1047 24.0855 19.0001 24.0855L18.9985 24.0855C17.894 24.0855 16.9985 24.9809 16.9985 26.0855C16.9985 27.19 17.894 28.0855 18.9985 28.0855L19.0001 28.0855C20.1047 28.0855 21.0001 27.19 21.0001 26.0855ZM18.9986 10.1829C19.827 10.1829 20.4986 10.8545 20.4986 11.6829L20.4986 20.6707C20.4986 21.4992 19.827 22.1707 18.9986 22.1707C18.1701 22.1707 17.4986 21.4992 17.4986 20.6707L17.4986 11.6829C17.4986 10.8545 18.1701 10.1829 18.9986 10.1829Z"
+                        d="M34.364 6.85053C38.6205 -2.28351 51.3795 -2.28351 55.636 6.85053C58.0129 11.951 63.5594 14.6722 68.9556 13.3853C78.6192 11.0807 86.5743 21.2433 82.2185 30.3287C79.7862 35.402 81.1561 41.5165 85.5082 45.0122C93.3019 51.2725 90.4628 63.9451 80.7747 66.1403C75.3648 67.3661 71.5265 72.2695 71.5572 77.9156C71.6123 88.0265 60.1169 93.6664 52.3918 87.3184C48.0781 83.7737 41.9219 83.7737 37.6082 87.3184C29.8831 93.6664 18.3877 88.0266 18.4428 77.9156C18.4735 72.2695 14.6352 67.3661 9.22531 66.1403C-0.462787 63.9451 -3.30193 51.2725 4.49185 45.0122C8.84391 41.5165 10.2138 35.402 7.78151 30.3287C3.42572 21.2433 11.3808 11.0807 21.0444 13.3853C26.4406 14.6722 31.9871 11.951 34.364 6.85053Z"
                         fill=""
+                        fill-opacity=""
+                      ></path>
+                    </svg>
+                  ) : (
+                    <svg
+                      className="fill-warning-50 dark:fill-warning-500/15"
+                      width={90}
+                      height={90}
+                      viewBox="0 0 90 90"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M34.364 6.85053C38.6205 -2.28351 51.3795 -2.28351 55.636 6.85053C58.0129 11.951 63.5594 14.6722 68.9556 13.3853C78.6192 11.0807 86.5743 21.2433 82.2185 30.3287C79.7862 35.402 81.1561 41.5165 85.5082 45.0122C93.3019 51.2725 90.4628 63.9451 80.7747 66.1403C75.3648 67.3661 71.5265 72.2695 71.5572 77.9156C71.6123 88.0265 60.1169 93.6664 52.3918 87.3184C48.0781 83.7737 41.9219 83.7737 37.6082 87.3184C29.8831 93.6664 18.3877 88.0266 18.4428 77.9156C18.4735 72.2695 14.6352 67.3661 9.22531 66.1403C-0.462787 63.9451 -3.30193 51.2725 4.49185 45.0122C8.84391 41.5165 10.2138 35.402 7.78151 30.3287C3.42572 21.2433 11.3808 11.0807 21.0444 13.3853C26.4406 14.6722 31.9871 11.951 34.364 6.85053Z"
+                        fill=""
+                        fillOpacity=""
                       />
                     </svg>
+                  )}
+                  <span className="absolute -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2">
+                    {successAlert ? (
+                      <CheckCircleIcon className="size-10 fill-success-600 dark:fill-green-500 " />
+                    ) : (
+                      <AlertIcon className="size-10 fill-warning-600 dark:fill-orange-400 rotate-180" />
+                    )}
                   </span>
                 </div>
-                <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90 sm:text-title-sm">
-                  Warning Alert!
-                </h4>
+                {successAlert ? (
+                  <>
+                    <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90 sm:text-title-sm">
+                      {alertTitle}
+                    </h4>
 
-                <p className="text-sm leading-6 text-gray-500 dark:text-gray-400">
-                  {missingUrl.length}{" "}
-                  {missingUrl.length > 1 ? "documents" : "document"} (
-                  <span className="text-brand-accent">
-                    {missingUrl.join(", ")}
-                  </span>
-                  ) missing.
-                </p>
+                    <p className="text-sm leading-6 text-gray-500 dark:text-gray-400">
+                      {successAlert}
+                    </p>
 
-                <p className="mt-5 font-medium text-xl text-gray-800 dark:text-white/9">
-                  Do you want to proceed without uploading?
-                </p>
+                    <div className="flex items-center justify-center w-full gap-3 mt-8">
+                      <Button
+                        onClick={() => {
+                          setSuccessAlert("");
+                          closeModal();
+                        }}
+                      >
+                        Okay, Got it!
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  // ) : error ? (
+                  //   <>
+                  //     <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90 sm:text-title-sm">
+                  //       {alertTitle || "Registration Error"}
+                  //     </h4>
 
-                <div className="flex items-center justify-center w-full gap-3 mt-8">
-                  <Button variant="outline" onClick={closeModal}>
-                    Close
-                  </Button>
-                  <Button
-                    onClick={handleProceedWithoutDocuments}
-                    disabled={loading}
-                  >
-                    {loading ? "Registering..." : "Proceed"}
-                  </Button>
-                </div>
+                  //     <p className="text-sm leading-6 text-gray-500 dark:text-gray-400">
+                  //       {error}
+                  //     </p>
+
+                  //     <div className="flex items-center justify-center w-full gap-3 mt-8">
+                  //       <Button
+                  //         onClick={() => {
+                  //           setError("");
+                  //           setAlertTitle("");
+                  //           closeModal();
+                  //         }}
+                  //       >
+                  //         Close
+                  //       </Button>
+                  //     </div>
+                  //   </>
+                  <>
+                    <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90 sm:text-title-sm">
+                      Warning Alert!
+                    </h4>
+
+                    <p className="text-sm leading-6 text-gray-500 dark:text-gray-400">
+                      {missingUrl.length}{" "}
+                      {missingUrl.length > 1 ? "documents" : "document"} (
+                      <span className="text-brand-accent">
+                        {missingUrl.join(", ")}
+                      </span>
+                      ) missing.
+                    </p>
+
+                    <p className="mt-5 font-medium text-xl text-gray-800 dark:text-white/90">
+                      Do you want to proceed without uploading?
+                    </p>
+
+                    <div className="flex items-center justify-center w-full gap-3 mt-8">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setMissingUrl([]);
+                          closeModal();
+                        }}
+                      >
+                        Close
+                      </Button>
+                      <Button
+                        onClick={handleProceedWithoutDocuments}
+                        disabled={loading}
+                      >
+                        {loading ? "Registering..." : "Proceed"}
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
         </Modal>
+
         <div className="space-y-5 sm:space-y-6">
           <ComponentCard title="Business Info">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -799,11 +959,11 @@ export default function OnboardAgentForm() {
                       {...field}
                       disabled={loading || uploadLoading}
                       onBlur={(e) => handlePhoneBlur(e, "businessPhone")}
-                      error={!!errors.businessPhone}
+                      error={!!errors.businessPhone || !!phoneError}
                       success={
                         dirtyFields.businessPhone && !errors.businessPhone
                       }
-                      hint={errors.businessPhone?.message}
+                      hint={errors.businessPhone?.message || phoneError || ""}
                       selectedCountries={["SL"]}
                     />
                   )}
@@ -824,9 +984,14 @@ export default function OnboardAgentForm() {
                       {...field}
                       disabled={loading || uploadLoading}
                       onBlur={(e) => handlePhoneBlur(e, "phone")}
-                      error={!!errors.phone}
+                      error={!!errors.phone || !!phoneError}
                       success={dirtyFields.phone && !errors.phone}
-                      hint={errors.phone?.message || userExistError || ""}
+                      hint={
+                        errors.phone?.message ||
+                        userExistError ||
+                        phoneError ||
+                        ""
+                      }
                       selectedCountries={["SL"]}
                     />
                   )}
@@ -853,7 +1018,7 @@ export default function OnboardAgentForm() {
                       />
                     )}
                   />
-                  <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none left-4 top-1/2 dark:text-gray-400">
+                  <span className="absolute text-gray-500  pointer-events-none left-4 top-2.5 dark:text-gray-400">
                     <EnvelopeIcon className="size-6" />
                   </span>
                 </div>
@@ -914,7 +1079,7 @@ export default function OnboardAgentForm() {
                 )}
               </div>
 
-              {agentType && agentType !== "Merchant" && (
+              {agentType && agentType !== MERCHANT_ROLE && (
                 <div className="relative">
                   <Label>
                     Agency Model <span className="text-error-500">*</span>
@@ -1087,17 +1252,20 @@ export default function OnboardAgentForm() {
                     control={control}
                     render={({ field }) => (
                       <Input
-                        type="number"
+                        type="text"
                         inputMode="numeric"
-                        pattern="[0-9]*"
+                        pattern="^-?[0-9]+\.?[0-9]*$"
                         id="latitude"
                         {...field}
                         value={
-                          !geoLoading ? field.value : "Fetching Location..."
+                          !geoLoading
+                            ? field.value || ""
+                            : "Fetching Location..."
                         }
                         disabled={geoLoading || loading || uploadLoading}
                         error={!!errors.latitude}
                         hint={errors.latitude?.message}
+                        placeholder="e.g., 8.4606"
                       />
                     )}
                   />
@@ -1112,17 +1280,20 @@ export default function OnboardAgentForm() {
                     control={control}
                     render={({ field }) => (
                       <Input
-                        type="number"
+                        type="text"
                         inputMode="numeric"
-                        pattern="[0-9]*"
+                        pattern="^-?[0-9]+\.?[0-9]*$"
                         id="longitude"
                         {...field}
                         value={
-                          !geoLoading ? field.value : "Fetching Location..."
+                          !geoLoading
+                            ? field.value || ""
+                            : "Fetching Location..."
                         }
                         disabled={geoLoading || loading || uploadLoading}
                         error={!!errors.longitude}
                         hint={errors.longitude?.message}
+                        placeholder="e.g., -13.2317"
                       />
                     )}
                   />
@@ -1150,204 +1321,216 @@ export default function OnboardAgentForm() {
                 </Button>
               </div>
 
-              <div className={`${agentType === "Agent" && "col-span-full"}`}>
-                <Label>
-                  Upload Business Place Image{" "}
-                  <span className="text-error-500">*</span>
-                </Label>
+              {!TargetAgent && (
                 <div
-                  className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
-                    errors.businessImageUrl
-                      ? "border-error-500"
-                      : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
+                  className={`${
+                    agentType === AGENT_ROLE &&
+                    agentModel === "Independent" &&
+                    "col-span-full"
                   }`}
                 >
+                  <Label>
+                    Upload Business Place Image{" "}
+                    <span className="text-error-500">*</span>
+                  </Label>
                   <div
-                    {...getBusinessImageRootProps()}
-                    className={`dropzone relative rounded-xl border-dashed border-gray-300 p-7 lg:p-10
+                    className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
+                      errors.businessImageUrl
+                        ? "border-error-500"
+                        : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
+                    }`}
+                  >
+                    <div
+                      {...getBusinessImageRootProps()}
+                      className={`dropzone relative rounded-xl border-dashed border-gray-300 p-7 lg:p-10
                     ${
                       isBusinessImageDragActive
                         ? "border-brand-500 bg-gray-100 dark:bg-gray-800"
                         : "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
                     } `}
-                    id="id-image-upload"
-                  >
-                    <input {...getBusinessImageInputProps()} />
-                    <div
-                      className={`dz-message flex flex-col items-center upload ${
-                        businessImageUrl && "opacity-40"
-                      }`}
+                      id="id-image-upload"
                     >
-                      <div className="mb-[22px] flex justify-center">
-                        <div className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400">
-                          <svg
-                            className="fill-current"
-                            width="29"
-                            height="28"
-                            viewBox="0 0 29 28"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              clipRule="evenodd"
-                              d="M14.5019 3.91699C14.2852 3.91699 14.0899 4.00891 13.953 4.15589L8.57363 9.53186C8.28065 9.82466 8.2805 10.2995 8.5733 10.5925C8.8661 10.8855 9.34097 10.8857 9.63396 10.5929L13.7519 6.47752V18.667C13.7519 19.0812 14.0877 19.417 14.5019 19.417C14.9161 19.417 15.2519 19.0812 15.2519 18.667V6.48234L19.3653 10.5929C19.6583 10.8857 20.1332 10.8855 20.426 10.5925C20.7188 10.2995 20.7186 9.82463 20.4256 9.53184L15.0838 4.19378C14.9463 4.02488 14.7367 3.91699 14.5019 3.91699ZM5.91626 18.667C5.91626 18.2528 5.58047 17.917 5.16626 17.917C4.75205 17.917 4.41626 18.2528 4.41626 18.667V21.8337C4.41626 23.0763 5.42362 24.0837 6.66626 24.0837H22.3339C23.5766 24.0837 24.5839 23.0763 24.5839 21.8337V18.667C24.5839 18.2528 24.2482 17.917 23.8339 17.917C23.4197 17.917 23.0839 18.2528 23.0839 18.667V21.8337C23.0839 22.2479 22.7482 22.5837 22.3339 22.5837H6.66626C6.25205 22.5837 5.91626 22.2479 5.91626 21.8337V18.667Z"
-                            />
-                          </svg>
+                      <input {...getBusinessImageInputProps()} />
+                      <div
+                        className={`dz-message flex flex-col items-center upload ${
+                          businessImageUrl && "opacity-40"
+                        }`}
+                      >
+                        <div className="mb-[22px] flex justify-center">
+                          <div className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400">
+                            <svg
+                              className="fill-current"
+                              width="29"
+                              height="28"
+                              viewBox="0 0 29 28"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                clipRule="evenodd"
+                                d="M14.5019 3.91699C14.2852 3.91699 14.0899 4.00891 13.953 4.15589L8.57363 9.53186C8.28065 9.82466 8.2805 10.2995 8.5733 10.5925C8.8661 10.8855 9.34097 10.8857 9.63396 10.5929L13.7519 6.47752V18.667C13.7519 19.0812 14.0877 19.417 14.5019 19.417C14.9161 19.417 15.2519 19.0812 15.2519 18.667V6.48234L19.3653 10.5929C19.6583 10.8857 20.1332 10.8855 20.426 10.5925C20.7188 10.2995 20.7186 9.82463 20.4256 9.53184L15.0838 4.19378C14.9463 4.02488 14.7367 3.91699 14.5019 3.91699ZM5.91626 18.667C5.91626 18.2528 5.58047 17.917 5.16626 17.917C4.75205 17.917 4.41626 18.2528 4.41626 18.667V21.8337C4.41626 23.0763 5.42362 24.0837 6.66626 24.0837H22.3339C23.5766 24.0837 24.5839 23.0763 24.5839 21.8337V18.667C24.5839 18.2528 24.2482 17.917 23.8339 17.917C23.4197 17.917 23.0839 18.2528 23.0839 18.667V21.8337C23.0839 22.2479 22.7482 22.5837 22.3339 22.5837H6.66626C6.25205 22.5837 5.91626 22.2479 5.91626 21.8337V18.667Z"
+                              />
+                            </svg>
+                          </div>
                         </div>
+                        <h4 className="mb-3 text-center font-semibold text-gray-800 text-theme-xl dark:text-white/90">
+                          {isBusinessImageDragActive
+                            ? "Drop Files Here"
+                            : "Drag & Drop Files Here"}
+                        </h4>
+                        <span className="text-center mb-5 block w-full max-w-[290px] text-sm text-gray-700 dark:text-gray-400">
+                          Drag and drop your document or image files here or
+                          browse
+                        </span>
+                        <span className="font-medium underline text-theme-sm text-brand-500 truncate">
+                          {businessImage ? businessImage.name : "Browse File"}
+                        </span>
                       </div>
-                      <h4 className="mb-3 text-center font-semibold text-gray-800 text-theme-xl dark:text-white/90">
-                        {isBusinessImageDragActive
-                          ? "Drop Files Here"
-                          : "Drag & Drop Files Here"}
-                      </h4>
-                      <span className="text-center mb-5 block w-full max-w-[290px] text-sm text-gray-700 dark:text-gray-400">
-                        Drag and drop your document or image files here or
-                        browse
-                      </span>
-                      <span className="font-medium underline text-theme-sm text-brand-500 truncate">
-                        {businessImage ? businessImage.name : "Browse File"}
-                      </span>
+                      {businessImageUrl && (
+                        <>
+                          <button
+                            disabled={loading || uploadLoading}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setValue("businessImageUrl", "", {
+                                shouldValidate: true,
+                              });
+                              setBusinessImage(null);
+                            }}
+                            className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
+                            title="delete uploaded file"
+                          >
+                            <TrashBinIcon color="#e4e7ec" />
+                          </button>
+
+                          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
+                            <img
+                              src={businessImageUrl}
+                              alt="Uploaded ID Image Preview"
+                              className="object-contain h-full mx-auto"
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
-                    {businessImageUrl && (
-                      <>
-                        <button
-                          disabled={loading || uploadLoading}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setValue("businessImageUrl", "", {
-                              shouldValidate: true,
-                            });
-                            setBusinessImage(null);
-                          }}
-                          className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
-                          title="delete uploaded file"
-                        >
-                          <TrashBinIcon color="#e4e7ec" />
-                        </button>
-
-                        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
-                          <img
-                            src={businessImageUrl}
-                            alt="Uploaded ID Image Preview"
-                            className="object-contain h-full mx-auto"
-                          />
-                        </div>
-                      </>
-                    )}
                   </div>
+                  {businessImageUrl && (
+                    <div className="mt-2">
+                      <a
+                        href={businessImageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-brand-500 hover:underline"
+                      >
+                        View Uploaded Document
+                      </a>
+                    </div>
+                  )}
                 </div>
-                {businessImageUrl && (
-                  <div className="mt-2">
-                    <a
-                      href={businessImageUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-brand-500 hover:underline"
-                    >
-                      View Uploaded Document
-                    </a>
-                  </div>
-                )}
-              </div>
+              )}
 
-              <div className={`${agentType === "Agent" && "hidden"}`}>
-                <Label>
-                  Upload Proof of Address{" "}
-                  <span className="text-error-500">*</span>
-                </Label>
-                <div
-                  className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
-                    errors.addressDocumentUrl
-                      ? "border-error-500"
-                      : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
-                  }`}
-                >
+              {agentType !== AGENT_ROLE && (
+                <div>
+                  <Label>
+                    Upload Proof of Address{" "}
+                    <span className="text-error-500">*</span>
+                  </Label>
                   <div
-                    {...getAddressDocumentRootProps()}
-                    className={`dropzone relative rounded-xl border-dashed border-gray-300 p-7 lg:p-10
+                    className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
+                      errors.addressDocumentUrl
+                        ? "border-error-500"
+                        : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
+                    }`}
+                  >
+                    <div
+                      {...getAddressDocumentRootProps()}
+                      className={`dropzone relative rounded-xl border-dashed border-gray-300 p-7 lg:p-10
                     ${
                       isAddressDocumentDragActive
                         ? "border-brand-500 bg-gray-100 dark:bg-gray-800"
                         : "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
                     } `}
-                    id="id-image-upload"
-                  >
-                    <input {...getAddressDocumentInputProps()} />
-                    <div
-                      className={`dz-message flex flex-col items-center upload ${
-                        addressDocumentUrl && "opacity-40"
-                      }`}
+                      id="id-image-upload"
                     >
-                      <div className="mb-[22px] flex justify-center">
-                        <div className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400">
-                          <svg
-                            className="fill-current"
-                            width="29"
-                            height="28"
-                            viewBox="0 0 29 28"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              clipRule="evenodd"
-                              d="M14.5019 3.91699C14.2852 3.91699 14.0899 4.00891 13.953 4.15589L8.57363 9.53186C8.28065 9.82466 8.2805 10.2995 8.5733 10.5925C8.8661 10.8855 9.34097 10.8857 9.63396 10.5929L13.7519 6.47752V18.667C13.7519 19.0812 14.0877 19.417 14.5019 19.417C14.9161 19.417 15.2519 19.0812 15.2519 18.667V6.48234L19.3653 10.5929C19.6583 10.8857 20.1332 10.8855 20.426 10.5925C20.7188 10.2995 20.7186 9.82463 20.4256 9.53184L15.0838 4.19378C14.9463 4.02488 14.7367 3.91699 14.5019 3.91699ZM5.91626 18.667C5.91626 18.2528 5.58047 17.917 5.16626 17.917C4.75205 17.917 4.41626 18.2528 4.41626 18.667V21.8337C4.41626 23.0763 5.42362 24.0837 6.66626 24.0837H22.3339C23.5766 24.0837 24.5839 23.0763 24.5839 21.8337V18.667C24.5839 18.2528 24.2482 17.917 23.8339 17.917C23.4197 17.917 23.0839 18.2528 23.0839 18.667V21.8337C23.0839 22.2479 22.7482 22.5837 22.3339 22.5837H6.66626C6.25205 22.5837 5.91626 22.2479 5.91626 21.8337V18.667Z"
-                            />
-                          </svg>
+                      <input {...getAddressDocumentInputProps()} />
+                      <div
+                        className={`dz-message flex flex-col items-center upload ${
+                          addressDocumentUrl && "opacity-40"
+                        }`}
+                      >
+                        <div className="mb-[22px] flex justify-center">
+                          <div className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400">
+                            <svg
+                              className="fill-current"
+                              width="29"
+                              height="28"
+                              viewBox="0 0 29 28"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                clipRule="evenodd"
+                                d="M14.5019 3.91699C14.2852 3.91699 14.0899 4.00891 13.953 4.15589L8.57363 9.53186C8.28065 9.82466 8.2805 10.2995 8.5733 10.5925C8.8661 10.8855 9.34097 10.8857 9.63396 10.5929L13.7519 6.47752V18.667C13.7519 19.0812 14.0877 19.417 14.5019 19.417C14.9161 19.417 15.2519 19.0812 15.2519 18.667V6.48234L19.3653 10.5929C19.6583 10.8857 20.1332 10.8855 20.426 10.5925C20.7188 10.2995 20.7186 9.82463 20.4256 9.53184L15.0838 4.19378C14.9463 4.02488 14.7367 3.91699 14.5019 3.91699ZM5.91626 18.667C5.91626 18.2528 5.58047 17.917 5.16626 17.917C4.75205 17.917 4.41626 18.2528 4.41626 18.667V21.8337C4.41626 23.0763 5.42362 24.0837 6.66626 24.0837H22.3339C23.5766 24.0837 24.5839 23.0763 24.5839 21.8337V18.667C24.5839 18.2528 24.2482 17.917 23.8339 17.917C23.4197 17.917 23.0839 18.2528 23.0839 18.667V21.8337C23.0839 22.2479 22.7482 22.5837 22.3339 22.5837H6.66626C6.25205 22.5837 5.91626 22.2479 5.91626 21.8337V18.667Z"
+                              />
+                            </svg>
+                          </div>
                         </div>
+                        <h4 className="mb-3 text-center font-semibold text-gray-800 text-theme-xl dark:text-white/90">
+                          {isAddressDocumentDragActive
+                            ? "Drop Files Here"
+                            : "Drag & Drop Files Here"}
+                        </h4>
+                        <span className="text-center mb-5 block w-full max-w-[290px] text-sm text-gray-700 dark:text-gray-400">
+                          Drag and drop your document or image files here or
+                          browse
+                        </span>
+                        <span className="font-medium underline text-theme-sm text-brand-500 truncate">
+                          {addressDocument
+                            ? addressDocument.name
+                            : "Browse File"}
+                        </span>
                       </div>
-                      <h4 className="mb-3 text-center font-semibold text-gray-800 text-theme-xl dark:text-white/90">
-                        {isAddressDocumentDragActive
-                          ? "Drop Files Here"
-                          : "Drag & Drop Files Here"}
-                      </h4>
-                      <span className="text-center mb-5 block w-full max-w-[290px] text-sm text-gray-700 dark:text-gray-400">
-                        Drag and drop your document or image files here or
-                        browse
-                      </span>
-                      <span className="font-medium underline text-theme-sm text-brand-500 truncate">
-                        {addressDocument ? addressDocument.name : "Browse File"}
-                      </span>
+                      {addressDocumentUrl && (
+                        <>
+                          <button
+                            disabled={loading || uploadLoading}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setValue("addressDocumentUrl", "", {
+                                shouldValidate: true,
+                              });
+                              setAddressDocument(null);
+                            }}
+                            className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
+                            title="delete uploaded file"
+                          >
+                            <TrashBinIcon color="#e4e7ec" />
+                          </button>
+                          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
+                            <img
+                              src={addressDocumentUrl}
+                              alt="Uploaded ID Image Preview"
+                              className="object-contain h-full mx-auto"
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
-                    {addressDocumentUrl && (
-                      <>
-                        <button
-                          disabled={loading || uploadLoading}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setValue("addressDocumentUrl", "", {
-                              shouldValidate: true,
-                            });
-                            setAddressDocument(null);
-                          }}
-                          className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
-                          title="delete uploaded file"
-                        >
-                          <TrashBinIcon color="#e4e7ec" />
-                        </button>
-                        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
-                          <img
-                            src={addressDocumentUrl}
-                            alt="Uploaded ID Image Preview"
-                            className="object-contain h-full mx-auto"
-                          />
-                        </div>
-                      </>
-                    )}
                   </div>
+                  {addressDocumentUrl && (
+                    <div className="mt-2">
+                      <a
+                        href={addressDocumentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-brand-500 hover:underline"
+                      >
+                        View Uploaded Document
+                      </a>
+                    </div>
+                  )}
                 </div>
-                {addressDocumentUrl && (
-                  <div className="mt-2">
-                    <a
-                      href={addressDocumentUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-brand-500 hover:underline"
-                    >
-                      View Uploaded Document
-                    </a>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           </ComponentCard>
         </div>
@@ -1355,31 +1538,53 @@ export default function OnboardAgentForm() {
           <ComponentCard title="Business Document">
             <div>
               <Label>
-                Upload Business Registration Document{" "}
+                {TargetAgent
+                  ? "Upload Business Place Image"
+                  : "Upload Business Registration Document"}{" "}
                 <span className="text-error-500">*</span>
               </Label>
               <div
                 className={`overflow-hidden transition border border-dashed cursor-pointer dark:hover:border-brand-500 rounded-xl hover:border-brand-500 ${
-                  errors.businessRegDocumentUrl
+                  TargetAgent
+                    ? errors.businessImageUrl
+                      ? "border-error-500"
+                      : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
+                    : errors.businessRegDocumentUrl
                     ? "border-error-500"
                     : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
                 }`}
               >
                 <div
-                  {...getRegDocumentRootProps()}
+                  {...(TargetAgent
+                    ? getBusinessImageRootProps()
+                    : getRegDocumentRootProps())}
                   className={`dropzone relative rounded-xl border-dashed border-gray-300 p-7 lg:p-10
                     ${
-                      isRegDocumentDragActive
+                      TargetAgent
+                        ? isBusinessImageDragActive
+                          ? "border-brand-500 bg-gray-100 dark:bg-gray-800"
+                          : "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
+                        : isRegDocumentDragActive
                         ? "border-brand-500 bg-gray-100 dark:bg-gray-800"
                         : "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
                     } `}
-                  id="business-document-upload"
+                  id={
+                    TargetAgent
+                      ? "business-image-upload"
+                      : "business-document-upload"
+                  }
                 >
-                  <input {...getRegDocumentInputProps()} />
+                  <input
+                    {...(TargetAgent
+                      ? getBusinessImageInputProps()
+                      : getRegDocumentInputProps())}
+                  />
 
                   <div
                     className={`dz-message flex flex-col items-center ${
-                      businessRegDocumentUrl && "opacity-40"
+                      TargetAgent
+                        ? businessImageUrl && "opacity-40"
+                        : businessRegDocumentUrl && "opacity-40"
                     }`}
                   >
                     <div className="mb-[22px] flex justify-center">
@@ -1400,7 +1605,11 @@ export default function OnboardAgentForm() {
                       </div>
                     </div>
                     <h4 className="mb-3 font-semibold text-gray-800 text-theme-xl dark:text-white/90">
-                      {isRegDocumentDragActive
+                      {TargetAgent
+                        ? isBusinessImageDragActive
+                          ? "Drop Files Here"
+                          : "Drag & Drop Files Here"
+                        : isRegDocumentDragActive
                         ? "Drop Files Here"
                         : "Drag & Drop Files Here"}
                     </h4>
@@ -1409,52 +1618,94 @@ export default function OnboardAgentForm() {
                       here or browse
                     </span>
                     <span className="font-medium underline text-theme-sm text-brand-500 truncate">
-                      {businessRegDocument
+                      {TargetAgent
+                        ? businessImage
+                          ? businessImage.name
+                          : "Browse File"
+                        : businessRegDocument
                         ? businessRegDocument.name
                         : "Browse File"}
                     </span>
                   </div>
-                  {businessRegDocumentUrl && (
-                    <>
-                      <button
-                        disabled={loading || uploadLoading}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setValue("businessRegDocumentUrl", "", {
-                            shouldValidate: true,
-                          });
-                          setBusinessRegDocument(null);
-                        }}
-                        className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
-                        title="delete uploaded file"
-                      >
-                        <TrashBinIcon color="#e4e7ec" />
-                      </button>
-                      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
-                        <img
-                          src={businessRegDocumentUrl}
-                          alt="Document Preview"
-                          className="object-cover h-full mx-auto"
-                        />
-                      </div>
-                    </>
-                  )}
+                  {TargetAgent
+                    ? businessImageUrl && (
+                        <>
+                          <button
+                            disabled={loading || uploadLoading}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setValue("businessImageUrl", "", {
+                                shouldValidate: true,
+                              });
+                              setBusinessImage(null);
+                            }}
+                            className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
+                            title="delete uploaded file"
+                          >
+                            <TrashBinIcon color="#e4e7ec" />
+                          </button>
+                          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
+                            <img
+                              src={businessImageUrl}
+                              alt="Uploaded Business Image Preview"
+                              className="object-contain h-full mx-auto"
+                            />
+                          </div>
+                        </>
+                      )
+                    : businessRegDocumentUrl && (
+                        <>
+                          <button
+                            disabled={loading || uploadLoading}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setValue("businessRegDocumentUrl", "", {
+                                shouldValidate: true,
+                              });
+                              setBusinessRegDocument(null);
+                            }}
+                            className="absolute right-3 top-3 z-999 flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-gray-400 transition-colors hover:bg-red-800 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-200 dark:hover:text-white sm:right-3 sm:top-3 sm:h-8 sm:w-8 disabled:cursor-not-allowed"
+                            title="delete uploaded file"
+                          >
+                            <TrashBinIcon color="#e4e7ec" />
+                          </button>
+                          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-full hover:opacity-20 transition-all duration-300">
+                            <img
+                              src={businessRegDocumentUrl}
+                              alt="Document Preview"
+                              className="object-cover h-full mx-auto"
+                            />
+                          </div>
+                        </>
+                      )}
                 </div>
               </div>
-              {businessRegDocumentUrl && (
-                <div className="mt-2">
-                  <a
-                    href={businessRegDocumentUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-brand-500 hover:underline"
-                  >
-                    View Uploaded Document
-                  </a>
-                </div>
-              )}
+              {TargetAgent
+                ? businessImageUrl && (
+                    <div className="mt-2">
+                      <a
+                        href={businessImageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-brand-500 hover:underline"
+                      >
+                        View Uploaded Document
+                      </a>
+                    </div>
+                  )
+                : businessRegDocumentUrl && (
+                    <div className="mt-2">
+                      <a
+                        href={businessRegDocumentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-brand-500 hover:underline"
+                      >
+                        View Uploaded Document
+                      </a>
+                    </div>
+                  )}
             </div>
-
             <div className="relative">
               <Label>
                 ID Type <span className="text-error-500">*</span>
@@ -1509,7 +1760,6 @@ export default function OnboardAgentForm() {
                 </p>
               )}
             </div>
-
             <div>
               <Label>
                 Upload ID Document <span className="text-error-500">*</span>
@@ -1606,7 +1856,6 @@ export default function OnboardAgentForm() {
                 </div>
               )}
             </div>
-
             {Object.keys(errors).length > 0 && (
               <Alert variant="error" title="Please fix the following errors:">
                 <ul className="list-disc pl-5">
@@ -1624,14 +1873,13 @@ export default function OnboardAgentForm() {
             {error && (
               <Alert variant="error" title={alertTitle} message={error} />
             )}
-            {successAlert && (
+            {/* {successAlert && (
               <Alert
                 variant="success"
                 title={alertTitle}
                 message={successAlert}
               />
-            )}
-
+            )} */}
             <div className="col-span-2">
               <Button
                 className="w-full"
