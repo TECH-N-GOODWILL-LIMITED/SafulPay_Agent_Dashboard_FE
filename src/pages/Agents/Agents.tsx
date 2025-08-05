@@ -52,7 +52,6 @@ const Agents: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [dateError, setDateError] = useState<string>("");
-  // const [filterLoading, setFilterLoading] = useState<boolean>(false);
 
   const { allAgents, title, error, loading, fetchAgents } = useAgents();
   const { user, token } = useAuth();
@@ -296,7 +295,7 @@ const Agents: React.FC = () => {
     }
     return allAgents.data.map((agent: Agent) => ({
       id: agent.id,
-      image: agent.image || "/images/user/agent-image.png", // fallback image
+      image: agent.image || "/images/user/agent-image.png",
       name: agent.name || "N/A",
       firstName: agent.firstname,
       lastName: agent.lastname,
@@ -350,9 +349,7 @@ const Agents: React.FC = () => {
         description="List of all agency agents - Management system for SafulPay's Agency Platform"
       />
       <PageBreadcrumb pageTitle="Agents &amp; Merchants" />
-      {/* {loading ? (
-        <div className="text-gray-500 dark:text-gray-400">Loading...</div>
-      ) : ( */}
+
       <div className="space-y-6">
         <ComponentCard
           title="Vendors Table"
@@ -382,9 +379,11 @@ const Agents: React.FC = () => {
               token: token || undefined,
             }}
           />
-
-          <BasicTableOne tableHeading={tableHeader} tableContent={tableData} />
-
+          <BasicTableOne
+            tableHeading={tableHeader}
+            tableContent={tableData}
+            loading={loading}
+          />
           <TablePagination
             pagination={{
               currentPage,
@@ -397,7 +396,6 @@ const Agents: React.FC = () => {
           />
         </ComponentCard>
       </div>
-      {/* )} */}
     </>
   );
 };

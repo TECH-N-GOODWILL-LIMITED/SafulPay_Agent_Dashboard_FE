@@ -51,7 +51,6 @@ const Admin = () => {
       params.status = statusMap[filterStatus];
     }
 
-    // Add search term to params if it exists
     if (searchTerm.trim()) {
       params.name = searchTerm.trim();
     }
@@ -61,7 +60,7 @@ const Admin = () => {
 
   const handleSearch = (term: string) => {
     setSearchTerm(term);
-    setCurrentPage(1); // Reset to first page when searching
+    setCurrentPage(1);
   };
 
   const actionButton: ActionButtonConfig = {
@@ -129,9 +128,7 @@ const Admin = () => {
         description="List of all agency admins - Management system for SafulPay's Agency Platform"
       />
       <PageBreadcrumb pageTitle="Admins" />
-      {/* {loading ? (
-        <div className="text-gray-500 dark:text-gray-400">Loading...</div>
-      ) : ( */}
+
       <div className="space-y-6">
         <ComponentCard
           title="Admin Table"
@@ -139,7 +136,11 @@ const Admin = () => {
           actionButton={actionButton}
         >
           <TableFilters filters={filters} searchConfig={searchConfig} />
-          <BasicTableOne tableHeading={tableHeader} tableContent={tableData} />
+          <BasicTableOne
+            tableHeading={tableHeader}
+            tableContent={tableData}
+            loading={loading}
+          />
           <TablePagination
             pagination={{
               currentPage,
@@ -152,7 +153,7 @@ const Admin = () => {
           />
         </ComponentCard>
       </div>
-      {/* )} */}
+
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
         <RegisterModal
           modalHeading="Add a new user"

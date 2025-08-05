@@ -134,7 +134,11 @@ const AdminView: React.FC = () => {
           actionButton={actionButton}
         >
           <TableFilters filters={filters} searchConfig={searchConfig} />
-          <BasicTableOne tableHeading={tableHeader} tableContent={tableData} />
+          <BasicTableOne
+            tableHeading={tableHeader}
+            tableContent={tableData}
+            loading={loading}
+          />
           <TablePagination
             pagination={{
               currentPage,
@@ -250,6 +254,7 @@ const MarketerView: React.FC = () => {
             <BasicTableOne
               tableHeading={tableHeader}
               tableContent={tableData}
+              loading={loading}
             />
             <TablePagination
               pagination={{

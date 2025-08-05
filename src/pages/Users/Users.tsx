@@ -25,6 +25,7 @@ import {
   exportTableData,
 } from "../../utils/downloadUtils";
 import type { DownloadParams, UserBio } from "../../types/types";
+import { isValidDateFormat, validateDateRange } from "../../utils/utils";
 
 const tableHeader: string[] = [
   "Name / Username",
@@ -54,42 +55,6 @@ const Users: React.FC = () => {
   const allRoles = ["All", ...userRoles];
   const statusOptions = ["All", "Pending", "Active", "Suspended"];
 
-  // Helper function to validate date format (YYYY-MM-DD)
-  const isValidDateFormat = (date: string): boolean => {
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(date)) return false;
-
-    const parsedDate = new Date(date);
-    return (
-      !isNaN(parsedDate.getTime()) &&
-      parsedDate.toISOString().split("T")[0] === date
-    );
-  };
-
-  // Helper function to validate date range
-  const validateDateRange = (start: string, end: string): string => {
-    if (!start || !end) return ""; // Allow empty dates
-
-    if (!isValidDateFormat(start) || !isValidDateFormat(end)) {
-      return "Please enter valid dates in YYYY-MM-DD format";
-    }
-
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    const today = new Date();
-    today.setHours(23, 59, 59, 999); // Set to end of today
-
-    if (startDate > today || endDate > today) {
-      return "Date cannot be greater than today";
-    }
-
-    if (startDate > endDate) {
-      return "Start date cannot be greater than end date";
-    }
-
-    return "";
-  };
-
   useEffect(() => {
     // Validate date range
     const dateRangeError = validateDateRange(
@@ -99,7 +64,7 @@ const Users: React.FC = () => {
     setDateError(dateRangeError);
 
     if (dateRangeError) {
-      return; // Don't make API call if there's a date error
+      return;
     }
 
     const params: { [key: string]: number | string } = {
@@ -180,7 +145,6 @@ const Users: React.FC = () => {
     onClick: openModal,
   };
 
-  // Download handler
   const handleDownloadUsers = async (format: "csv" | "excel") => {
     if (!token) return;
 
@@ -289,6 +253,7 @@ const Users: React.FC = () => {
         description="List of all agency users - Management system for SafulPay's Agency Platform"
       />
       <PageBreadcrumb pageTitle="All Users" />
+
       <div className="space-y-6">
         <ComponentCard
           title="Users Table"
@@ -309,9 +274,11 @@ const Users: React.FC = () => {
             }}
             dateError={dateError}
           />
-
-          <BasicTableOne tableHeading={tableHeader} tableContent={tableData} />
-
+          <BasicTableOne
+            tableHeading={tableHeader}
+            tableContent={tableData}
+            loading={loading}
+          />
           <TablePagination
             pagination={{
               currentPage,
@@ -324,6 +291,7 @@ const Users: React.FC = () => {
           />
         </ComponentCard>
       </div>
+
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
         <RegisterModal
           modalHeading="Add a new user"
