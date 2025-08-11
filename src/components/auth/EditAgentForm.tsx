@@ -4,11 +4,7 @@ import { useDropzone } from "react-dropzone";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import {
-  uploadToCloudinary,
-  getAgentById,
-  updateAgentInfo,
-} from "../../utils/api";
+import { uploadToCloudinary, updateAgentInfo } from "../../utils/api";
 import { useUsers } from "../../context/UsersContext";
 import { getCurrentPosition } from "../../utils/geolocation";
 import ComponentCard from "../../components/common/ComponentCard";
@@ -21,21 +17,22 @@ import { Modal } from "../../components/ui/modal";
 import { Dropdown } from "../../components/ui/dropdown/Dropdown";
 import { DropdownItem } from "../../components/ui/dropdown/DropdownItem";
 import {
+  CheckCircleIcon,
   ChevronDownIcon,
   EnvelopeIcon,
+  InfoIcon,
   TrashBinIcon,
   UserIcon,
 } from "../../icons";
 import { useAuth } from "../../context/AuthContext";
 import TextArea from "../form/input/TextArea";
-import { Agent } from "../../types/types";
 import {
   ADMIN_ROLE,
   AGENT_ROLE,
   MERCHANT_ROLE,
   SUPER_AGENT_ROLE,
 } from "../../utils/roles";
-import LoadingSpinner from "../common/LoadingSpinner";
+import type { Agent } from "../../types/types";
 import PageMeta from "../common/PageMeta";
 
 const validationSchema = yup.object().shape({
@@ -72,11 +69,14 @@ const validationSchema = yup.object().shape({
 
 type FormData = yup.InferType<typeof validationSchema>;
 
-export default function EditAgentForm() {
+interface EditAgentFormProps {
+  agentData?: Agent | null;
+}
+
+export default function EditAgentForm({ agentData }: EditAgentFormProps) {
   const [alertTitle, setAlertTitle] = useState<string>("");
   const [error, setError] = useState<string>("");
-  const [fetchError, setFetchError] = useState<string>("");
-  const [updateSuccess, setUpdateSuccess] = useState<string>("");
+  const [successAlert, setSuccessAlert] = useState<string>("");
 
   const [idImageFile, setIdImageFile] = useState<File | null>(null);
   const [businessImageFile, setBusinessImageFile] = useState<File | null>(null);
@@ -121,60 +121,77 @@ export default function EditAgentForm() {
 
   const { fetchUsers } = useUsers();
 
+  useEffect(() => {
+    if (agentData) {
+      const defaultValues = {
+        firstname: agentData.firstname || "",
+        middlename: agentData.middlename || "",
+        lastname: agentData.lastname || "",
+        username: agentData.username || "",
+        business_name: agentData.business_name || "",
+        business_phone: agentData.business_phone || "",
+        phone: agentData.phone || "",
+        email: agentData.email || "",
+        type: agentData.type || "",
+        model: agentData.model || "",
+        id_type: agentData.id_type || "",
+        address: agentData.address || "",
+        district: agentData.district || "",
+        region: agentData.region || "",
+        latitude: agentData.latitude || "",
+        longitude: agentData.longitude || "",
+        id_document: agentData.id_document || "",
+        business_image: agentData.business_image || "",
+        address_document: agentData.address_document || "",
+        business_registration: agentData.business_registration || "",
+        status: agentData.status,
+        reason: "",
+      };
+      reset(defaultValues);
+      setOriginalAgentData(agentData);
+      setLoading(false);
+    }
+  }, [agentData, reset]);
+
   const statusOptions = [
     { label: "Pending", value: 0 },
     { label: "Active", value: 1 },
     { label: "Suspended", value: 2 },
-    { label: "Rejected", value: 3 },
+    { label: "Reject", value: 3 },
   ];
 
-  useEffect(() => {
-    const fetchAgentData = async () => {
-      if (!id || !token) return;
-      setLoading(true);
-      setFetchError("");
-      try {
-        const response = await getAgentById(token, id);
-        if (response.success && response.data) {
-          const agent = response.data.agent;
-          const defaultValues = {
-            firstname: agent.firstname || "",
-            middlename: agent.middlename || "",
-            lastname: agent.lastname || "",
-            username: agent.username || "",
-            business_name: agent.business_name || "",
-            business_phone: agent.business_phone || "",
-            phone: agent.phone || "",
-            email: agent.email || "",
-            type: agent.type || "",
-            model: agent.model || "",
-            id_type: agent.id_type || "",
-            address: agent.address || "",
-            district: agent.district || "",
-            region: agent.region || "",
-            latitude: agent.latitude || "",
-            longitude: agent.longitude || "",
-            id_document: agent.id_document || "",
-            business_image: agent.business_image || "",
-            address_document: agent.address_document || "",
-            business_registration: agent.business_registration || "",
-            status: agent.status,
-            reason: "",
-          };
-          reset(defaultValues);
-          setOriginalAgentData(agent);
-        } else {
-          setFetchError(response.error || "Failed to fetch agent data");
-        }
-      } catch (err) {
-        setFetchError(`Error fetching agent data: ${(err as Error).message}`);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Function to get filtered status options based on current agent status
+  const getFilteredStatusOptions = () => {
+    if (!originalAgentData) return statusOptions;
 
-    fetchAgentData();
-  }, [id, token, reset]);
+    const currentStatus = originalAgentData.status;
+
+    switch (currentStatus) {
+      case 0: // Pending
+        return [
+          { label: "Activate", value: 1 },
+          { label: "Reject", value: 3 },
+          { label: "Pending", value: 0 },
+        ];
+      case 1: // Active
+        return [
+          { label: "Reject", value: 3 },
+          { label: "Active", value: 1 },
+        ];
+      case 2: // Suspended
+        return [
+          { label: "Reactivate", value: 1 },
+          { label: "Suspended", value: 2 },
+        ];
+      case 3: // Rejected
+        return [
+          { label: "Reactivate", value: 1 },
+          { label: "Rejected", value: 3 },
+        ];
+      default:
+        return statusOptions;
+    }
+  };
 
   const typeOptions = [AGENT_ROLE, SUPER_AGENT_ROLE, MERCHANT_ROLE];
   const modelOptions = ["Target", "Independent"];
@@ -316,7 +333,6 @@ export default function EditAgentForm() {
     setGeoLoading(true);
     setAlertTitle("");
     setError("");
-    setUpdateSuccess("");
 
     try {
       const result = await getCurrentPosition();
@@ -335,10 +351,6 @@ export default function EditAgentForm() {
       setGeoLoading(false);
     }
   };
-
-  if (loading) {
-    return <LoadingSpinner text="Loading agent data..." />;
-  }
 
   const onSubmit = () => {
     const hasDirtyFields = Object.keys(dirtyFields).length > 0;
@@ -369,9 +381,9 @@ export default function EditAgentForm() {
 
     setLoading(true);
     setUploadLoading(true);
+    setAlertTitle("Uploading files...");
     setError("");
-    setUpdateSuccess("");
-    closeModal();
+    // closeModal();
 
     try {
       const updatedFields: Partial<Agent> = {};
@@ -450,9 +462,9 @@ export default function EditAgentForm() {
           page: 1,
           per_page: 10,
         });
-        setAlertTitle("Successful");
-        setUpdateSuccess(
-          `${data.type} ${data.business_name}'s info updated successfully!`
+        setAlertTitle("Update Successful!");
+        setSuccessAlert(
+          `${data.type} ${data.business_name}'s info has been updated successfully!`
         );
         const newAgentData = response.data.agent;
         const newDefaultValues = {
@@ -482,12 +494,18 @@ export default function EditAgentForm() {
         reset(newDefaultValues);
         setOriginalAgentData(newAgentData);
         setDeletedImageKeys([]);
+        if (!isOpen) {
+          openModal();
+        }
       } else {
         setAlertTitle("Update Failed");
         setError(response.error || "Agent update failed");
+        closeModal();
       }
     } catch (err) {
+      setAlertTitle("Operation Failed");
       setError((err as Error).message);
+      closeModal();
     } finally {
       setLoading(false);
       setUploadLoading(false);
@@ -500,48 +518,119 @@ export default function EditAgentForm() {
         title="Agent & Merchant | SafulPay Agency Dashboard - Finance just got better"
         description="Update an Agent or Merchant Info - Management system for SafulPay's Agency Platform"
       />
-      {fetchError && (
-        <Alert variant="error" title="Error" message={fetchError} />
-      )}
-
-      {updateSuccess && (
-        <Alert variant="success" title={alertTitle} message={updateSuccess} />
-      )}
 
       <form
         onSubmit={handleSubmit(onSubmit)}
         className="grid grid-cols-1 gap-6 xl:grid-cols-2"
       >
-        <Modal isOpen={isOpen} onClose={closeModal} className="max-w-lg m-4">
+        <Modal
+          isOpen={isOpen}
+          onClose={() => {
+            setSuccessAlert("");
+            closeModal();
+          }}
+          className="max-w-lg m-4"
+        >
           <div className="relative w-full rounded-3xl bg-white dark:bg-gray-900 max-w-[600px] p-5 lg:p-10">
-            <div className="text-left">
-              <h4 className="mb-8 text-2xl font-semibold text-center text-gray-800 dark:text-white/90 sm:text-title-sm">
-                Confirm to update vendor
-              </h4>
-              <Label>Reason for updating vendor information</Label>
-              <Controller
-                name="reason"
-                control={control}
-                render={({ field }) => (
-                  <TextArea
-                    {...field}
-                    placeholder={`Enter reason for updating agent info...`}
-                    rows={4}
-                    error={!!errors.reason}
-                    hint={errors.reason?.message}
-                  />
+            <div>
+              <div className="text-center">
+                <div className="relative flex items-center justify-center z-1 mb-7">
+                  {successAlert ? (
+                    <svg
+                      className="fill-success-50 dark:fill-success-500/15"
+                      width="90"
+                      height="90"
+                      viewBox="0 0 90 90"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M34.364 6.85053C38.6205 -2.28351 51.3795 -2.28351 55.636 6.85053C58.0129 11.951 63.5594 14.6722 68.9556 13.3853C78.6192 11.0807 86.5743 21.2433 82.2185 30.3287C79.7862 35.402 81.1561 41.5165 85.5082 45.0122C93.3019 51.2725 90.4628 63.9451 80.7747 66.1403C75.3648 67.3661 71.5265 72.2695 71.5572 77.9156C71.6123 88.0265 60.1169 93.6664 52.3918 87.3184C48.0781 83.7737 41.9219 83.7737 37.6082 87.3184C29.8831 93.6664 18.3877 88.0266 18.4428 77.9156C18.4735 72.2695 14.6352 67.3661 9.22531 66.1403C-0.462787 63.9451 -3.30193 51.2725 4.49185 45.0122C8.84391 41.5165 10.2138 35.402 7.78151 30.3287C3.42572 21.2433 11.3808 11.0807 21.0444 13.3853C26.4406 14.6722 31.9871 11.951 34.364 6.85053Z"
+                        fill=""
+                        fillOpacity=""
+                      ></path>
+                    </svg>
+                  ) : (
+                    <svg
+                      className="fill-warning-50 dark:fill-warning-500/15"
+                      width={90}
+                      height={90}
+                      viewBox="0 0 90 90"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M34.364 6.85053C38.6205 -2.28351 51.3795 -2.28351 55.636 6.85053C58.0129 11.951 63.5594 14.6722 68.9556 13.3853C78.6192 11.0807 86.5743 21.2433 82.2185 30.3287C79.7862 35.402 81.1561 41.5165 85.5082 45.0122C93.3019 51.2725 90.4628 63.9451 80.7747 66.1403C75.3648 67.3661 71.5265 72.2695 71.5572 77.9156C71.6123 88.0265 60.1169 93.6664 52.3918 87.3184C48.0781 83.7737 41.9219 83.7737 37.6082 87.3184C29.8831 93.6664 18.3877 88.0266 18.4428 77.9156C18.4735 72.2695 14.6352 67.3661 9.22531 66.1403C-0.462787 63.9451 -3.30193 51.2725 4.49185 45.0122C8.84391 41.5165 10.2138 35.402 7.78151 30.3287C3.42572 21.2433 11.3808 11.0807 21.0444 13.3853C26.4406 14.6722 31.9871 11.951 34.364 6.85053Z"
+                        fill=""
+                        fillOpacity=""
+                      />
+                    </svg>
+                  )}
+                  <span className="absolute -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2">
+                    {successAlert ? (
+                      <CheckCircleIcon className="size-10 fill-success-600 dark:fill-green-500 " />
+                    ) : (
+                      <InfoIcon className="size-10 fill-blue-light-50 dark:fill-blue-light-500/15" />
+                    )}
+                  </span>
+                </div>
+                {successAlert ? (
+                  <>
+                    <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90 sm:text-title-sm">
+                      {alertTitle}
+                    </h4>
+
+                    <p className="text-sm leading-6 text-gray-500 dark:text-gray-400">
+                      {successAlert}
+                    </p>
+
+                    <div className="flex items-center justify-center w-full gap-3 mt-8">
+                      <Button
+                        onClick={() => {
+                          setAlertTitle("");
+                          setError("");
+                          setSuccessAlert("");
+                          closeModal();
+                        }}
+                      >
+                        Okay, Got it!
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h4 className="mb-8 text-2xl font-semibold text-center text-gray-800 dark:text-white/90 sm:text-title-sm">
+                      Confirm to update vendor
+                    </h4>
+                    <div className="text-left">
+                      <Label>Reason for updating vendor information</Label>
+                      <Controller
+                        name="reason"
+                        control={control}
+                        render={({ field }) => (
+                          <TextArea
+                            {...field}
+                            placeholder={`Enter reason for updating agent info...`}
+                            rows={4}
+                            error={!!errors.reason}
+                            hint={errors.reason?.message}
+                          />
+                        )}
+                      />
+                      <div className="flex items-center justify-end w-full gap-3 mt-4">
+                        <Button variant="outline" onClick={closeModal}>
+                          Close
+                        </Button>
+                        <Button
+                          onClick={handleSubmit(handleConfirmUpdate)}
+                          disabled={loading || uploadLoading}
+                        >
+                          {loading ? "Updating..." : "Confirm Update"}
+                        </Button>
+                      </div>
+                    </div>
+                  </>
                 )}
-              />
-              <div className="flex items-center justify-end w-full gap-3 mt-4">
-                <Button variant="outline" onClick={closeModal}>
-                  Close
-                </Button>
-                <Button
-                  onClick={handleSubmit(handleConfirmUpdate)}
-                  disabled={loading || uploadLoading}
-                >
-                  {loading ? "Updating..." : "Confirm Update"}
-                </Button>
               </div>
             </div>
           </div>
@@ -1487,6 +1576,15 @@ export default function EditAgentForm() {
               <div className="relative">
                 <Label>
                   Update Agent Status <span className="text-error-500">*</span>
+                  {originalAgentData && (
+                    <span className="text-xs text-gray-500 ml-2">
+                      (Current:{" "}
+                      {statusOptions.find(
+                        (option) => option.value === originalAgentData.status
+                      )?.label || "Unknown"}
+                      )
+                    </span>
+                  )}
                 </Label>
                 <Controller
                   name="status"
@@ -1503,15 +1601,18 @@ export default function EditAgentForm() {
                       >
                         {field.value !== undefined ? (
                           <span>
-                            {
-                              statusOptions.find(
-                                (option) => option.value === field.value
-                              )?.label
-                            }
+                            {statusOptions.find(
+                              (option) => option.value === field.value
+                            )?.label || "Current Status"}
                           </span>
                         ) : (
                           <span className="text-gray-400 dark:text-white/30">
-                            Select Status
+                            {originalAgentData
+                              ? statusOptions.find(
+                                  (option) =>
+                                    option.value === originalAgentData.status
+                                )?.label || "Current Status"
+                              : "Select Status"}
                           </span>
                         )}
 
@@ -1523,7 +1624,7 @@ export default function EditAgentForm() {
                         className="w-full p-2"
                         search={false}
                       >
-                        {statusOptions.map((option) => (
+                        {getFilteredStatusOptions().map((option) => (
                           <DropdownItem
                             key={option.label}
                             onItemClick={() => {

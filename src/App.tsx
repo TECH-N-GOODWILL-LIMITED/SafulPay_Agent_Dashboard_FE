@@ -10,6 +10,7 @@ import LoadingSpinner from "./components/common/LoadingSpinner";
 // import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
 import { ADMIN_ROLE, MARKETER_ROLE, ACCOUNTANT_ROLE } from "./utils/roles";
+// import { useVendors } from "./hooks/useVendors";
 
 const UserProfiles = lazy(() => import("./pages/UserProfiles"));
 const Videos = lazy(() => import("./pages/UiElements/Videos"));
@@ -57,6 +58,16 @@ const OnboardAgentForm = lazy(
 // );
 
 export default function App() {
+  // Remove unused token variable
+  // const { token } = useAuth();
+
+  // Remove the direct function call and console.log statements
+  // The vendors should be fetched in the component that needs them
+
+  // const { vendors } = useVendors();
+
+  // console.log(vendors);
+
   return (
     <>
       <Router>
@@ -81,12 +92,14 @@ export default function App() {
                 >
                   <Route index path="/" element={<Home />} />
                   <Route path="/agents" element={<Agents />} />
+                  {/* <Route path="/agents/:params" element={<Agents />} /> */}
                   <Route path="/profile" element={<UserProfiles />} />
                 </Route>
 
                 {/* Admin, All Users, Audit Page */}
                 <Route element={<ProtectedRoute allowedRoles={[ADMIN_ROLE]} />}>
                   <Route path="/users" element={<Users />} />
+                  {/* <Route path="/users/:params" element={<Users />} /> */}
                   <Route path="/admin" element={<Admin />} />
                   <Route path="/audit" element={<Audit />} />
                 </Route>

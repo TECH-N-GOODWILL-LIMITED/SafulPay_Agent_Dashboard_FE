@@ -278,6 +278,7 @@ const Users: React.FC = () => {
             tableHeading={tableHeader}
             tableContent={tableData}
             loading={loading}
+            setCurrentPage={setCurrentPage}
           />
           <TablePagination
             pagination={{

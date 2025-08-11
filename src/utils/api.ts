@@ -18,9 +18,11 @@ import type {
   DownloadAgentsParams,
   DownloadAuditLogsParams,
   AllMarketersData,
+  Vendor,
 } from "../types/types";
 
 const BASE_URL = import.meta.env.VITE_AGENCY_BASE_URL;
+// const LIVE_URL = import.meta.env.VITE_LIVE_URL;
 
 export const requestOtp = async (
   phone: string
@@ -277,6 +279,38 @@ export const getAllAgents = async (
   }
 };
 
+export const getAllVendors = async (
+  accessToken: string
+): Promise<
+  ApiResponse<{
+    vendors: Vendor[];
+  }>
+> => {
+  try {
+    const response = await fetch(`/api/core/merchantvendorlist`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({}), // Add empty body for POST request
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return {
+        success: true,
+        data: { vendors: data.vendors || [] },
+      };
+    } else {
+      return { success: false, error: data.message || "Failed to get vendors" };
+    }
+  } catch (err) {
+    return { success: false, error: `Error getting vendors: ${err}` };
+  }
+};
+
 export const getAllMarketers = async (
   accessToken: string,
   params: GetAllMarketersParams = {}
@@ -363,34 +397,6 @@ export const getAllAgentsByReferral = async (
   }
 };
 
-export const getAgentById = async (
-  accessToken: string,
-  agentId: string
-): Promise<ApiResponse<{ agent: Agent }>> => {
-  try {
-    const response = await fetch(
-      `${BASE_URL}/auth/agents/getAgentById/${agentId}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        redirect: "follow",
-      }
-    );
-    const data = await response.json();
-
-    if (response.ok && data.status) {
-      return { success: true, data: { agent: data.data } };
-    } else {
-      return { success: false, error: data.message || "Failed to get agent" };
-    }
-  } catch (err) {
-    return { success: false, error: `Error retrieving agent: ${err}` };
-  }
-};
-
 export const getUserByReferralCode = async (
   ref: string
 ): Promise<ApiResponse<{ user: UserBio }>> => {
@@ -417,6 +423,34 @@ export const getUserByReferralCode = async (
     }
   } catch (err) {
     return { success: false, error: `Error retrieving user info: ${err}` };
+  }
+};
+
+export const getAgentById = async (
+  accessToken: string,
+  agentId: string
+): Promise<ApiResponse<{ agent: Agent }>> => {
+  try {
+    const response = await fetch(
+      `${BASE_URL}/auth/agents/getAgentById/${agentId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        redirect: "follow",
+      }
+    );
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return { success: true, data: { agent: data.data } };
+    } else {
+      return { success: false, error: data.message || "Failed to get agent" };
+    }
+  } catch (err) {
+    return { success: false, error: `Error retrieving agent: ${err}` };
   }
 };
 

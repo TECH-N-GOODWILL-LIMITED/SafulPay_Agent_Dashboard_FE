@@ -111,6 +111,16 @@ export interface Agent {
   // marketer: Marketer | null;
 }
 
+export interface Vendor {
+  id: number;
+  firstname: string;
+  lastname: string;
+  mobile: string;
+  status: string;
+  kyc_status: string;
+  vendor_type: string;
+}
+
 export interface BaseListData<T> {
   total_filter_result: number;
   current_page: number;

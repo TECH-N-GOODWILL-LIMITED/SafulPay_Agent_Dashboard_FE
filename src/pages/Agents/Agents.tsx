@@ -55,7 +55,6 @@ const Agents: React.FC = () => {
 
   const { allAgents, title, error, loading, fetchAgents } = useAgents();
   const { user, token } = useAuth();
-  console.log(token);
 
   const navigate = useNavigate();
 
@@ -383,6 +382,7 @@ const Agents: React.FC = () => {
             tableHeading={tableHeader}
             tableContent={tableData}
             loading={loading}
+            setCurrentPage={setCurrentPage}
           />
           <TablePagination
             pagination={{
