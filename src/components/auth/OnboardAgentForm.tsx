@@ -630,7 +630,6 @@ export default function OnboardAgentForm() {
       } else {
         setAlertTitle("Registration Failed");
         setError(response.error || "Agent registration failed");
-
         closeModal();
       }
     } catch (err) {
@@ -786,6 +785,8 @@ export default function OnboardAgentForm() {
                     <div className="flex items-center justify-center w-full gap-3 mt-8">
                       <Button
                         onClick={() => {
+                          setAlertTitle("");
+                          setError("");
                           setSuccessAlert("");
                           closeModal();
                         }}

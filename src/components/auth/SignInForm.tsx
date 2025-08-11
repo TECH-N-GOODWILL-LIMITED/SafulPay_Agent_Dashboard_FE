@@ -30,8 +30,8 @@ export default function SignInForm() {
   const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!phone || !pin) {
-      setAlertTitle("Please fill in your Phone number and PIN.");
+    if (!phone) {
+      setAlertTitle("Please fill in your Phone number");
       setWarnError(true);
       return;
     }
@@ -69,6 +69,13 @@ export default function SignInForm() {
 
   const handleLogIn = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!pin) {
+      setSuccessAlert("");
+      setAlertTitle("Field Required");
+      setError("Please fill in your PIN");
+      return;
+    }
 
     if (!otp || otp.length !== 6) {
       setSuccessAlert("");
@@ -164,18 +171,26 @@ export default function SignInForm() {
                       }}
                       error={warnError}
                     />
-
-                    {/* <PhoneInput
-                      id="phone"
-                      name="phone"
-                      value={phone}
-                      onChange={(value) => {
-                        setPhone(value);
-                        setError("");
-                      }}
-                      placeholder="Enter phone number"
-                    /> */}
                   </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Checkbox checked={isChecked} onChange={setIsChecked} />
+                      <span className="block font-normal text-gray-700 text-theme-sm dark:text-gray-400">
+                        Keep me logged in
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <Button className="w-full" size="sm" disabled={loading}>
+                      {loading ? "Sending OTP..." : "Request OTP"}
+                    </Button>
+                  </div>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleLogIn}>
+                <div className="space-y-6">
                   <div>
                     <Label>
                       PIN <span className="text-error-500">*</span>
@@ -215,24 +230,7 @@ export default function SignInForm() {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Checkbox checked={isChecked} onChange={setIsChecked} />
-                      <span className="block font-normal text-gray-700 text-theme-sm dark:text-gray-400">
-                        Keep me logged in
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <Button className="w-full" size="sm" disabled={loading}>
-                      {loading ? "Sending OTP..." : "Request OTP"}
-                    </Button>
-                  </div>
-                </div>
-              </form>
-            ) : (
-              <form onSubmit={handleLogIn}>
-                <div className="space-y-6">
+
                   <div className="relative">
                     <Label>
                       OTP <span className="text-error-500">*</span>

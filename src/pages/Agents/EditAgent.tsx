@@ -7,14 +7,17 @@ import PageMeta from "../../components/common/PageMeta";
 import { useAuth } from "../../context/AuthContext";
 import { ADMIN_ROLE } from "../../utils/roles";
 import { getAgentById } from "../../utils/api";
+import type { Agent } from "../../types/types";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 
 export default function EditAgent() {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { user: authUser, token } = useAuth();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [agentData, setAgentData] = useState<Agent | null>(null);
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { user: authUser, token } = useAuth();
 
   useEffect(() => {
     const authorizeAccess = async () => {
@@ -39,6 +42,7 @@ export default function EditAgent() {
         }
 
         const agent = response.data.agent;
+        setAgentData(agent);
 
         if (authUser.role === ADMIN_ROLE) {
           setIsAuthorized(true);
@@ -72,13 +76,7 @@ export default function EditAgent() {
   }, [isAuthorized, navigate]);
 
   if (loading || isAuthorized === null) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-lg font-semibold text-gray-500 dark:text-gray-400">
-          Verifying authorization...
-        </div>
-      </div>
-    );
+    return <LoadingSpinner text="Verifying authorization..." />;
   }
 
   if (!isAuthorized) {
@@ -107,7 +105,7 @@ export default function EditAgent() {
         description="Update an Agent or Merchant Info - Management system for SafulPay's Agency Platform"
       />
       <PageBreadcrumb pageTitle="Edit Agent & Merchant" />
-      <EditAgentForm />
+      <EditAgentForm agentData={agentData} />
     </>
   );
 }

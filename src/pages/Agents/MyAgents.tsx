@@ -19,15 +19,16 @@ import {
   MERCHANT_ROLE,
 } from "../../utils/roles";
 import AgentsStatsCard from "../../components/common/AgentStatsCard";
-import { Agent } from "../../types/types";
+import type { Agent } from "../../types/types";
 
 const tableHeader: string[] = [
   "Name / Business Name",
   "Role / Model",
   "Residual Amount",
   "Business Phone / Primary Phone",
-  "Status",
   "KYC Status",
+  "Status",
+  "Date Created",
 ];
 
 const MyAgents: React.FC = () => {
@@ -148,6 +149,7 @@ const MyAgents: React.FC = () => {
           : "Pending",
       temp: agent.temp,
       kycStatus: agent.temp === 1 ? "Completed" : "Incomplete",
+      createdAt: agent.created_at,
     }));
   }, [agents, filterRole, filterModel, filterKycStatus, filterStatus]);
 
