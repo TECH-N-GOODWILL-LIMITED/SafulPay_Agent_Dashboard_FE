@@ -442,15 +442,7 @@ export default function OnboardAgentForm() {
     if (field === "phone") {
       const phoneTypeResponse = await checkPhoneType(formattedPhoneNumber);
       if (phoneTypeResponse.success && phoneTypeResponse.data?.type) {
-        if (phoneTypeResponse.data.type === "phone") {
-          const errorMessage =
-            "This number is already registered as a personal phone.";
-          setFormError("phone", {
-            type: "manual",
-            message: errorMessage,
-          });
-          setPhoneError(errorMessage);
-        } else if (phoneTypeResponse.data.type === "business_phone") {
+        if (phoneTypeResponse.data.type === "business_phone") {
           const errorMessage =
             "This number is already registered as a business phone.";
           setFormError("phone", {
@@ -463,24 +455,7 @@ export default function OnboardAgentForm() {
       } else {
         setPhoneError(null);
       }
-
-      // const userExistResponse = await checkUserExist(formattedPhoneNumber);
-      // if (!userExistResponse.success) {
-      //   setFormError("phone", {
-      //     type: "manual",
-      //     message: "User not found. Advice to register on SafulPay app",
-      //   });
-      // }
     } else if (field === "businessPhone") {
-      // const userExistResponse = await checkUserExist(formattedPhoneNumber);
-      // if (userExistResponse.success) {
-      //   setFormError("businessPhone", {
-      //     type: "manual",
-      //     message: "User exists. Cannot use this line for business.",
-      //   });
-      //   return;
-      // }
-
       const phoneTypeResponse = await checkPhoneType(formattedPhoneNumber);
       if (phoneTypeResponse.success && phoneTypeResponse.data?.type) {
         if (phoneTypeResponse.data.type === "phone") {
@@ -501,7 +476,6 @@ export default function OnboardAgentForm() {
           setPhoneError(errorMessage);
         }
       } else {
-        // Clear phone error if validation passes
         setPhoneError(null);
       }
     }

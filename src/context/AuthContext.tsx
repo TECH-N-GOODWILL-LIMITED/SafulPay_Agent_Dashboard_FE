@@ -16,6 +16,7 @@ import type { LoginResponseData, UserBio } from "../types/types";
 interface AuthContextType {
   user: UserBio | null;
   token: string | null;
+  coreApiToken: string | null;
   login: (data: LoginResponseData, keepLoggedIn: boolean) => void;
   logout: () => Promise<void>;
   isLoggedIn: boolean | null;
@@ -43,11 +44,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   const user = responseData?.user || null;
   const token = responseData?.access_token || null;
+  const coreApiToken = responseData?.core_api_bearer_token || null;
 
   const login = (data: LoginResponseData, keepLoggedIn: boolean) => {
     setResponseData(data);
     setResponseCookies(data, keepLoggedIn);
   };
+
+  console.log(responseData);
 
   const logout = async () => {
     try {
@@ -84,6 +88,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       value={{
         user,
         token,
+        coreApiToken,
         login,
         logout,
         isLoggedIn,

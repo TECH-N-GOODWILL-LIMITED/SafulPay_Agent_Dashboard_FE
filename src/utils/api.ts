@@ -71,6 +71,7 @@ export const verifyOtpAndLogin = async (
       }),
       redirect: "follow",
     });
+
     const data: LoginResponse = await response.json();
 
     if (response.ok && data.status) {
@@ -280,7 +281,7 @@ export const getAllAgents = async (
 };
 
 export const getAllVendors = async (
-  accessToken: string
+  coreApiToken: string
 ): Promise<
   ApiResponse<{
     vendors: Vendor[];
@@ -291,7 +292,7 @@ export const getAllVendors = async (
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${coreApiToken}`,
       },
       body: JSON.stringify({}), // Add empty body for POST request
     });
@@ -591,7 +592,8 @@ export const changeAgentStatus = async (
   accessToken: string,
   agentId: number,
   status: number,
-  reason: string
+  reason: string,
+  masterId?: number
 ): Promise<ApiResponse<{ agent: Agent }>> => {
   try {
     const response = await fetch(`${BASE_URL}/auth/agents/changeAgentStatus`, {
@@ -600,7 +602,12 @@ export const changeAgentStatus = async (
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({ agent_id: agentId, status, reason }),
+      body: JSON.stringify({
+        agent_id: agentId,
+        status,
+        reason,
+        master_id: masterId ? masterId : null,
+      }),
       redirect: "follow",
     });
     const data = await response.json();

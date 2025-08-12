@@ -294,6 +294,7 @@ const Agents: React.FC = () => {
     }
     return allAgents.data.map((agent: Agent) => ({
       id: agent.id,
+      masterId: agent.master_id,
       image: agent.image || "/images/user/agent-image.png",
       name: agent.name || "N/A",
       firstName: agent.firstname,
@@ -323,6 +324,7 @@ const Agents: React.FC = () => {
           : "Pending",
       temp: agent.temp,
       kycStatus: agent.temp === 1 ? "Completed" : "Incomplete",
+      rejectionReason: agent.reason,
       createdAt: agent.created_at,
       updatedAt: agent.updated_at,
     }));

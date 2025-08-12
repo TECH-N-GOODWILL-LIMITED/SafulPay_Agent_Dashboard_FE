@@ -47,34 +47,13 @@ const OnboardAgentForm = lazy(
   () => import("./components/auth/OnboardAgentForm")
 );
 
-// Loading component for Suspense
-// const SuspenseLoadingSpinner = () => (
-//   <div className="flex items-center justify-center min-h-screen">
-//     <div className="flex flex-col items-center space-y-4">
-//       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500"></div>
-//       <p className="text-gray-600 dark:text-gray-400">Loading page...</p>
-//     </div>
-//   </div>
-// );
-
 export default function App() {
-  // Remove unused token variable
-  // const { token } = useAuth();
-
-  // Remove the direct function call and console.log statements
-  // The vendors should be fetched in the component that needs them
-
-  // const { vendors } = useVendors();
-
-  // console.log(vendors);
-
   return (
     <>
       <Router>
         <ScrollToTop />
         <ErrorBoundary>
           <Suspense fallback={<LoadingSpinner text="Loading page..." />}>
-            {/* <Suspense fallback={<SuspenseLoadingSpinner />}> */}
             <Routes>
               {/* Dashboard Layout */}
               <Route element={<AppLayout />}>

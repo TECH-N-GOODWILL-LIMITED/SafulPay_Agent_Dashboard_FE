@@ -36,7 +36,7 @@ export default function SignInForm() {
       return;
     }
 
-    const phoneNumber = filterPhoneNumber(phone);
+    const phoneNumber = filterPhoneNumber(phone).toString();
     if (phoneNumber.length !== 11) {
       setAlertTitle("Invalid Phone Number Format");
       setWarnError(true);
@@ -113,12 +113,7 @@ export default function SignInForm() {
     <div className="flex flex-col flex-1">
       <div className="flex flex-col gap-2 justify-center flex-1 w-full max-w-md mx-auto">
         {successAlert && (
-          <Alert
-            variant="success"
-            title={alertTitle}
-            message={successAlert}
-            showLink={false}
-          />
+          <Alert variant="success" title={alertTitle} message={successAlert} />
         )}
         {warnError && (
           <Alert variant="warning" title={alertTitle} showLink={false}>
@@ -134,14 +129,7 @@ export default function SignInForm() {
           </Alert>
         )}
 
-        {error && (
-          <Alert
-            variant="error"
-            title={alertTitle}
-            message={error}
-            showLink={false}
-          />
-        )}
+        {error && <Alert variant="error" title={alertTitle} message={error} />}
         <div>
           <div className="mb-5 sm:mb-8">
             <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">

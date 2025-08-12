@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Modal } from "../../ui/modal";
 import { useModal } from "../../../hooks/useModal";
-import { CheckCircleIcon } from "../../../icons";
+import { CheckCircleIcon, ChevronDownIcon } from "../../../icons";
 import {
   Table,
   TableBody,
@@ -33,9 +33,14 @@ import {
 import { formatDateTime } from "../../../utils/utils";
 import TableShimmer from "../../common/TableShimmer";
 import { useAgents } from "../../../context/AgentsContext";
+import { Dropdown } from "../../ui/dropdown/Dropdown";
+import { DropdownItem } from "../../ui/dropdown/DropdownItem";
+import { useVendors } from "../../../hooks/useVendors";
+import { Vendor } from "../../../types/types";
 
 interface TableContentItem {
   id: number;
+  masterId?: number;
   image?: string;
   name: string;
   firstName: string;
@@ -60,6 +65,7 @@ interface TableContentItem {
   status: string;
   temp?: number;
   kycStatus?: string;
+  rejectionReason?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -93,12 +99,46 @@ const BasicTableOne: React.FC<Order> = ({
   const [reason, setReason] = useState<string>("");
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const [successAlert, setSuccessAlert] = useState<string>("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
+  const [showVendorError, setShowVendorError] = useState<boolean>(false);
+
+  const {
+    vendors,
+    loading: vendorsLoading,
+    error: vendorsError,
+    refetch,
+  } = useVendors();
+
+  function toggleDropdown(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDropdownOpen(!isDropdownOpen);
+  }
+
+  function closeDropdown() {
+    setIsDropdownOpen(false);
+  }
 
   const { isOpen, openModal, closeModal } = useModal();
   const { user, token, logout } = useAuth();
   const { fetchUsers } = useUsers();
   const { fetchAgents } = useAgents();
   const { fetchMyAgents } = useMyAgents();
+
+  // Effect to set the current Vendor when vendors are loaded or currentUser changes
+  useEffect(() => {
+    if (currentUser && !vendorsLoading && vendors.length > 0) {
+      if (currentUser.masterId) {
+        const currentVendor = vendors.find(
+          (vendor) => vendor.id === currentUser.masterId
+        );
+        setSelectedVendor(currentVendor || null);
+      } else {
+        setSelectedVendor(null);
+      }
+    }
+  }, [currentUser, vendors, vendorsLoading]);
 
   const showResidualAmount = tableHeading?.includes("Residual Amount");
 
@@ -115,6 +155,12 @@ const BasicTableOne: React.FC<Order> = ({
     reason: string
   ): Promise<boolean> => {
     setLoadingAction(action);
+
+    if ((action === "approve" || action === "reActivate") && !selectedVendor) {
+      setShowVendorError(true);
+      setLoadingAction(null);
+      return false;
+    }
 
     const sessionResponse = await checkSession(token);
     if (!sessionResponse.success || !sessionResponse.data?.status) {
@@ -136,7 +182,15 @@ const BasicTableOne: React.FC<Order> = ({
         user.role === MERCHANT_ROLE;
 
       const response = isAgent
-        ? await changeAgentStatus(token, user.id, newStatus, reason)
+        ? await changeAgentStatus(
+            token,
+            user.id,
+            newStatus,
+            reason,
+            selectedVendor?.id && selectedVendor.id !== user.masterId
+              ? selectedVendor.id
+              : undefined
+          )
         : await changeUserStatus(token, user.id, newStatus, reason);
 
       if (response.success) {
@@ -199,7 +253,7 @@ const BasicTableOne: React.FC<Order> = ({
               disabled={loadingAction === "reject"}
             >
               {loadingAction === "reject"
-                ? "Declining..."
+                ? "Rejecting..."
                 : "Reject Application"}
             </Button>
             <Button
@@ -250,7 +304,19 @@ const BasicTableOne: React.FC<Order> = ({
   };
 
   const handleActionClick = (action: string) => {
+    if (action === "approve" || action === "reActivate") {
+      refetch();
+      // const currentVendor = vendors.find(
+      //   (vendor) => vendor.id === currentUser?.masterId
+      // );
+
+      // setSelectedVendor(currentVendor || null);
+      // console.log(currentVendor?.id);
+      // console.log(currentUser?.masterId);
+    }
+
     setSelectedAction(action);
+    setShowVendorError(false); // Reset Vendor error when action changes
   };
 
   const isAgentRole =
@@ -269,6 +335,8 @@ const BasicTableOne: React.FC<Order> = ({
       );
       setSelectedAction(null);
       setReason("");
+      setSelectedVendor(null);
+      setShowVendorError(false);
       if (!isOpen) {
         openModal();
       }
@@ -286,6 +354,8 @@ const BasicTableOne: React.FC<Order> = ({
       );
       setSelectedAction(null);
       setReason("");
+      setSelectedVendor(null);
+      setShowVendorError(false);
       if (!isOpen) {
         openModal();
       }
@@ -303,6 +373,8 @@ const BasicTableOne: React.FC<Order> = ({
       );
       setSelectedAction(null);
       setReason("");
+      setSelectedVendor(null);
+      setShowVendorError(false);
       if (!isOpen) {
         openModal();
       }
@@ -320,6 +392,8 @@ const BasicTableOne: React.FC<Order> = ({
       );
       setSelectedAction(null);
       setReason("");
+      setSelectedVendor(null);
+      setShowVendorError(false);
       if (!isOpen) {
         openModal();
       }
@@ -330,6 +404,8 @@ const BasicTableOne: React.FC<Order> = ({
     setSelectedAction(null);
     setSuccessAlert("");
     setReason("");
+    setSelectedVendor(null);
+    setShowVendorError(false); // Reset Vendor error when modal closes
     closeModal();
   };
 
@@ -395,9 +471,9 @@ const BasicTableOne: React.FC<Order> = ({
                             {order.name}
                           </span>
                           <span className="block text-gray-500 text-theme-xs dark:text-gray-400 truncate">
-                            {order.role === "Agent" ||
-                            order.role === "Super Agent" ||
-                            order.role === "Merchant"
+                            {order.role === AGENT_ROLE ||
+                            order.role === SUPER_AGENT_ROLE ||
+                            order.role === MERCHANT_ROLE
                               ? order.businessName
                               : order.username}
                           </span>
@@ -512,7 +588,9 @@ const BasicTableOne: React.FC<Order> = ({
         <Modal
           isOpen={isOpen}
           onClose={handleCloseModal}
-          className={`${successAlert ? "max-w-[600px]" : "max-w-[700px]"} m-4`}
+          className={`${
+            successAlert || selectedAction ? "max-w-lg" : "max-w-[700px]"
+          } m-4`}
         >
           <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
             {successAlert ? (
@@ -562,54 +640,146 @@ const BasicTableOne: React.FC<Order> = ({
                     Update user status to keep their profile up-to-date.
                   </p>
                 </div>
-                <form className="flex flex-col max-h-[65vh]">
+                <form className="flex flex-col gap-5 max-h-[65vh]">
                   {selectedAction ? (
-                    <div className="w-full">
-                      <Label>Reason for {selectedAction}</Label>
-                      <TextArea
-                        value={reason}
-                        onChange={setReason}
-                        placeholder={`Enter reason for ${selectedAction}...`}
-                        rows={4}
-                        minLength={4}
-                        maxLength={120}
-                        error={reason.length < 4 && reason.length > 0}
-                        hint={
-                          reason.length < 4 && reason.length > 0
-                            ? `Reason must be at least 4 characters.`
-                            : ""
-                        }
-                      />
+                    <>
+                      {(selectedAction === "reActivate" ||
+                        selectedAction === "approve") && (
+                        <div className="relative">
+                          {vendorsError && (
+                            <Alert
+                              variant="error"
+                              title="Error Fetching Vendor list"
+                              message={vendorsError}
+                            />
+                          )}
+                          <Label className="mt-2">Attach a Vendor</Label>
+                          <Button
+                            onClick={toggleDropdown}
+                            size="sm"
+                            variant="outline"
+                            className="dropdown-toggle w-full justify-between"
+                            disabled={vendorsLoading}
+                          >
+                            <span>
+                              {vendorsLoading
+                                ? "Loading Vendors..."
+                                : selectedVendor?.firstname || "Select Vendor"}
+                            </span>
+                            <ChevronDownIcon
+                              className={`ml-auto w-5 h-5 transition-transform duration-200 ${
+                                isDropdownOpen && "rotate-180"
+                              }`}
+                            />
+                          </Button>
+                          <Dropdown
+                            isOpen={isDropdownOpen}
+                            onClose={closeDropdown}
+                            className="w-full p-2"
+                          >
+                            {vendorsLoading && (
+                              <DropdownItem
+                                onItemClick={() => {}}
+                                className="flex w-full font-normal text-left text-gray-400 rounded-lg py-2"
+                              >
+                                Loading vendors...
+                              </DropdownItem>
+                            )}
+                            {vendors.length > 0 ? (
+                              vendors.map((vendor) => (
+                                <DropdownItem
+                                  key={vendor.id}
+                                  onItemClick={() => {
+                                    setSelectedVendor(vendor);
+                                    closeDropdown();
+                                  }}
+                                  className="flex justify-between py-1 w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                                >
+                                  <span>{vendor.firstname}</span>
+                                  <span>
+                                    ({vendor.vendor_type.toUpperCase()})
+                                  </span>
+                                </DropdownItem>
+                              ))
+                            ) : (
+                              <DropdownItem
+                                onItemClick={() => {
+                                  closeDropdown();
+                                }}
+                                className="flex justify-between py-1 w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                              >
+                                No Vendors found
+                                <span className="text-brand-accent">
+                                  {vendorsError && `  ${vendorsError}`}
+                                </span>
+                              </DropdownItem>
+                            )}
+                          </Dropdown>
+                          {showVendorError &&
+                            !selectedVendor &&
+                            (selectedAction === "approve" ||
+                              selectedAction === "reActivate") && (
+                              <p className="mt-1 text-sm text-red-500">
+                                Please select a vendor to continue
+                              </p>
+                            )}
+                        </div>
+                      )}
 
-                      <div className="flex justify-end gap-2 mt-4">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setSelectedAction(null)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            if (selectedAction === "suspend") handleSuspend();
-                            if (selectedAction === "approve") handleApprove();
-                            if (selectedAction === "reActivate")
-                              handleReActivate();
-                            if (selectedAction === "reject") handleReject();
-                          }}
-                          disabled={
-                            !reason ||
-                            reason.length < 4 ||
-                            loadingAction === selectedAction
+                      <div className="w-full">
+                        <Label>Reason for {selectedAction}</Label>
+                        <TextArea
+                          value={reason}
+                          onChange={setReason}
+                          placeholder={`Enter reason for ${selectedAction}...`}
+                          rows={4}
+                          minLength={4}
+                          maxLength={120}
+                          error={reason.length < 4 && reason.length > 0}
+                          hint={
+                            reason.length < 4 && reason.length > 0
+                              ? `Reason must be at least 4 characters.`
+                              : ""
                           }
-                        >
-                          {loadingAction === selectedAction
-                            ? `${selectedAction}...`
-                            : `Confirm ${selectedAction}`}
-                        </Button>
+                        />
+
+                        <div className="flex justify-end gap-2 mt-4">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedAction(null);
+                              setSelectedVendor(null); // Reset selected option when canceling
+                              setShowVendorError(false); // Reset Vendor error when canceling
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              if (selectedAction === "suspend") handleSuspend();
+                              if (selectedAction === "approve") handleApprove();
+                              if (selectedAction === "reActivate")
+                                handleReActivate();
+                              if (selectedAction === "reject") handleReject();
+                            }}
+                            disabled={
+                              !reason ||
+                              reason.length < 4 ||
+                              loadingAction === selectedAction ||
+                              ((selectedAction === "approve" ||
+                                selectedAction === "reActivate") &&
+                                !selectedVendor)
+                            }
+                          >
+                            {loadingAction === selectedAction
+                              ? `${selectedAction}...`
+                              : `Confirm ${selectedAction}`}
+                          </Button>
+                        </div>
                       </div>
-                    </div>
+                    </>
                   ) : (
                     <div className="custom-scrollbar h-full overflow-y-auto px-2 pb-3">
                       <div>
@@ -659,7 +829,7 @@ const BasicTableOne: React.FC<Order> = ({
                               <div className="col-span-2 lg:col-span-1">
                                 <Label>
                                   Type{" "}
-                                  {currentUser.role !== MERCHANT_ROLE
+                                  {currentUser.role !== MARKETER_ROLE
                                     ? "/ Model"
                                     : ""}
                                 </Label>
@@ -673,6 +843,7 @@ const BasicTableOne: React.FC<Order> = ({
                                   readOnly
                                 />
                               </div>
+
                               <div className="col-span-2">
                                 <Label>Address</Label>
                                 <Input
@@ -681,6 +852,7 @@ const BasicTableOne: React.FC<Order> = ({
                                   readOnly
                                 />
                               </div>
+
                               <div className="col-span-2 lg:col-span-1">
                                 <Label>Latitude / Longitude</Label>
                                 <Input
@@ -765,6 +937,17 @@ const BasicTableOne: React.FC<Order> = ({
                                   readOnly
                                 />
                               </div>
+
+                              {currentUser.status === "Rejected" && (
+                                <div className="col-span-2">
+                                  <Label>Reason for rejection</Label>
+                                  <TextArea
+                                    value={currentUser.rejectionReason}
+                                    placeholder="No reason provided"
+                                    readOnly
+                                  />
+                                </div>
+                              )}
                             </div>
                           </div>
                         ) : (
