@@ -714,7 +714,7 @@ export const uploadToCloudinary = async (
     formData.append("upload_preset", uploadPreset);
 
     const uploadResponse = await fetch(
-      `https:/${BASE_URL}.cloudinary.com/v1_1/${cloudName}/auto/upload`,
+      `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
       {
         method: "POST",
         body: formData,
