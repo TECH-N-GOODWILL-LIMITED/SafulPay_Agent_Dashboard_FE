@@ -1950,13 +1950,6 @@ export default function OnboardAgentForm() {
             {error && (
               <Alert variant="error" title={alertTitle} message={error} />
             )}
-            {/* {successAlert && (
-              <Alert
-                variant="success"
-                title={alertTitle}
-                message={successAlert}
-              />
-            )} */}
             <div className="col-span-2">
               <Button
                 className="w-full"
