@@ -17,11 +17,11 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      // Proxy API requests starting with /api to your API URL
-      "/api": {
+      // Proxy API requests to your API URL
+      "/vendor": {
         target: "https://ycd141j4sl.execute-api.us-east-1.amazonaws.com/v1",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
+        rewrite: (path) => path.replace(/^\/vendor/, ""),
       },
     },
   },

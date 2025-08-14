@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Modal } from "../../ui/modal";
 import { useModal } from "../../../hooks/useModal";
 import { CheckCircleIcon, ChevronDownIcon } from "../../../icons";
@@ -126,21 +126,9 @@ const BasicTableOne: React.FC<Order> = ({
   const { fetchAgents } = useAgents();
   const { fetchMyAgents } = useMyAgents();
 
-  // Effect to set the current Vendor when vendors are loaded or currentUser changes
-  useEffect(() => {
-    if (currentUser && !vendorsLoading && vendors.length > 0) {
-      if (currentUser.masterId) {
-        const currentVendor = vendors.find(
-          (vendor) => vendor.id === currentUser.masterId
-        );
-        setSelectedVendor(currentVendor || null);
-      } else {
-        setSelectedVendor(null);
-      }
-    }
-  }, [currentUser, vendors, vendorsLoading]);
-
   const showResidualAmount = tableHeading?.includes("Residual Amount");
+
+  console.log(user);
 
   const isAgent =
     currentUser?.role === AGENT_ROLE ||
@@ -149,14 +137,22 @@ const BasicTableOne: React.FC<Order> = ({
 
   const changeStatus = async (
     user: TableContentItem,
-    token: string,
     newStatus: number,
-    action: string,
-    reason: string
+    action: string
   ): Promise<boolean> => {
+    // Check if we have a valid token
+    if (!token) {
+      setAlertTitle("Authentication Error");
+      setErrorMessage(
+        "No valid authentication token found. Please log in again."
+      );
+      setLoadingAction(null);
+      return false;
+    }
+
     setLoadingAction(action);
 
-    if ((action === "approve" || action === "reActivate") && !selectedVendor) {
+    if (action === "approve" && !selectedVendor) {
       setShowVendorError(true);
       setLoadingAction(null);
       return false;
@@ -304,15 +300,17 @@ const BasicTableOne: React.FC<Order> = ({
   };
 
   const handleActionClick = (action: string) => {
-    if (action === "approve" || action === "reActivate") {
+    if (action === "approve") {
       refetch();
-      // const currentVendor = vendors.find(
-      //   (vendor) => vendor.id === currentUser?.masterId
-      // );
 
-      // setSelectedVendor(currentVendor || null);
-      // console.log(currentVendor?.id);
-      // console.log(currentUser?.masterId);
+      if (currentUser?.masterId) {
+        const currentVendor = vendors.find(
+          (vendor) => vendor.id === currentUser?.masterId
+        );
+        setSelectedVendor(currentVendor || null);
+      } else {
+        setSelectedVendor(null);
+      }
     }
 
     setSelectedAction(action);
@@ -325,8 +323,8 @@ const BasicTableOne: React.FC<Order> = ({
     currentUser?.role === MERCHANT_ROLE;
 
   const handleSuspend = async (): Promise<void> => {
-    if (!currentUser || !token) return;
-    if (await changeStatus(currentUser, token, 2, "suspend", reason)) {
+    if (!currentUser) return;
+    if (await changeStatus(currentUser, 2, "suspend")) {
       setAlertTitle("Status Change Successful!");
       setSuccessAlert(
         `${currentUser.role} ${
@@ -344,8 +342,8 @@ const BasicTableOne: React.FC<Order> = ({
   };
 
   const handleApprove = async (): Promise<void> => {
-    if (!currentUser || !token) return;
-    if (await changeStatus(currentUser, token, 1, "approve", reason)) {
+    if (!currentUser) return;
+    if (await changeStatus(currentUser, 1, "approve")) {
       setAlertTitle("Status Change Successful!");
       setSuccessAlert(
         `${currentUser.role} ${
@@ -363,8 +361,8 @@ const BasicTableOne: React.FC<Order> = ({
   };
 
   const handleReActivate = async (): Promise<void> => {
-    if (!currentUser || !token) return;
-    if (await changeStatus(currentUser, token, 1, "reActivate", reason)) {
+    if (!currentUser) return;
+    if (await changeStatus(currentUser, 1, "reActivate")) {
       setAlertTitle("Status Change Successful!");
       setSuccessAlert(
         `${currentUser.role} ${
@@ -382,8 +380,8 @@ const BasicTableOne: React.FC<Order> = ({
   };
 
   const handleReject = async (): Promise<void> => {
-    if (!currentUser || !token) return;
-    if (await changeStatus(currentUser, token, 3, "reject", reason)) {
+    if (!currentUser) return;
+    if (await changeStatus(currentUser, 3, "reject")) {
       setAlertTitle("Status Change Successful!");
       setSuccessAlert(
         `${currentUser.role} ${
@@ -643,8 +641,7 @@ const BasicTableOne: React.FC<Order> = ({
                 <form className="flex flex-col gap-5 max-h-[65vh]">
                   {selectedAction ? (
                     <>
-                      {(selectedAction === "reActivate" ||
-                        selectedAction === "approve") && (
+                      {selectedAction === "approve" && (
                         <div className="relative">
                           {vendorsError && (
                             <Alert
@@ -677,15 +674,31 @@ const BasicTableOne: React.FC<Order> = ({
                             onClose={closeDropdown}
                             className="w-full p-2"
                           >
-                            {vendorsLoading && (
+                            {vendorsLoading ? (
                               <DropdownItem
-                                onItemClick={() => {}}
+                                onItemClick={closeDropdown}
                                 className="flex w-full font-normal text-left text-gray-400 rounded-lg py-2"
                               >
                                 Loading vendors...
                               </DropdownItem>
-                            )}
-                            {vendors.length > 0 ? (
+                            ) : vendorsError ? (
+                              <DropdownItem
+                                onItemClick={closeDropdown}
+                                className="flex justify-between py-1 w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                              >
+                                No Vendors found
+                                <span className="text-brand-accent">
+                                  {vendorsError && `  ${vendorsError}`}
+                                </span>
+                              </DropdownItem>
+                            ) : vendors.length === 0 ? (
+                              <DropdownItem
+                                onItemClick={closeDropdown}
+                                className="flex w-full font-normal text-left text-gray-400 rounded-lg py-2"
+                              >
+                                No vendors available
+                              </DropdownItem>
+                            ) : (
                               vendors.map((vendor) => (
                                 <DropdownItem
                                   key={vendor.id}
@@ -701,18 +714,6 @@ const BasicTableOne: React.FC<Order> = ({
                                   </span>
                                 </DropdownItem>
                               ))
-                            ) : (
-                              <DropdownItem
-                                onItemClick={() => {
-                                  closeDropdown();
-                                }}
-                                className="flex justify-between py-1 w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-                              >
-                                No Vendors found
-                                <span className="text-brand-accent">
-                                  {vendorsError && `  ${vendorsError}`}
-                                </span>
-                              </DropdownItem>
                             )}
                           </Dropdown>
                           {showVendorError &&
@@ -749,11 +750,11 @@ const BasicTableOne: React.FC<Order> = ({
                             variant="outline"
                             onClick={() => {
                               setSelectedAction(null);
-                              setSelectedVendor(null); // Reset selected option when canceling
-                              setShowVendorError(false); // Reset Vendor error when canceling
+                              setSelectedVendor(null);
+                              setShowVendorError(false);
                             }}
                           >
-                            Cancel
+                            Go Back
                           </Button>
                           <Button
                             size="sm"
@@ -768,9 +769,7 @@ const BasicTableOne: React.FC<Order> = ({
                               !reason ||
                               reason.length < 4 ||
                               loadingAction === selectedAction ||
-                              ((selectedAction === "approve" ||
-                                selectedAction === "reActivate") &&
-                                !selectedVendor)
+                              (selectedAction === "approve" && !selectedVendor)
                             }
                           >
                             {loadingAction === selectedAction

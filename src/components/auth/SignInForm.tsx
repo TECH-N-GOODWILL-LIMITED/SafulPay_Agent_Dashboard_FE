@@ -36,7 +36,7 @@ export default function SignInForm() {
       return;
     }
 
-    const phoneNumber = filterPhoneNumber(phone).toString();
+    const phoneNumber = filterPhoneNumber(phone);
     if (phoneNumber.length !== 11) {
       setAlertTitle("Invalid Phone Number Format");
       setWarnError(true);

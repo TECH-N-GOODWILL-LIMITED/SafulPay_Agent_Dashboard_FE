@@ -51,8 +51,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     setResponseCookies(data, keepLoggedIn);
   };
 
-  console.log(responseData);
-
   const logout = async () => {
     try {
       if (token) {
