@@ -14,7 +14,11 @@ import {
 } from "../../utils/api";
 import { useUsers } from "../../context/UsersContext";
 import { filterPhoneNumber } from "../../utils/utils";
-import { getCurrentPosition } from "../../utils/geolocation";
+import {
+  getCurrentPositionWithFallback,
+  getCachedLocation,
+  cacheLocation,
+} from "../../utils/geolocation";
 import PageBreadcrumb from "../common/PageBreadCrumb";
 import ComponentCard from "../common/ComponentCard";
 import Label from "../form/Label";
@@ -93,6 +97,7 @@ type FormData = yup.InferType<typeof validationSchema>;
 export default function OnboardAgentForm() {
   const [refLoading, setRefLoading] = useState(true);
   const [refError, setRefError] = useState<string | null>(null);
+  const [geoSuccess, setGeoSuccess] = useState<string[]>([]);
   const [alertTitle, setAlertTitle] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [successAlert, setSuccessAlert] = useState<string>("");
@@ -379,25 +384,63 @@ export default function OnboardAgentForm() {
     },
   });
 
-  const handleGetLocation = async () => {
+  const handleGetLocation = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
     setGeoLoading(true);
     setAlertTitle("");
     setError("");
-    // setSuccessAlert("");
-
+    setGeoSuccess([]);
     try {
-      const result = await getCurrentPosition();
+      // First check for cached location
+
+      // Try to get fresh location with fallback
+      const result = await getCurrentPositionWithFallback();
 
       if (result.success) {
+        // Cache the successful location
+        cacheLocation(result.latitude, result.longitude);
+
         setValue("latitude", result.latitude, { shouldValidate: true });
         setValue("longitude", result.longitude, { shouldValidate: true });
+
+        // Show success message with accuracy info
+        if (result.method === "low") {
+          setAlertTitle("Location Retrieved (Low Accuracy)");
+          setError(
+            "Location obtained with lower accuracy. Consider moving to an open area for better precision."
+          );
+        } else {
+          setGeoSuccess([
+            "Longitude Retrieved Successfully",
+            "Latitude Retrieved Successfully",
+          ]);
+        }
       } else {
-        setAlertTitle("Geolocation Error");
-        setError(result.error || "Failed to get location");
+        const cachedLocation = getCachedLocation();
+        if (cachedLocation) {
+          setAlertTitle("Using Cached Location");
+          setError(
+            "Using your last known location. Click 'Get GPS Location' for current coordinates."
+          );
+          setValue("latitude", cachedLocation.latitude, {
+            shouldValidate: true,
+          });
+          setValue("longitude", cachedLocation.longitude, {
+            shouldValidate: true,
+          });
+          setGeoLoading(false);
+          return;
+        } else {
+          setAlertTitle("Geolocation Error");
+          setError(result.error || "Failed to get location");
+        }
       }
     } catch {
       setAlertTitle("Geolocation Error");
-      setError("An unexpected error occurred while getting location");
+      setError(
+        "An unexpected error occurred while getting location. Please try again or enter coordinates manually."
+      );
     } finally {
       setGeoLoading(false);
     }
@@ -442,15 +485,7 @@ export default function OnboardAgentForm() {
     if (field === "phone") {
       const phoneTypeResponse = await checkPhoneType(formattedPhoneNumber);
       if (phoneTypeResponse.success && phoneTypeResponse.data?.type) {
-        if (phoneTypeResponse.data.type === "phone") {
-          const errorMessage =
-            "This number is already registered as a personal phone.";
-          setFormError("phone", {
-            type: "manual",
-            message: errorMessage,
-          });
-          setPhoneError(errorMessage);
-        } else if (phoneTypeResponse.data.type === "business_phone") {
+        if (phoneTypeResponse.data.type === "business_phone") {
           const errorMessage =
             "This number is already registered as a business phone.";
           setFormError("phone", {
@@ -463,24 +498,7 @@ export default function OnboardAgentForm() {
       } else {
         setPhoneError(null);
       }
-
-      // const userExistResponse = await checkUserExist(formattedPhoneNumber);
-      // if (!userExistResponse.success) {
-      //   setFormError("phone", {
-      //     type: "manual",
-      //     message: "User not found. Advice to register on SafulPay app",
-      //   });
-      // }
     } else if (field === "businessPhone") {
-      // const userExistResponse = await checkUserExist(formattedPhoneNumber);
-      // if (userExistResponse.success) {
-      //   setFormError("businessPhone", {
-      //     type: "manual",
-      //     message: "User exists. Cannot use this line for business.",
-      //   });
-      //   return;
-      // }
-
       const phoneTypeResponse = await checkPhoneType(formattedPhoneNumber);
       if (phoneTypeResponse.success && phoneTypeResponse.data?.type) {
         if (phoneTypeResponse.data.type === "phone") {
@@ -501,7 +519,6 @@ export default function OnboardAgentForm() {
           setPhoneError(errorMessage);
         }
       } else {
-        // Clear phone error if validation passes
         setPhoneError(null);
       }
     }
@@ -512,6 +529,7 @@ export default function OnboardAgentForm() {
     setUploadLoading(true);
     setAlertTitle("Uploading files...");
     setError("");
+    setGeoSuccess([]);
     // setSuccessAlert("");
 
     try {
@@ -788,6 +806,7 @@ export default function OnboardAgentForm() {
                           setAlertTitle("");
                           setError("");
                           setSuccessAlert("");
+                          setGeoSuccess([]);
                           closeModal();
                         }}
                       >
@@ -841,6 +860,7 @@ export default function OnboardAgentForm() {
                         variant="outline"
                         onClick={() => {
                           setMissingUrl([]);
+                          setGeoSuccess([]);
                           closeModal();
                         }}
                       >
@@ -1289,11 +1309,18 @@ export default function OnboardAgentForm() {
                         }
                         disabled={geoLoading || loading || uploadLoading}
                         error={!!errors.latitude}
-                        hint={errors.latitude?.message}
+                        hint={errors.latitude?.message || geoSuccess[1]}
+                        success={!!geoSuccess[1]}
                         placeholder="e.g., 8.4606"
                       />
                     )}
                   />
+                  {!!geoSuccess[1] &&
+                    !geoSuccess[0] &&
+                    errors.latitude?.message &&
+                    !errors.longitude?.message && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 h-4.5"></p>
+                    )}
                 </div>
 
                 <div className="grow" title="click the ☉ icon to get location">
@@ -1317,33 +1344,58 @@ export default function OnboardAgentForm() {
                         }
                         disabled={geoLoading || loading || uploadLoading}
                         error={!!errors.longitude}
-                        hint={errors.longitude?.message}
+                        hint={errors.longitude?.message || geoSuccess[0]}
+                        success={!!geoSuccess[0]}
                         placeholder="e.g., -13.2317"
                       />
                     )}
                   />
+
+                  {!!geoSuccess[0] &&
+                    !geoSuccess[1] &&
+                    errors.longitude?.message &&
+                    !errors.latitude?.message && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 h-4.5"></p>
+                    )}
+                </div>
+                <div>
+                  <Button
+                    size="sm"
+                    onClick={handleGetLocation}
+                    disabled={geoLoading || loading || uploadLoading}
+                  >
+                    <span title="Get location">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        height="18"
+                        width="18"
+                        viewBox="0 0 512 512"
+                        className="z-9999 cursor-pointer"
+                      >
+                        <path
+                          fill="white"
+                          d="M256 0c17.7 0 32 14.3 32 32l0 34.7C368.4 80.1 431.9 143.6 445.3 224l34.7 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-34.7 0C431.9 368.4 368.4 431.9 288 445.3l0 34.7c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-34.7C143.6 431.9 80.1 368.4 66.7 288L32 288c-17.7 0-32-14.3-32-32s14.3-32 32-32l34.7 0C80.1 143.6 143.6 80.1 224 66.7L224 32c0-17.7 14.3-32 32-32zM128 256a128 128 0 1 0 256 0 128 128 0 1 0 -256 0zm128-80a80 80 0 1 1 0 160 80 80 0 1 1 0-160z"
+                        />
+                      </svg>
+                    </span>
+                    {geoLoading ? "Getting Location..." : "Get GPS Location"}
+                  </Button>
+                  {(geoSuccess.length > 0 ||
+                    errors.longitude?.message ||
+                    errors.latitude?.message) && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 h-4.5"></p>
+                  )}
                 </div>
 
-                <Button
-                  size="sm"
-                  onClick={handleGetLocation}
-                  disabled={geoLoading || loading || uploadLoading}
-                >
-                  <span title="Get location">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      height="18"
-                      width="18"
-                      viewBox="0 0 512 512"
-                      className="z-9999 cursor-pointer"
-                    >
-                      <path
-                        fill="white"
-                        d="M256 0c17.7 0 32 14.3 32 32l0 34.7C368.4 80.1 431.9 143.6 445.3 224l34.7 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-34.7 0C431.9 368.4 368.4 431.9 288 445.3l0 34.7c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-34.7C143.6 431.9 80.1 368.4 66.7 288L32 288c-17.7 0-32-14.3-32-32s14.3-32 32-32l34.7 0C80.1 143.6 143.6 80.1 224 66.7L224 32c0-17.7 14.3-32 32-32zM128 256a128 128 0 1 0 256 0 128 128 0 1 0 -256 0zm128-80a80 80 0 1 1 0 160 80 80 0 1 1 0-160z"
-                      />
-                    </svg>
-                  </span>
-                </Button>
+                {/* GPS Troubleshooting Tips */}
+                <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs max-w-full align-bottom">
+                  <p className="font-medium mb-1 grow">💡 GPS Tips:</p>
+                  <ul className="gap-x-4 gap-y-2 text-xs flex flex-wrap text-gray-500 dark:text-gray-400">
+                    <li>• Wait 10-15 seconds</li>
+                    <li>• Check GPS is enabled</li>
+                    <li>• Allow location permission</li>
+                  </ul>
+                </div>
               </div>
 
               {!TargetAgent && (

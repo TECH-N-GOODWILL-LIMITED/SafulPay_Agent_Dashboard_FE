@@ -17,10 +17,10 @@ import { Modal } from "../../components/ui/modal";
 import { Dropdown } from "../../components/ui/dropdown/Dropdown";
 import { DropdownItem } from "../../components/ui/dropdown/DropdownItem";
 import {
+  AlertIcon,
   CheckCircleIcon,
   ChevronDownIcon,
   EnvelopeIcon,
-  InfoIcon,
   TrashBinIcon,
   UserIcon,
 } from "../../icons";
@@ -34,6 +34,8 @@ import {
 } from "../../utils/roles";
 import type { Agent } from "../../types/types";
 import PageMeta from "../common/PageMeta";
+import { useVendors } from "../../hooks/useVendors";
+import type { Vendor } from "../../types/types";
 
 const validationSchema = yup.object().shape({
   firstname: yup.string().required("First name is required"),
@@ -65,6 +67,7 @@ const validationSchema = yup.object().shape({
   business_registration: yup.string(),
   status: yup.number(),
   reason: yup.string(),
+  master_id: yup.number().nullable(),
 });
 
 type FormData = yup.InferType<typeof validationSchema>;
@@ -86,6 +89,9 @@ export default function EditAgentForm({ agentData }: EditAgentFormProps) {
   const [businessRegDocumentFile, setBusinessRegDocumentFile] =
     useState<File | null>(null);
   const [deletedImageKeys, setDeletedImageKeys] = useState<string[]>([]);
+  const [showMissingImageModal, setShowMissingImageModal] =
+    useState<boolean>(false);
+  const [missingImages, setMissingImages] = useState<string[]>([]);
 
   const [loading, setLoading] = useState<boolean>(false);
   const [geoLoading, setGeoLoading] = useState<boolean>(false);
@@ -94,6 +100,9 @@ export default function EditAgentForm({ agentData }: EditAgentFormProps) {
   const [originalAgentData, setOriginalAgentData] = useState<Agent | null>(
     null
   );
+  const [isVendorDropdownOpen, setIsVendorDropdownOpen] =
+    useState<boolean>(false);
+  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
 
   const {
     handleSubmit,
@@ -113,11 +122,20 @@ export default function EditAgentForm({ agentData }: EditAgentFormProps) {
   const businessImageUrl = watch("business_image");
   const addressDocumentUrl = watch("address_document");
   const businessRegDocumentUrl = watch("business_registration");
+  const agentStatus = watch("status");
+  const updateReason = watch("reason");
 
   const { id } = useParams<{ id: string }>();
   const { user, token } = useAuth();
 
   const { isOpen, openModal, closeModal } = useModal();
+
+  const {
+    vendors,
+    error: vendorsError,
+    loading: vendorsLoading,
+    refetch,
+  } = useVendors();
 
   const { fetchUsers } = useUsers();
 
@@ -145,6 +163,7 @@ export default function EditAgentForm({ agentData }: EditAgentFormProps) {
         address_document: agentData.address_document || "",
         business_registration: agentData.business_registration || "",
         status: agentData.status,
+        master_id: agentData.master_id || null,
         reason: "",
       };
       reset(defaultValues);
@@ -329,6 +348,20 @@ export default function EditAgentForm({ agentData }: EditAgentFormProps) {
     setOpenDropdown((prev) => (prev === dropdownName ? null : dropdownName));
   };
 
+  const handleModalClose = () => {
+    setSelectedVendor(null);
+    closeModal();
+  };
+
+  const toggleVendorDropdown = () => {
+    if (loading || uploadLoading) return;
+    setIsVendorDropdownOpen(!isVendorDropdownOpen);
+  };
+
+  const closeVendorDropdown = () => {
+    setIsVendorDropdownOpen(false);
+  };
+
   const handleGetLocation = async () => {
     setGeoLoading(true);
     setAlertTitle("");
@@ -366,11 +399,81 @@ export default function EditAgentForm({ agentData }: EditAgentFormProps) {
       setError("No changes detected to update.");
       return;
     }
+    setError("");
+
+    // Check for missing required images
+    const missingImagesList: string[] = [];
+
+    if (
+      agentType !== "Merchant" &&
+      !businessImageFile &&
+      !originalAgentData?.business_image &&
+      !deletedImageKeys.includes("business_image")
+    ) {
+      missingImagesList.push("Business Place Image");
+    }
+
+    if (
+      agentType === "Merchant" &&
+      !addressDocumentFile &&
+      !originalAgentData?.address_document &&
+      !deletedImageKeys.includes("address_document")
+    ) {
+      missingImagesList.push("Proof of Address");
+    }
+
+    if (
+      !businessRegDocumentFile &&
+      !originalAgentData?.business_registration &&
+      !deletedImageKeys.includes("business_registration")
+    ) {
+      missingImagesList.push("Business Registration Document");
+    }
+
+    if (
+      !idImageFile &&
+      !originalAgentData?.id_document &&
+      !deletedImageKeys.includes("id_document")
+    ) {
+      missingImagesList.push("ID Document");
+    }
+
+    if (missingImagesList.length > 0) {
+      setMissingImages(missingImagesList);
+      setShowMissingImageModal(true);
+      return;
+    }
+
+    if (agentStatus === 1 && !originalAgentData?.master_id) {
+      refetch();
+
+      if (originalAgentData?.master_id) {
+        const currentVendor = vendors.find(
+          (vendor) => vendor.id === originalAgentData.master_id
+        );
+        setSelectedVendor(currentVendor || null);
+      } else {
+        setSelectedVendor(null);
+      }
+    }
+
+    // Refetch vendors if status is being changed to active or if current status is active
+    // if (agentStatus === 1 || originalAgentData?.status === 1) {
+    //   refetch();
+    // }
 
     openModal();
   };
 
   const handleConfirmUpdate = async (data: FormData) => {
+    if (agentStatus === 1 && !data.master_id) {
+      setFormError("master_id", {
+        type: "manual",
+        message: "Please select a vendor to continue",
+      });
+      return;
+    }
+
     if (!data.reason || data.reason.trim().length < 4) {
       setFormError("reason", {
         type: "manual",
@@ -437,8 +540,9 @@ export default function EditAgentForm({ agentData }: EditAgentFormProps) {
         }
       }
 
+      // Handle deleted images - set them to null to indicate deletion
       deletedImageKeys.forEach((key) => {
-        updatedFields[key as keyof Agent] = undefined;
+        (updatedFields as Record<string, unknown>)[key] = null;
       });
 
       const newStatusValue = statusOptions.find(
@@ -450,11 +554,17 @@ export default function EditAgentForm({ agentData }: EditAgentFormProps) {
         updatedFields.status = newStatusValue;
       }
 
+      // Only include master_id if status is active (1) or if it's actually changed
+      const shouldIncludeMasterId =
+        data.status === 1 ||
+        (data.master_id && data.master_id !== originalAgentData?.master_id);
+
       const response = await updateAgentInfo(
         token || "",
         id || "",
         updatedFields,
-        data.reason || ""
+        data.reason || "",
+        shouldIncludeMasterId ? data.master_id : undefined
       );
 
       if (response.success && response.data) {
@@ -489,6 +599,7 @@ export default function EditAgentForm({ agentData }: EditAgentFormProps) {
           address_document: newAgentData.address_document || "",
           business_registration: newAgentData.business_registration || "",
           status: newAgentData.status,
+          master_id: newAgentData.master_id || null,
           reason: "",
         };
         reset(newDefaultValues);
@@ -518,90 +629,156 @@ export default function EditAgentForm({ agentData }: EditAgentFormProps) {
         title="Agent & Merchant | SafulPay Agency Dashboard - Finance just got better"
         description="Update an Agent or Merchant Info - Management system for SafulPay's Agency Platform"
       />
-
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="grid grid-cols-1 gap-6 xl:grid-cols-2"
+      <Modal
+        isOpen={isOpen}
+        onClose={() => {
+          setSuccessAlert("");
+          closeModal();
+        }}
+        className="max-w-lg m-4"
       >
-        <Modal
-          isOpen={isOpen}
-          onClose={() => {
-            setSuccessAlert("");
-            closeModal();
-          }}
-          className="max-w-lg m-4"
-        >
-          <div className="relative w-full rounded-3xl bg-white dark:bg-gray-900 max-w-[600px] p-5 lg:p-10">
-            <div>
-              <div className="text-center">
+        <div className="relative w-full rounded-3xl bg-white dark:bg-gray-900 max-w-[600px] p-5 lg:p-10">
+          <div>
+            <div className="text-center">
+              {successAlert && (
                 <div className="relative flex items-center justify-center z-1 mb-7">
-                  {successAlert ? (
-                    <svg
-                      className="fill-success-50 dark:fill-success-500/15"
-                      width="90"
-                      height="90"
-                      viewBox="0 0 90 90"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M34.364 6.85053C38.6205 -2.28351 51.3795 -2.28351 55.636 6.85053C58.0129 11.951 63.5594 14.6722 68.9556 13.3853C78.6192 11.0807 86.5743 21.2433 82.2185 30.3287C79.7862 35.402 81.1561 41.5165 85.5082 45.0122C93.3019 51.2725 90.4628 63.9451 80.7747 66.1403C75.3648 67.3661 71.5265 72.2695 71.5572 77.9156C71.6123 88.0265 60.1169 93.6664 52.3918 87.3184C48.0781 83.7737 41.9219 83.7737 37.6082 87.3184C29.8831 93.6664 18.3877 88.0266 18.4428 77.9156C18.4735 72.2695 14.6352 67.3661 9.22531 66.1403C-0.462787 63.9451 -3.30193 51.2725 4.49185 45.0122C8.84391 41.5165 10.2138 35.402 7.78151 30.3287C3.42572 21.2433 11.3808 11.0807 21.0444 13.3853C26.4406 14.6722 31.9871 11.951 34.364 6.85053Z"
-                        fill=""
-                        fillOpacity=""
-                      ></path>
-                    </svg>
-                  ) : (
-                    <svg
-                      className="fill-warning-50 dark:fill-warning-500/15"
-                      width={90}
-                      height={90}
-                      viewBox="0 0 90 90"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M34.364 6.85053C38.6205 -2.28351 51.3795 -2.28351 55.636 6.85053C58.0129 11.951 63.5594 14.6722 68.9556 13.3853C78.6192 11.0807 86.5743 21.2433 82.2185 30.3287C79.7862 35.402 81.1561 41.5165 85.5082 45.0122C93.3019 51.2725 90.4628 63.9451 80.7747 66.1403C75.3648 67.3661 71.5265 72.2695 71.5572 77.9156C71.6123 88.0265 60.1169 93.6664 52.3918 87.3184C48.0781 83.7737 41.9219 83.7737 37.6082 87.3184C29.8831 93.6664 18.3877 88.0266 18.4428 77.9156C18.4735 72.2695 14.6352 67.3661 9.22531 66.1403C-0.462787 63.9451 -3.30193 51.2725 4.49185 45.0122C8.84391 41.5165 10.2138 35.402 7.78151 30.3287C3.42572 21.2433 11.3808 11.0807 21.0444 13.3853C26.4406 14.6722 31.9871 11.951 34.364 6.85053Z"
-                        fill=""
-                        fillOpacity=""
-                      />
-                    </svg>
-                  )}
+                  <svg
+                    className="fill-success-50 dark:fill-success-500/15"
+                    width="90"
+                    height="90"
+                    viewBox="0 0 90 90"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M34.364 6.85053C38.6205 -2.28351 51.3795 -2.28351 55.636 6.85053C58.0129 11.951 63.5594 14.6722 68.9556 13.3853C78.6192 11.0807 86.5743 21.2433 82.2185 30.3287C79.7862 35.402 81.1561 41.5165 85.5082 45.0122C93.3019 51.2725 90.4628 63.9451 80.7747 66.1403C75.3648 67.3661 71.5265 72.2695 71.5572 77.9156C71.6123 88.0265 60.1169 93.6664 52.3918 87.3184C48.0781 83.7737 41.9219 83.7737 37.6082 87.3184C29.8831 93.6664 18.3877 88.0266 18.4428 77.9156C18.4735 72.2695 14.6352 67.3661 9.22531 66.1403C-0.462787 63.9451 -3.30193 51.2725 4.49185 45.0122C8.84391 41.5165 10.2138 35.402 7.78151 30.3287C3.42572 21.2433 11.3808 11.0807 21.0444 13.3853C26.4406 14.6722 31.9871 11.951 34.364 6.85053Z"
+                      fill=""
+                      fillOpacity=""
+                    ></path>
+                  </svg>
                   <span className="absolute -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2">
-                    {successAlert ? (
-                      <CheckCircleIcon className="size-10 fill-success-600 dark:fill-green-500 " />
-                    ) : (
-                      <InfoIcon className="size-10 fill-blue-light-50 dark:fill-blue-light-500/15" />
-                    )}
+                    <CheckCircleIcon className="size-10 fill-success-600 dark:fill-green-500 " />
                   </span>
                 </div>
-                {successAlert ? (
-                  <>
-                    <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90 sm:text-title-sm">
-                      {alertTitle}
-                    </h4>
+              )}
+              {successAlert ? (
+                <>
+                  <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90 sm:text-title-sm">
+                    {alertTitle}
+                  </h4>
 
-                    <p className="text-sm leading-6 text-gray-500 dark:text-gray-400">
-                      {successAlert}
-                    </p>
+                  <p className="text-sm leading-6 text-gray-500 dark:text-gray-400">
+                    {successAlert}
+                  </p>
 
-                    <div className="flex items-center justify-center w-full gap-3 mt-8">
-                      <Button
-                        onClick={() => {
-                          setAlertTitle("");
-                          setError("");
-                          setSuccessAlert("");
-                          closeModal();
-                        }}
-                      >
-                        Okay, Got it!
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <h4 className="mb-8 text-2xl font-semibold text-center text-gray-800 dark:text-white/90 sm:text-title-sm">
-                      Confirm to update vendor
-                    </h4>
+                  <div className="flex items-center justify-center w-full gap-3 mt-8">
+                    <Button
+                      onClick={() => {
+                        setAlertTitle("");
+                        setError("");
+                        setSuccessAlert("");
+                        handleModalClose();
+                      }}
+                    >
+                      Okay, Got it!
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h4 className="mb-8 text-2xl font-semibold text-center text-gray-800 dark:text-white/90 sm:text-title-sm">
+                    Confirm to update vendor
+                  </h4>
+
+                  <div className="flex flex-col gap-5">
+                    {agentStatus === 1 && !originalAgentData?.master_id && (
+                      <div className="relative">
+                        {vendorsError && (
+                          <Alert
+                            variant="error"
+                            title="Error Fetching Vendor list"
+                            message={vendorsError}
+                          />
+                        )}
+
+                        <Label className="mt-2 text-left">
+                          Attach a Vendor
+                        </Label>
+                        <Button
+                          onClick={toggleVendorDropdown}
+                          size="sm"
+                          variant="outline"
+                          className="dropdown-toggle w-full justify-between"
+                          disabled={vendorsLoading}
+                        >
+                          <span>
+                            {vendorsLoading
+                              ? "Loading Vendors..."
+                              : selectedVendor?.firstname || "Select Vendor"}
+                          </span>
+                          <ChevronDownIcon
+                            className={`ml-auto w-5 h-5 transition-transform duration-200 ${
+                              isVendorDropdownOpen && "rotate-180"
+                            }`}
+                          />
+                        </Button>
+                        <Dropdown
+                          isOpen={isVendorDropdownOpen}
+                          onClose={closeVendorDropdown}
+                          className="w-full p-2"
+                        >
+                          {vendorsLoading ? (
+                            <DropdownItem
+                              onItemClick={() => {}}
+                              className="flex w-full font-normal text-left text-gray-400 rounded-lg py-2"
+                            >
+                              Loading vendors...
+                            </DropdownItem>
+                          ) : vendorsError ? (
+                            <DropdownItem
+                              onItemClick={closeVendorDropdown}
+                              className="flex justify-between py-1 w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                            >
+                              No Vendors found
+                              <span className="text-brand-accent">
+                                {vendorsError && `  ${vendorsError}`}
+                              </span>
+                            </DropdownItem>
+                          ) : vendors.length === 0 ? (
+                            <DropdownItem
+                              onItemClick={() => {}}
+                              className="flex w-full font-normal text-left text-gray-400 rounded-lg py-2"
+                            >
+                              No vendors available
+                            </DropdownItem>
+                          ) : (
+                            vendors.map((vendor) => (
+                              <DropdownItem
+                                key={vendor.id}
+                                onItemClick={() => {
+                                  setSelectedVendor(vendor);
+                                  setValue("master_id", vendor.id);
+                                  closeVendorDropdown();
+                                }}
+                                className="flex justify-between py-1 w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                              >
+                                <span>{vendor.firstname}</span>
+                                <span>
+                                  ({vendor.vendor_type.toUpperCase()})
+                                </span>
+                              </DropdownItem>
+                            ))
+                          )}
+                        </Dropdown>
+
+                        {!selectedVendor && (
+                          <p className="mt-0.5 text-xs text-right pr-2 text-error-500">
+                            Please select a vendor to continue
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     <div className="text-left">
                       <Label>Reason for updating vendor information</Label>
                       <Controller
@@ -612,29 +789,117 @@ export default function EditAgentForm({ agentData }: EditAgentFormProps) {
                             {...field}
                             placeholder={`Enter reason for updating agent info...`}
                             rows={4}
+                            minLength={4}
+                            maxLength={120}
                             error={!!errors.reason}
                             hint={errors.reason?.message}
                           />
                         )}
                       />
                       <div className="flex items-center justify-end w-full gap-3 mt-4">
-                        <Button variant="outline" onClick={closeModal}>
-                          Close
+                        <Button variant="outline" onClick={handleModalClose}>
+                          Go Back
                         </Button>
                         <Button
                           onClick={handleSubmit(handleConfirmUpdate)}
-                          disabled={loading || uploadLoading}
+                          disabled={
+                            loading ||
+                            uploadLoading ||
+                            vendorsLoading ||
+                            (agentStatus === 1 && !selectedVendor) ||
+                            !updateReason ||
+                            (updateReason?.length || 0) < 4
+                          }
                         >
                           {loading ? "Updating..." : "Confirm Update"}
                         </Button>
                       </div>
                     </div>
-                  </>
-                )}
-              </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
-        </Modal>
+        </div>
+      </Modal>
+
+      {/* Missing Image Modal */}
+      <Modal
+        isOpen={showMissingImageModal}
+        onClose={() => setShowMissingImageModal(false)}
+        className="max-w-xl m-4"
+      >
+        <div className="relative w-full rounded-3xl bg-white  dark:bg-gray-900  max-w-[600px] p-5 lg:p-10">
+          <div>
+            <div className="text-center">
+              <div className="relative flex items-center justify-center z-1 mb-7">
+                <svg
+                  className="fill-warning-50 dark:fill-warning-500/15"
+                  width={90}
+                  height={90}
+                  viewBox="0 0 90 90"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M34.364 6.85053C38.6205 -2.28351 51.3795 -2.28351 55.636 6.85053C58.0129 11.951 63.5594 14.6722 68.9556 13.3853C78.6192 11.0807 86.5743 21.2433 82.2185 30.3287C79.7862 35.402 81.1561 41.5165 85.5082 45.0122C93.3019 51.2725 90.4628 63.9451 80.7747 66.1403C75.3648 67.3661 71.5265 72.2695 71.5572 77.9156C71.6123 88.0265 60.1169 93.6664 52.3918 87.3184C48.0781 83.7737 41.9219 83.7737 37.6082 87.3184C29.8831 93.6664 18.3877 88.0266 18.4428 77.9156C18.4735 72.2695 14.6352 67.3661 9.22531 66.1403C-0.462787 63.9451 -3.30193 51.2725 4.49185 45.0122C8.84391 41.5165 10.2138 35.402 7.78151 30.3287C3.42572 21.2433 11.3808 11.0807 21.0444 13.3853C26.4406 14.6722 31.9871 11.951 34.364 6.85053Z"
+                    fill=""
+                    fillOpacity=""
+                  />
+                </svg>
+                <span className="absolute -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2">
+                  <AlertIcon className="size-10 fill-warning-600 dark:fill-orange-400 rotate-180" />
+                </span>
+              </div>
+
+              <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90 sm:text-title-sm">
+                {/* Warning Alert! */}
+                Missing Required Documents!
+              </h4>
+
+              <p className="text-sm leading-6 text-gray-500 dark:text-gray-400">
+                {missingImages.length}{" "}
+                {missingImages.length > 1 ? "documents" : "document"} (
+                <span className="text-brand-accent">
+                  {missingImages.join(", ")}
+                </span>
+                ) missing.
+              </p>
+
+              <p className="mt-5 font-medium text-xl text-gray-800 dark:text-white/90">
+                Do you want to proceed without uploading?
+              </p>
+
+              <div className="flex items-center justify-center w-full gap-3 mt-8">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowMissingImageModal(false)}
+                >
+                  Go Back
+                </Button>
+                <Button
+                  onClick={() => {
+                    refetch();
+                    setMissingImages([]);
+                    setShowMissingImageModal(false);
+                    openModal();
+                  }}
+                >
+                  Proceed Anyway
+                </Button>
+              </div>
+
+              {/* <p className="mb-6 text-sm leading-6 text-gray-500 dark:text-gray-400">
+                  The following documents are required to update this agent:
+                </p> */}
+            </div>
+          </div>
+        </div>
+      </Modal>
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="grid grid-cols-1 gap-6 xl:grid-cols-2"
+      >
         <div className="space-y-5 sm:space-y-6">
           <ComponentCard title="Business Info">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -1572,80 +1837,185 @@ export default function EditAgentForm({ agentData }: EditAgentFormProps) {
               )}
             </div>
 
-            {user?.role === ADMIN_ROLE && (
-              <div className="relative">
-                <Label>
-                  Update Agent Status <span className="text-error-500">*</span>
-                  {originalAgentData && (
-                    <span className="text-xs text-gray-500 ml-2">
-                      (Current:{" "}
-                      {statusOptions.find(
-                        (option) => option.value === originalAgentData.status
-                      )?.label || "Unknown"}
-                      )
-                    </span>
-                  )}
-                </Label>
-                <Controller
-                  name="status"
-                  control={control}
-                  render={({ field }) => (
-                    <>
-                      <div
-                        className={`relative dropdown-toggle h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
-                          errors.status
-                            ? "border-error-500"
-                            : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
-                        }`}
-                        onClick={() => handleDropdownToggle("status")}
-                      >
-                        {field.value !== undefined ? (
-                          <span>
-                            {statusOptions.find(
-                              (option) => option.value === field.value
-                            )?.label || "Current Status"}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400 dark:text-white/30">
-                            {originalAgentData
-                              ? statusOptions.find(
-                                  (option) =>
-                                    option.value === originalAgentData.status
-                                )?.label || "Current Status"
-                              : "Select Status"}
-                          </span>
-                        )}
-
-                        <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
-                      </div>
-                      <Dropdown
-                        isOpen={openDropdown === "status"}
-                        onClose={() => setOpenDropdown(null)}
-                        className="w-full p-2"
-                        search={false}
-                      >
-                        {getFilteredStatusOptions().map((option) => (
-                          <DropdownItem
-                            key={option.label}
-                            onItemClick={() => {
-                              field.onChange(option.value);
-                              setOpenDropdown(null);
-                            }}
-                            className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-                          >
-                            {option.label}
-                          </DropdownItem>
-                        ))}
-                      </Dropdown>
-                    </>
-                  )}
+            {originalAgentData?.status === 3 && (
+              <div className="col-span-full">
+                <Label>Reason for rejection</Label>
+                <TextArea
+                  value={originalAgentData?.reason}
+                  rows={4}
+                  placeholder="No reason provided"
+                  readOnly
                 />
               </div>
             )}
 
+            {user?.role === ADMIN_ROLE && (
+              <>
+                {/* <div className="relative">
+                  <Label>
+                    Change Vendor
+                    {originalAgentData && (
+                      <span className="text-xs text-gray-500 ml-2">
+                        (Current:{" "}
+                        {vendors.find(
+                          (vendor) => vendor.id === originalAgentData.master_id
+                        )?.firstname || "None"}
+                        )
+                      </span>
+                    )}
+                  </Label>
+                  <Controller
+                    name="master_id"
+                    control={control}
+                    render={({ field }) => (
+                      <>
+                        <div
+                          className={`relative dropdown-toggle h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
+                            errors.master_id
+                              ? "border-error-500"
+                              : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
+                          }`}
+                          onClick={() => handleDropdownToggle("master_id")}
+                        >
+                          {selectedVendor ? (
+                            <span>{selectedVendor.firstname}</span>
+                          ) : (
+                            <span className="text-gray-400 dark:text-white/30">
+                              {originalAgentData?.master_id
+                                ? "Select a different vendor"
+                                : "Select Vendor"}
+                            </span>
+                          )}
+
+                          <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
+                        </div>
+                        <Dropdown
+                          isOpen={openDropdown === "master_id"}
+                          onClose={() => setOpenDropdown(null)}
+                          className="w-full p-2"
+                          search={false}
+                        >
+                          {vendorsLoading ? (
+                            <DropdownItem
+                              onItemClick={() => {}}
+                              className="flex w-full font-normal text-left text-gray-400 rounded-lg py-2"
+                            >
+                              Loading vendors...
+                            </DropdownItem>
+                          ) : vendorsError ? (
+                            <DropdownItem
+                              onItemClick={() => {}}
+                              className="flex justify-between py-1 w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                            >
+                              No Vendors found
+                              <span className="text-brand-accent">
+                                {vendorsError && `  ${vendorsError}`}
+                              </span>
+                            </DropdownItem>
+                          ) : vendors.length === 0 ? (
+                            <DropdownItem
+                              onItemClick={() => {}}
+                              className="flex justify-between py-1 w-full font-normal text-left text-gray-400 rounded-lg py-2"
+                            >
+                              No vendors available
+                            </DropdownItem>
+                          ) : (
+                            vendors.map((vendor) => (
+                              <DropdownItem
+                                key={vendor.id}
+                                onItemClick={() => {
+                                  setSelectedVendor(vendor);
+                                  field.onChange(vendor.id);
+                                  setOpenDropdown(null);
+                                }}
+                                className="flex justify-between py-1 w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                              >
+                                <span>{vendor.firstname}</span>
+                                <span>
+                                  ({vendor.vendor_type.toUpperCase()})
+                                </span>
+                              </DropdownItem>
+                            ))
+                          )}
+                        </Dropdown>
+                      </>
+                    )}
+                  />
+                </div> */}
+                <div className="relative">
+                  <Label>
+                    Update Agent Status
+                    {originalAgentData && (
+                      <span className="text-xs text-gray-500 ml-2">
+                        (Current:{" "}
+                        {statusOptions.find(
+                          (option) => option.value === originalAgentData.status
+                        )?.label || "Unknown"}
+                        )
+                      </span>
+                    )}
+                  </Label>
+                  <Controller
+                    name="status"
+                    control={control}
+                    render={({ field }) => (
+                      <>
+                        <div
+                          className={`relative dropdown-toggle h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 bg-transparent shadow-theme-xs flex items-center justify-between cursor-pointer  dark:text-white/90 ${
+                            errors.status
+                              ? "border-error-500"
+                              : "border-gray-300 dark:border-gray-700 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20"
+                          }`}
+                          onClick={() => handleDropdownToggle("status")}
+                        >
+                          {field.value !== undefined ? (
+                            <span>
+                              {statusOptions.find(
+                                (option) => option.value === field.value
+                              )?.label || "Current Status"}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 dark:text-white/30">
+                              {originalAgentData
+                                ? statusOptions.find(
+                                    (option) =>
+                                      option.value === originalAgentData.status
+                                  )?.label || "Current Status"
+                                : "Select Status"}
+                            </span>
+                          )}
+
+                          <ChevronDownIcon className="w-4 h-4 text-gray-800 dark:text-white/90" />
+                        </div>
+                        <Dropdown
+                          isOpen={openDropdown === "status"}
+                          onClose={() => setOpenDropdown(null)}
+                          className="w-full p-2"
+                          search={false}
+                        >
+                          {getFilteredStatusOptions().map((option) => (
+                            <DropdownItem
+                              key={option.label}
+                              onItemClick={() => {
+                                field.onChange(option.value);
+                                setOpenDropdown(null);
+                              }}
+                              className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                            >
+                              {option.label}
+                            </DropdownItem>
+                          ))}
+                        </Dropdown>
+                      </>
+                    )}
+                  />
+                </div>
+              </>
+            )}
+
             {Object.keys(errors).length > 0 && (
               <Alert variant="error" title="Please fix the following errors:">
-                <ul className="list-disc pl-5">
+                <ul className="list-disc pl-5 text-gray-500 dark:text-gray-400">
                   {Object.entries(errors).map(([key, value]) => (
                     <li key={key}>{value.message}</li>
                   ))}

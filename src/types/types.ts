@@ -25,6 +25,7 @@ export interface UserBio {
 
 export interface LoginResponseData {
   access_token: string;
+  core_api_bearer_token: string;
   token_type: string;
   expires_in: number;
   user: UserBio;
@@ -76,7 +77,7 @@ export interface Users {
 }
 export interface Agent {
   id: number;
-  master_id?: string;
+  master_id?: number;
   firstname: string;
   middlename?: string;
   lastname: string;
@@ -106,6 +107,7 @@ export interface Agent {
   residual_amount: number;
   status: number;
   temp: number;
+  reason?: string;
   created_at: string;
   updated_at: string;
   // marketer: Marketer | null;

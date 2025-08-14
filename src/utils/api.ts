@@ -22,7 +22,7 @@ import type {
 } from "../types/types";
 
 const BASE_URL = import.meta.env.VITE_AGENCY_BASE_URL;
-// const LIVE_URL = import.meta.env.VITE_LIVE_URL;
+// const CORE_URL = import.meta.env.VITE_AGENCY_CORE_URL;
 
 export const requestOtp = async (
   phone: string
@@ -31,6 +31,9 @@ export const requestOtp = async (
     const response = await fetch(`${BASE_URL}/auth/sendOTP`, {
       method: "POST",
       headers: {
+        // "Access-Control-Allow-Origin": "*",
+        // "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+        // "Access-Control-Allow-Headers": "Content-Type, Accept",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ phone }),
@@ -71,6 +74,7 @@ export const verifyOtpAndLogin = async (
       }),
       redirect: "follow",
     });
+
     const data: LoginResponse = await response.json();
 
     if (response.ok && data.status) {
@@ -280,20 +284,20 @@ export const getAllAgents = async (
 };
 
 export const getAllVendors = async (
-  accessToken: string
+  coreApiToken: string
 ): Promise<
   ApiResponse<{
     vendors: Vendor[];
   }>
 > => {
   try {
-    const response = await fetch(`/api/core/merchantvendorlist`, {
+    const response = await fetch(`/vendor/core/merchantvendorlist`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${coreApiToken}`,
       },
-      body: JSON.stringify({}), // Add empty body for POST request
+      redirect: "follow",
     });
 
     const data = await response.json();
@@ -523,7 +527,8 @@ export const updateAgentInfo = async (
   accessToken: string,
   agentId: string,
   updatedFields: Partial<Agent>,
-  reason: string
+  reason: string,
+  masterId?: number | null
 ): Promise<ApiResponse<{ agent: Agent }>> => {
   try {
     const response = await fetch(`${BASE_URL}/auth/agents/updateAgent`, {
@@ -532,7 +537,12 @@ export const updateAgentInfo = async (
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({ agent_id: agentId, ...updatedFields, reason }),
+      body: JSON.stringify({
+        agent_id: agentId,
+        ...updatedFields,
+        reason,
+        ...(masterId !== undefined && { master_id: masterId }),
+      }),
       redirect: "follow",
     });
 
@@ -591,7 +601,8 @@ export const changeAgentStatus = async (
   accessToken: string,
   agentId: number,
   status: number,
-  reason: string
+  reason: string,
+  masterId?: number
 ): Promise<ApiResponse<{ agent: Agent }>> => {
   try {
     const response = await fetch(`${BASE_URL}/auth/agents/changeAgentStatus`, {
@@ -600,7 +611,12 @@ export const changeAgentStatus = async (
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({ agent_id: agentId, status, reason }),
+      body: JSON.stringify({
+        agent_id: agentId,
+        status,
+        reason,
+        ...(masterId !== undefined && { master_id: masterId }),
+      }),
       redirect: "follow",
     });
     const data = await response.json();
@@ -698,7 +714,7 @@ export const uploadToCloudinary = async (
     formData.append("upload_preset", uploadPreset);
 
     const uploadResponse = await fetch(
-      `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
+      `https:/${BASE_URL}.cloudinary.com/v1_1/${cloudName}/auto/upload`,
       {
         method: "POST",
         body: formData,
