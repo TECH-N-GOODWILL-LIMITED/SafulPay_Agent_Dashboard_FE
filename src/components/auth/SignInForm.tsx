@@ -80,7 +80,7 @@ export default function SignInForm() {
     if (!otp || otp.length !== 6) {
       setSuccessAlert("");
       setAlertTitle("Please enter a valid OTP.");
-      setError("Check your phone for OTP");
+      setError("Check your phone for correct OTP or resend OTP");
       return;
     }
 
@@ -141,7 +141,7 @@ export default function SignInForm() {
               <form onSubmit={handleRequestOtp}>
                 <div className="space-y-6">
                   <div>
-                    <Label>
+                    <Label htmlFor="phone">
                       Phone Number <span className="text-error-500">*</span>
                     </Label>
                     <Input
@@ -163,7 +163,14 @@ export default function SignInForm() {
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Checkbox checked={isChecked} onChange={setIsChecked} />
+                      <Label htmlFor="keep-me-logged-in" className="sr-only">
+                        Keep me logged in
+                      </Label>
+                      <Checkbox
+                        id="keep-me-logged-in"
+                        checked={isChecked}
+                        onChange={setIsChecked}
+                      />
                       <span className="block font-normal text-gray-700 text-theme-sm dark:text-gray-400">
                         Keep me logged in
                       </span>
@@ -180,7 +187,7 @@ export default function SignInForm() {
               <form onSubmit={handleLogIn}>
                 <div className="space-y-6">
                   <div>
-                    <Label>
+                    <Label htmlFor="pin">
                       PIN <span className="text-error-500">*</span>
                     </Label>
                     <div className="relative">
@@ -220,7 +227,7 @@ export default function SignInForm() {
                   </div>
 
                   <div className="relative">
-                    <Label>
+                    <Label htmlFor="otp">
                       OTP <span className="text-error-500">*</span>
                     </Label>
                     <Input

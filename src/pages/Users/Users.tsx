@@ -210,6 +210,18 @@ const Users: React.FC = () => {
     disabled: loading,
   };
 
+  const resetFilters = () => {
+    setFilterRole("All");
+    setFilterStatus("All");
+    setDateRange({
+      startDate: "",
+      endDate: "",
+    });
+    setCurrentPage(1);
+    setSearchTerm("");
+    setDateError("");
+  };
+
   const tableData = useMemo(() => {
     if (!allUsers?.data?.users) {
       return [];
@@ -278,7 +290,7 @@ const Users: React.FC = () => {
             tableHeading={tableHeader}
             tableContent={tableData}
             loading={loading}
-            setCurrentPage={setCurrentPage}
+            resetFilters={resetFilters}
           />
           <TablePagination
             pagination={{

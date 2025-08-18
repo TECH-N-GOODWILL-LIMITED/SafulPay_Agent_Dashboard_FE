@@ -284,8 +284,8 @@ const Input: FC<InputProps> = ({
         </select>
       ) : (
         <input
-          type={type}
           id={id}
+          type={type}
           name={name}
           placeholder={placeholder}
           value={value || ""}

@@ -17,6 +17,7 @@ import { useAuth } from "../../../context/AuthContext";
 import { useUsers } from "../../../context/UsersContext";
 import { useMyAgents } from "../../../context/MyAgentsContext";
 import {
+  agentSignup,
   changeAgentStatus,
   changeUserStatus,
   checkSession,
@@ -74,7 +75,7 @@ interface Order {
   tableHeading?: string[];
   tableContent: TableContentItem[];
   loading?: boolean;
-  setCurrentPage?: (page: number) => void;
+  resetFilters?: () => void;
 }
 
 // Handlers type
@@ -90,7 +91,7 @@ const BasicTableOne: React.FC<Order> = ({
   tableContent,
   tableHeading,
   loading = false,
-  setCurrentPage,
+  resetFilters,
 }) => {
   const [currentUser, setCurrentUser] = useState<TableContentItem | null>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
@@ -110,9 +111,7 @@ const BasicTableOne: React.FC<Order> = ({
     refetch,
   } = useVendors();
 
-  function toggleDropdown(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
+  function toggleDropdown() {
     setIsDropdownOpen(!isDropdownOpen);
   }
 
@@ -121,14 +120,12 @@ const BasicTableOne: React.FC<Order> = ({
   }
 
   const { isOpen, openModal, closeModal } = useModal();
-  const { user, token, logout } = useAuth();
+  const { user, token, coreApiToken, logout } = useAuth();
   const { fetchUsers } = useUsers();
   const { fetchAgents } = useAgents();
   const { fetchMyAgents } = useMyAgents();
 
   const showResidualAmount = tableHeading?.includes("Residual Amount");
-
-  console.log(user);
 
   const isAgent =
     currentUser?.role === AGENT_ROLE ||
@@ -140,7 +137,6 @@ const BasicTableOne: React.FC<Order> = ({
     newStatus: number,
     action: string
   ): Promise<boolean> => {
-    // Check if we have a valid token
     if (!token) {
       setAlertTitle("Authentication Error");
       setErrorMessage(
@@ -177,23 +173,30 @@ const BasicTableOne: React.FC<Order> = ({
         user.role === SUPER_AGENT_ROLE ||
         user.role === MERCHANT_ROLE;
 
-      const response = isAgent
-        ? await changeAgentStatus(
-            token,
-            user.id,
-            newStatus,
-            reason,
-            selectedVendor?.id && selectedVendor.id !== user.masterId
-              ? selectedVendor.id
-              : undefined
-          )
-        : await changeUserStatus(token, user.id, newStatus, reason);
+      let response;
+
+      if (isAgent && action === "approve" && selectedVendor && coreApiToken) {
+        response = await agentSignup(
+          coreApiToken, // Use agency token instead of coreApiToken
+          user.id,
+          selectedVendor.id,
+          reason
+        );
+      } else if (isAgent) {
+        response = await changeAgentStatus(token, user.id, newStatus, reason);
+      } else {
+        response = await changeUserStatus(token, user.id, newStatus, reason);
+      }
 
       if (response.success) {
-        await fetchUsers({ page: 1, per_page: 10 });
-        await fetchAgents({ page: 1, per_page: 10 });
+        if (isAgent) {
+          await fetchAgents({ page: 1, per_page: 10 });
+        } else {
+          await fetchUsers({ page: 1, per_page: 10 });
+        }
+
         await fetchMyAgents();
-        setCurrentPage?.(1);
+        resetFilters?.();
         return true;
       } else {
         setAlertTitle("Validation Error");
@@ -398,13 +401,23 @@ const BasicTableOne: React.FC<Order> = ({
     }
   };
 
-  const handleCloseModal = async (): Promise<void> => {
+  const handleCloseModal = () => {
     setSelectedAction(null);
     setSuccessAlert("");
     setReason("");
     setSelectedVendor(null);
     setShowVendorError(false); // Reset Vendor error when modal closes
     closeModal();
+  };
+
+  const handleGoBack = (e: React.MouseEvent<HTMLButtonElement>): void => {
+    e.preventDefault();
+    e.stopPropagation();
+    setAlertTitle("");
+    setErrorMessage("");
+    setSelectedAction(null);
+    setSelectedVendor(null);
+    setShowVendorError(false);
   };
 
   const canEditUser = (userRole: string | undefined, row: TableContentItem) => {
@@ -436,14 +449,14 @@ const BasicTableOne: React.FC<Order> = ({
                   <TableCell
                     key={tableHead}
                     isHeader
-                    className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    className="p-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                   >
                     {tableHead}
                   </TableCell>
                 ))}
                 <TableCell
                   isHeader
-                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                  className="p-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
                   Action
                 </TableCell>
@@ -454,7 +467,7 @@ const BasicTableOne: React.FC<Order> = ({
               {tableContent.length > 0 ? (
                 tableContent.map((order) => (
                   <TableRow key={`${order.id}${order.role}`}>
-                    <TableCell className="px-5 py-4 sm:px-6 text-start  max-w-60">
+                    <TableCell className="p-3 text-start max-w-60">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 overflow-hidden rounded-full">
                           <img
@@ -479,45 +492,45 @@ const BasicTableOne: React.FC<Order> = ({
                       </div>
                     </TableCell>
 
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      <span className="block font-medium text-gray-500 text-theme-sm dark:text-white/90">
-                        {order.role}
-                      </span>
+                    <TableCell className="p-3 text-start flex flex-col max-w-50">
                       <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
                         {(order.role === AGENT_ROLE ||
                           order.role === SUPER_AGENT_ROLE ||
                           order.role === MERCHANT_ROLE) &&
                           order.model}
                       </span>
+                      <span className="block font-medium text-gray-500 text-theme-sm dark:text-white/90">
+                        {order.role}
+                      </span>
                     </TableCell>
 
                     {order.code && (
-                      <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                      <TableCell className="p-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                         {order.code}
                       </TableCell>
                     )}
 
                     {showResidualAmount && (
-                      <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                      <TableCell className="p-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                         Le {order.residualAmount?.toFixed(2)}
                       </TableCell>
                     )}
 
                     {(order.cih || order.cih == 0) && (
-                      <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                      <TableCell className="p-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                         Le {order.cih?.toFixed(2)}
                       </TableCell>
                     )}
                     {/* {!order.user.code} ||
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                <TableCell className="p-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                   {order.user.role}
                 </TableCell> */}
-                    {/* <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                    {/* <TableCell className="p-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                   {order.user.code}
                 </TableCell> */}
 
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      <span className="block font-medium text-gray-500 text-theme-sm dark:text-white/90">
+                    <TableCell className="p-3 text-start">
+                      <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
                         {(order.role === AGENT_ROLE ||
                           order.role === SUPER_AGENT_ROLE ||
                           order.role === MERCHANT_ROLE) &&
@@ -529,18 +542,18 @@ const BasicTableOne: React.FC<Order> = ({
                     </TableCell>
 
                     {order.refBy && (
-                      <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                      <TableCell className="p-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                         {order.refBy}
                       </TableCell>
                     )}
 
                     {order.kycStatus && (
-                      <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                      <TableCell className="p-3 text-gray-500 text-theme-sm dark:text-gray-400">
                         {order.kycStatus}
                       </TableCell>
                     )}
 
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                    <TableCell className="p-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                       <Badge
                         size="sm"
                         color={
@@ -556,11 +569,11 @@ const BasicTableOne: React.FC<Order> = ({
                     </TableCell>
 
                     {order.createdAt && (
-                      <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                      <TableCell className="p-3 text-gray-500 text-theme-sm dark:text-gray-400">
                         {formatDateTime(order.createdAt || "No date found")}
                       </TableCell>
                     )}
-                    <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                    <TableCell className="p-3 text-gray-500 text-theme-sm dark:text-gray-400">
                       <button
                         onClick={() => handleOpenModal(order)}
                         className="hover:text-brand-500 dark:text-gray-400 dark:hover:text-gray-300"
@@ -574,7 +587,7 @@ const BasicTableOne: React.FC<Order> = ({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                  <TableCell className="p-3 text-gray-500 text-theme-sm dark:text-gray-400">
                     No Data found
                   </TableCell>
                 </TableRow>
@@ -643,6 +656,15 @@ const BasicTableOne: React.FC<Order> = ({
                     <>
                       {selectedAction === "approve" && (
                         <div className="relative">
+                          {errorMessage && (
+                            <Alert
+                              variant="error"
+                              title={alertTitle}
+                              message={errorMessage}
+                              showLink={false}
+                            />
+                          )}
+
                           {vendorsError && (
                             <Alert
                               variant="error"
@@ -650,8 +672,12 @@ const BasicTableOne: React.FC<Order> = ({
                               message={vendorsError}
                             />
                           )}
-                          <Label className="mt-2">Attach a Vendor</Label>
+                          <Label htmlFor="vendor-button" className="mt-2">
+                            Attach a Vendor
+                          </Label>
                           <Button
+                            id="vendor-button"
+                            type="button"
                             onClick={toggleDropdown}
                             size="sm"
                             variant="outline"
@@ -728,9 +754,12 @@ const BasicTableOne: React.FC<Order> = ({
                       )}
 
                       <div className="w-full">
-                        <Label>Reason for {selectedAction}</Label>
+                        <Label htmlFor="action-reason">
+                          Reason for {selectedAction}
+                        </Label>
                         <TextArea
-                          value={reason}
+                          id="action-reason"
+                          value={reason || ""}
                           onChange={setReason}
                           placeholder={`Enter reason for ${selectedAction}...`}
                           rows={4}
@@ -746,13 +775,10 @@ const BasicTableOne: React.FC<Order> = ({
 
                         <div className="flex justify-end gap-2 mt-4">
                           <Button
+                            type="button"
                             size="sm"
                             variant="outline"
-                            onClick={() => {
-                              setSelectedAction(null);
-                              setSelectedVendor(null);
-                              setShowVendorError(false);
-                            }}
+                            onClick={(e) => handleGoBack(e)}
                           >
                             Go Back
                           </Button>
@@ -799,8 +825,9 @@ const BasicTableOne: React.FC<Order> = ({
 
                             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                               <div className="col-span-2 lg:col-span-1">
-                                <Label>Full Name</Label>
+                                <Label htmlFor="full-name">Full Name</Label>
                                 <Input
+                                  id="full-name"
                                   type="text"
                                   value={currentUser.name}
                                   readOnly
@@ -808,8 +835,11 @@ const BasicTableOne: React.FC<Order> = ({
                               </div>
 
                               <div className="col-span-2 lg:col-span-1">
-                                <Label>Business Name / Username</Label>
+                                <Label htmlFor="business-name">
+                                  Business Name / Username
+                                </Label>
                                 <Input
+                                  id="business-name"
                                   type="text"
                                   value={`${currentUser.businessName} / ${currentUser.username}`}
                                   readOnly
@@ -817,8 +847,11 @@ const BasicTableOne: React.FC<Order> = ({
                               </div>
 
                               <div className="col-span-2 lg:col-span-1">
-                                <Label>Phone / Business Phone</Label>
+                                <Label htmlFor="phone-business-phone">
+                                  Phone / Business Phone
+                                </Label>
                                 <Input
+                                  id="phone-business-phone"
                                   type="text"
                                   value={`${currentUser.phone} / ${currentUser.businessPhone}`}
                                   readOnly
@@ -826,13 +859,14 @@ const BasicTableOne: React.FC<Order> = ({
                               </div>
 
                               <div className="col-span-2 lg:col-span-1">
-                                <Label>
+                                <Label htmlFor="type-model">
                                   Type{" "}
                                   {currentUser.role !== MARKETER_ROLE
                                     ? "/ Model"
                                     : ""}
                                 </Label>
                                 <Input
+                                  id="type-model"
                                   type="text"
                                   value={`${currentUser.role} ${
                                     currentUser.role !== MERCHANT_ROLE
@@ -844,8 +878,9 @@ const BasicTableOne: React.FC<Order> = ({
                               </div>
 
                               <div className="col-span-2">
-                                <Label>Address</Label>
+                                <Label htmlFor="agent-address">Address</Label>
                                 <Input
+                                  id="agent-address"
                                   type="text"
                                   value={currentUser.address}
                                   readOnly
@@ -853,8 +888,11 @@ const BasicTableOne: React.FC<Order> = ({
                               </div>
 
                               <div className="col-span-2 lg:col-span-1">
-                                <Label>Latitude / Longitude</Label>
+                                <Label htmlFor="lat-lng">
+                                  Latitude / Longitude
+                                </Label>
                                 <Input
+                                  id="lat-lng"
                                   type="text"
                                   value={`${currentUser.latitude} / ${currentUser.longitude}`}
                                   readOnly
@@ -898,9 +936,12 @@ const BasicTableOne: React.FC<Order> = ({
                               </div>
 
                               <div className="col-span-2 lg:col-span-1 truncate">
-                                <Label>Business Place Image</Label>
+                                <Label htmlFor="business-image">
+                                  Business Place Image
+                                </Label>
                                 {currentUser.businessImage ? (
                                   <a
+                                    id="business-image"
                                     href={currentUser.businessImage}
                                     target="_blank"
                                     rel="noopener noreferrer"
@@ -909,15 +950,21 @@ const BasicTableOne: React.FC<Order> = ({
                                     Click to View Business Place Image
                                   </a>
                                 ) : (
-                                  <p className="text-brand-accent">
+                                  <p
+                                    id="business-image"
+                                    className="text-brand-accent"
+                                  >
                                     No Business Place Image
                                   </p>
                                 )}
                               </div>
 
                               <div className="col-span-2 lg:col-span-1">
-                                <Label>Date Registered</Label>
+                                <Label htmlFor="date-registered">
+                                  Date Registered
+                                </Label>
                                 <Input
+                                  id="date-registered"
                                   type="text"
                                   value={formatDateTime(
                                     currentUser.createdAt || "No date found"
@@ -927,8 +974,11 @@ const BasicTableOne: React.FC<Order> = ({
                               </div>
 
                               <div className="col-span-2 lg:col-span-1">
-                                <Label>Date Modified</Label>
+                                <Label htmlFor="date-modified">
+                                  Date Modified
+                                </Label>
                                 <Input
+                                  id="date-modified"
                                   type="text"
                                   value={formatDateTime(
                                     currentUser.updatedAt || ""
@@ -939,9 +989,12 @@ const BasicTableOne: React.FC<Order> = ({
 
                               {currentUser.status === "Rejected" && (
                                 <div className="col-span-2">
-                                  <Label>Reason for rejection</Label>
+                                  <Label htmlFor="rejection-reason">
+                                    Reason for rejection
+                                  </Label>
                                   <TextArea
-                                    value={currentUser.rejectionReason}
+                                    id="rejection-reason"
+                                    value={currentUser.rejectionReason || ""}
                                     placeholder="No reason provided"
                                     readOnly
                                   />
@@ -952,8 +1005,9 @@ const BasicTableOne: React.FC<Order> = ({
                         ) : (
                           <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                             <div className="col-span-2 lg:col-span-1">
-                              <Label>First Name</Label>
+                              <Label htmlFor="first-name">First Name</Label>
                               <Input
+                                id="first-name"
                                 type="text"
                                 value={currentUser?.firstName || " "}
                                 readOnly
@@ -961,8 +1015,9 @@ const BasicTableOne: React.FC<Order> = ({
                             </div>
 
                             <div className="col-span-2 lg:col-span-1">
-                              <Label>Last Name</Label>
+                              <Label htmlFor="last-name">Last Name</Label>
                               <Input
+                                id="last-name"
                                 type="text"
                                 value={currentUser?.lastName || " "}
                                 readOnly
@@ -970,8 +1025,11 @@ const BasicTableOne: React.FC<Order> = ({
                             </div>
 
                             <div className="col-span-2 lg:col-span-1">
-                              <Label>Email Address</Label>
+                              <Label htmlFor="email-address">
+                                Email Address
+                              </Label>
                               <Input
+                                id="email-address"
                                 type="text"
                                 value={"example@email.com"}
                                 readOnly
@@ -979,8 +1037,9 @@ const BasicTableOne: React.FC<Order> = ({
                             </div>
 
                             <div className="col-span-2 lg:col-span-1">
-                              <Label>Phone</Label>
+                              <Label htmlFor="phone">Phone</Label>
                               <Input
+                                id="phone"
                                 type="text"
                                 value={currentUser?.phone || " "}
                                 readOnly
@@ -988,8 +1047,9 @@ const BasicTableOne: React.FC<Order> = ({
                             </div>
 
                             <div className="col-span-2">
-                              <Label>Role</Label>
+                              <Label htmlFor="role">Role</Label>
                               <Input
+                                id="role"
                                 type="text"
                                 value={currentUser?.role || " "}
                                 readOnly
@@ -998,14 +1058,6 @@ const BasicTableOne: React.FC<Order> = ({
                           </div>
                         )}
                       </div>
-                      {errorMessage && (
-                        <Alert
-                          variant="error"
-                          title={alertTitle}
-                          message={errorMessage}
-                          showLink={false}
-                        />
-                      )}
 
                       {isAgent && currentUser?.temp !== 0 && (
                         <p
