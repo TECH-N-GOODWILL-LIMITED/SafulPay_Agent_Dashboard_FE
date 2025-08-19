@@ -5,11 +5,13 @@ import { DollarLineIcon, GroupIcon } from "../../icons";
 interface EcommerceMetricsProps {
   data: usersMetric;
   type?: string;
+  loading?: boolean;
 }
 
 export default function EcommerceMetrics({
   data,
   type = "user",
+  loading = false,
 }: EcommerceMetricsProps) {
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
@@ -26,9 +28,15 @@ export default function EcommerceMetrics({
           <span className="text-sm text-gray-500 dark:text-gray-400">
             {data.users}
           </span>
-          <h4 className="mt-2 font-bold text-gray-800 text-2xl dark:text-white/90">
-            {data.currencySymbol ? `Le ${data.metric} ` : data.metric}
-          </h4>
+
+          {loading ? (
+            <div className="mt-2 h-8 w-10 bg-gray-200 dark:bg-gray-700 self-end rounded animate-pulse">
+            </div>
+          ) : (
+            <h4 className="mt-2 font-bold text-gray-800 text-2xl dark:text-white/90">
+              {data.currencySymbol ? `Le ${data.metric} ` : data.metric}
+            </h4>
+          )}
         </div>
         {/* {data.amount && (
           <div className="flex items-end justify-between mt-5">

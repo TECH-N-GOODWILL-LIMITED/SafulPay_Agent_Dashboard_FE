@@ -10,6 +10,10 @@ import LoadingSpinner from "./components/common/LoadingSpinner";
 // import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
 import { ADMIN_ROLE, MARKETER_ROLE, ACCOUNTANT_ROLE } from "./utils/roles";
+import SuperAgent from "./pages/AgentsAndVendors/SuperAgent";
+import Merchants from "./pages/AgentsAndVendors/Merchants";
+import Agents from "./pages/AgentsAndVendors/Agents";
+// import AllAgents from "./pages/Agents/AllAgents";
 // import { useVendors } from "./hooks/useVendors";
 
 const UserProfiles = lazy(() => import("./pages/UserProfiles"));
@@ -28,7 +32,9 @@ const Users = lazy(() => import("./pages/Users/Users"));
 const Recollections = lazy(() => import("./pages/Recollections/Recollections"));
 const Marketers = lazy(() => import("./pages/Marketers/Marketers"));
 const Riders = lazy(() => import("./pages/Riders/Riders"));
-const Agents = lazy(() => import("./pages/Agents/Agents"));
+const AllAgentsAndVendors = lazy(
+  () => import("./pages/AgentsAndVendors/AllAgentsAndVendors")
+);
 const Accountants = lazy(() => import("./pages/Accountants/Accountants"));
 const Transactions = lazy(() => import("./pages/Transactions/Transactions"));
 const Admin = lazy(() => import("./pages/Admin/Admin"));
@@ -38,11 +44,11 @@ const Disbursement = lazy(
 const Audit = lazy(() => import("./pages/Audit/Audit"));
 const Withdrawal = lazy(() => import("./pages/Withdrawal/Withdrawal"));
 const Deposit = lazy(() => import("./pages/Deposit/Deposit"));
-const EditAgent = lazy(() => import("./pages/Agents/EditAgent"));
+const EditAgent = lazy(() => import("./pages/AgentsAndVendors/EditAgent"));
 const MarketersLeaderboard = lazy(
   () => import("./pages/MarketersLeaderboard/MarketersLeaderboard")
 );
-const MyAgents = lazy(() => import("./pages/Agents/MyAgents"));
+const MyAgents = lazy(() => import("./pages/AgentsAndVendors/MyAgents"));
 const OnboardAgentForm = lazy(
   () => import("./components/auth/OnboardAgentForm")
 );
@@ -70,7 +76,14 @@ export default function App() {
                   }
                 >
                   <Route index path="/" element={<Home />} />
+                  <Route
+                    path="/agentsandvendors"
+                    element={<AllAgentsAndVendors />}
+                  />
                   <Route path="/agents" element={<Agents />} />
+                  <Route path="/superagents" element={<SuperAgent />} />
+                  <Route path="/merchants" element={<Merchants />} />
+
                   {/* <Route path="/agents/:params" element={<Agents />} /> */}
                   <Route path="/profile" element={<UserProfiles />} />
                 </Route>
