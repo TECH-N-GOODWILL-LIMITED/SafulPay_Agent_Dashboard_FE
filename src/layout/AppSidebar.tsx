@@ -61,16 +61,16 @@ const AppSidebar: React.FC = () => {
           path: "/marketers",
           roles: [ADMIN_ROLE, MARKETER_ROLE],
         },
-        {
-          name: "Agents",
-          path: "/agents",
-          roles: ["Guest", ADMIN_ROLE],
-        },
-        {
-          name: "My Agents",
-          path: "/myagents",
-          roles: [MARKETER_ROLE],
-        },
+        // {
+        //   name: "Agents",
+        //   path: "/agents",
+        //   roles: ["Guest", ADMIN_ROLE],
+        // },
+        // {
+        //   name: "My Agents",
+        //   path: "/myagents",
+        //   roles: [MARKETER_ROLE],
+        // },
         {
           name: "Riders",
           path: "/riders",
@@ -81,6 +81,40 @@ const AppSidebar: React.FC = () => {
           path: "/accountants",
           roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
         },
+        // {
+        //   name: "Register Agent",
+        //   path: `/onboardagent/${user?.referral_code}`,
+        //   roles: [MARKETER_ROLE, ADMIN_ROLE],
+        // },
+      ],
+    },
+
+    {
+      icon: <GroupIcon />,
+      name: "Agents and Vendors",
+      subItems: [
+        {
+          name: "All Agents & Vendors",
+          path: "/agentsandvendors",
+          roles: [ADMIN_ROLE],
+        },
+        {
+          name: "Agents",
+          path: "/agents",
+          roles: [ADMIN_ROLE],
+        },
+
+        { name: "Super Agents", path: "/superagents", roles: [ADMIN_ROLE] },
+        {
+          name: "Merchants",
+          path: "/merchants",
+          roles: [ADMIN_ROLE],
+        },
+        {
+          name: "My Agents",
+          path: "/myagents",
+          roles: [MARKETER_ROLE],
+        },
         {
           name: "Register Agent",
           path: `/onboardagent/${user?.referral_code}`,
@@ -88,6 +122,7 @@ const AppSidebar: React.FC = () => {
         },
       ],
     },
+
     {
       icon: <UserIcon />,
       name: "Edit Profile",

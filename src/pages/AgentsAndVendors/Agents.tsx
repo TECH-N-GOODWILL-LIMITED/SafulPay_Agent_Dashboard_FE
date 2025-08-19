@@ -22,7 +22,7 @@ import {
   exportTableData,
 } from "../../utils/downloadUtils";
 import type { Agent, DownloadAgentsParams } from "../../types/types";
-import { AGENT_ROLE, MERCHANT_ROLE, SUPER_AGENT_ROLE } from "../../utils/roles";
+import { AGENT_ROLE, MERCHANT_ROLE } from "../../utils/roles";
 import { isValidDateFormat, validateDateRange } from "../../utils/utils";
 
 const tableHeader: string[] = [
@@ -36,7 +36,7 @@ const tableHeader: string[] = [
   "Date Created",
 ];
 
-const Agents: React.FC = () => {
+const AllAgentsAndVendors: React.FC = () => {
   const [filterRole, setFilterRole] = useState<string>("All");
   const [filterModel, setFilterModel] = useState<string>("All");
   const [filterStatus, setFilterStatus] = useState<string>("All");
@@ -58,7 +58,6 @@ const Agents: React.FC = () => {
 
   const navigate = useNavigate();
 
-  const roleOptions = ["All", AGENT_ROLE, SUPER_AGENT_ROLE, MERCHANT_ROLE];
   const modelOptions = ["All", "Target", "Independent"];
   const kycStatusOptions = ["All", "Completed", "Incomplete"];
   const statusOptions = ["All", "Pending", "Active", "Suspended", "Rejected"];
@@ -79,9 +78,7 @@ const Agents: React.FC = () => {
       per_page: 10,
     };
 
-    if (filterRole !== "All") {
-      params.type = filterRole;
-    }
+    params.type = AGENT_ROLE;
 
     if (filterModel !== "All") {
       params.model = filterModel;
@@ -168,15 +165,6 @@ const Agents: React.FC = () => {
   };
 
   const filters: FilterConfig[] = [
-    {
-      label: `Role: ${filterRole}`,
-      options: roleOptions,
-      onSelect: (role) => {
-        setFilterRole(role);
-        setCurrentPage(1);
-      },
-      value: filterRole,
-    },
     {
       label: `Model: ${filterModel}`,
       options: modelOptions,
@@ -419,4 +407,4 @@ const Agents: React.FC = () => {
   );
 };
 
-export default Agents;
+export default AllAgentsAndVendors;

@@ -38,8 +38,8 @@ const txType = [
 ];
 
 export default function Home() {
-  const { allUsers } = useUsers();
-  const { allAgents } = useAgents();
+  const { allUsers, loading: userLoading } = useUsers();
+  const { allAgents, loading: agentsLoading } = useAgents();
   const { user } = useAuth();
   const userRole = user?.role || "Admin";
 
@@ -86,7 +86,11 @@ export default function Home() {
                   </h3>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 md:gap-6">
                     {userMetrics.map((user) => (
-                      <EcommerceMetrics data={user} key={user.users} />
+                      <EcommerceMetrics
+                        data={user}
+                        key={user.users}
+                        loading={userLoading && agentsLoading}
+                      />
                     ))}
                   </div>
                 </div>
