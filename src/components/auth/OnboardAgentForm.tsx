@@ -6,8 +6,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useFormPersistence } from "../../hooks/useFormPersistence";
 import {
-  addAgent,
-  // checkUserExist,
+  onboardAgent,
   checkPhoneType,
   getUserByReferralCode,
   uploadToCloudinary,
@@ -385,7 +384,6 @@ export default function OnboardAgentForm() {
   });
 
   const handleGetLocation = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
     e.stopPropagation();
     setGeoLoading(true);
     setAlertTitle("");
@@ -614,7 +612,7 @@ export default function OnboardAgentForm() {
       if (marketer) formData.append("ref_by", marketer);
       formData.append("temp", tempValue.toString());
 
-      const response = await addAgent(formData);
+      const response = await onboardAgent(formData);
 
       if (response.success && response.data) {
         await fetchUsers({
@@ -763,7 +761,6 @@ export default function OnboardAgentForm() {
                       <path
                         d="M34.364 6.85053C38.6205 -2.28351 51.3795 -2.28351 55.636 6.85053C58.0129 11.951 63.5594 14.6722 68.9556 13.3853C78.6192 11.0807 86.5743 21.2433 82.2185 30.3287C79.7862 35.402 81.1561 41.5165 85.5082 45.0122C93.3019 51.2725 90.4628 63.9451 80.7747 66.1403C75.3648 67.3661 71.5265 72.2695 71.5572 77.9156C71.6123 88.0265 60.1169 93.6664 52.3918 87.3184C48.0781 83.7737 41.9219 83.7737 37.6082 87.3184C29.8831 93.6664 18.3877 88.0266 18.4428 77.9156C18.4735 72.2695 14.6352 67.3661 9.22531 66.1403C-0.462787 63.9451 -3.30193 51.2725 4.49185 45.0122C8.84391 41.5165 10.2138 35.402 7.78151 30.3287C3.42572 21.2433 11.3808 11.0807 21.0444 13.3853C26.4406 14.6722 31.9871 11.951 34.364 6.85053Z"
                         fill=""
-                        fill-opacity=""
                       ></path>
                     </svg>
                   ) : (
@@ -778,7 +775,6 @@ export default function OnboardAgentForm() {
                       <path
                         d="M34.364 6.85053C38.6205 -2.28351 51.3795 -2.28351 55.636 6.85053C58.0129 11.951 63.5594 14.6722 68.9556 13.3853C78.6192 11.0807 86.5743 21.2433 82.2185 30.3287C79.7862 35.402 81.1561 41.5165 85.5082 45.0122C93.3019 51.2725 90.4628 63.9451 80.7747 66.1403C75.3648 67.3661 71.5265 72.2695 71.5572 77.9156C71.6123 88.0265 60.1169 93.6664 52.3918 87.3184C48.0781 83.7737 41.9219 83.7737 37.6082 87.3184C29.8831 93.6664 18.3877 88.0266 18.4428 77.9156C18.4735 72.2695 14.6352 67.3661 9.22531 66.1403C-0.462787 63.9451 -3.30193 51.2725 4.49185 45.0122C8.84391 41.5165 10.2138 35.402 7.78151 30.3287C3.42572 21.2433 11.3808 11.0807 21.0444 13.3853C26.4406 14.6722 31.9871 11.951 34.364 6.85053Z"
                         fill=""
-                        fillOpacity=""
                       />
                     </svg>
                   )}
@@ -884,7 +880,7 @@ export default function OnboardAgentForm() {
           <ComponentCard title="Business Info">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
-                <Label htmlFor="input">
+                <Label htmlFor="firstName">
                   First Name <span className="text-error-500">*</span>
                 </Label>
                 <Controller
@@ -906,7 +902,7 @@ export default function OnboardAgentForm() {
               </div>
 
               <div>
-                <Label>
+                <Label htmlFor="lastName">
                   Last Name <span className="text-error-500">*</span>
                 </Label>
                 <Controller
@@ -928,7 +924,7 @@ export default function OnboardAgentForm() {
               </div>
 
               <div>
-                <Label>Middle Name (Optional)</Label>
+                <Label htmlFor="middleName">Middle Name (Optional)</Label>
                 <Controller
                   name="middleName"
                   control={control}
@@ -947,7 +943,7 @@ export default function OnboardAgentForm() {
               </div>
 
               <div>
-                <Label>
+                <Label htmlFor="userName">
                   Username <span className="text-error-500">*</span>
                 </Label>
                 <Controller
@@ -955,8 +951,8 @@ export default function OnboardAgentForm() {
                   control={control}
                   render={({ field }) => (
                     <Input
-                      type="text"
                       id="userName"
+                      type="text"
                       placeholder="Enter username"
                       {...field}
                       disabled={loading || uploadLoading}
@@ -969,7 +965,7 @@ export default function OnboardAgentForm() {
               </div>
 
               <div>
-                <Label>
+                <Label htmlFor="businessName">
                   Business Name <span className="text-error-500">*</span>
                 </Label>
                 <Controller
@@ -991,7 +987,7 @@ export default function OnboardAgentForm() {
               </div>
 
               <div>
-                <Label>
+                <Label htmlFor="businessPhone">
                   Business Phone <span className="text-error-500">*</span>
                 </Label>
                 <Controller
@@ -1016,7 +1012,7 @@ export default function OnboardAgentForm() {
               </div>
 
               <div>
-                <Label>
+                <Label htmlFor="phone">
                   Phone <span className="text-error-500">*</span>
                 </Label>
                 <Controller
@@ -1044,7 +1040,7 @@ export default function OnboardAgentForm() {
               </div>
 
               <div>
-                <Label>Email (Optional)</Label>
+                <Label htmlFor="email">Email (Optional)</Label>
                 <div className="relative">
                   <Controller
                     name="email"
@@ -1070,7 +1066,7 @@ export default function OnboardAgentForm() {
               </div>
 
               <div className="relative">
-                <Label>
+                <Label htmlFor="agentType">
                   Agency Type <span className="text-error-500">*</span>
                 </Label>
                 <Controller
@@ -1126,7 +1122,7 @@ export default function OnboardAgentForm() {
 
               {agentType && agentType !== MERCHANT_ROLE && (
                 <div className="relative">
-                  <Label>
+                  <Label htmlFor="model">
                     Agency Model <span className="text-error-500">*</span>
                   </Label>
                   <Controller
@@ -1188,7 +1184,7 @@ export default function OnboardAgentForm() {
               </div>
 
               <div className="col-span-full">
-                <Label>
+                <Label htmlFor="businessAddress">
                   Address <span className="text-error-500">*</span>
                 </Label>
                 <Controller
@@ -1211,7 +1207,7 @@ export default function OnboardAgentForm() {
               </div>
 
               <div className="relative">
-                <Label>
+                <Label htmlFor="district">
                   District <span className="text-error-500">*</span>
                 </Label>
                 <Controller
@@ -1266,7 +1262,7 @@ export default function OnboardAgentForm() {
               </div>
 
               <div>
-                <Label>
+                <Label htmlFor="region">
                   Region (Optional)
                   {/* <span className="text-error-500">*</span> */}
                 </Label>
@@ -1289,7 +1285,7 @@ export default function OnboardAgentForm() {
 
               <div className="col-span-full flex gap-4 flex-wrap items-end">
                 <div className="grow" title="click the ☉ icon to get location">
-                  <Label>
+                  <Label htmlFor="latitude">
                     Latitude <span className="text-error-500">*</span>
                   </Label>
                   <Controller
@@ -1324,7 +1320,7 @@ export default function OnboardAgentForm() {
                 </div>
 
                 <div className="grow" title="click the ☉ icon to get location">
-                  <Label>
+                  <Label htmlFor="longitude">
                     Longitude <span className="text-error-500">*</span>
                   </Label>
                   <Controller
@@ -1360,6 +1356,7 @@ export default function OnboardAgentForm() {
                 </div>
                 <div>
                   <Button
+                    type="button"
                     size="sm"
                     onClick={handleGetLocation}
                     disabled={geoLoading || loading || uploadLoading}
@@ -1406,7 +1403,7 @@ export default function OnboardAgentForm() {
                     "col-span-full"
                   }`}
                 >
-                  <Label>
+                  <Label htmlFor="businessImage">
                     Upload Business Place Image{" "}
                     <span className="text-error-500">*</span>
                   </Label>
@@ -1427,7 +1424,10 @@ export default function OnboardAgentForm() {
                     } `}
                       id="id-image-upload"
                     >
-                      <input {...getBusinessImageInputProps()} />
+                      <input
+                        id="businessImage"
+                        {...getBusinessImageInputProps()}
+                      />
                       <div
                         className={`dz-message flex flex-col items-center upload ${
                           businessImageUrl && "opacity-40"
@@ -1508,7 +1508,7 @@ export default function OnboardAgentForm() {
 
               {agentType !== AGENT_ROLE && (
                 <div>
-                  <Label>
+                  <Label htmlFor="addressDocument">
                     Upload Proof of Address{" "}
                     <span className="text-error-500">*</span>
                   </Label>
@@ -1529,7 +1529,10 @@ export default function OnboardAgentForm() {
                     } `}
                       id="id-image-upload"
                     >
-                      <input {...getAddressDocumentInputProps()} />
+                      <input
+                        id="addressDocument"
+                        {...getAddressDocumentInputProps()}
+                      />
                       <div
                         className={`dz-message flex flex-col items-center upload ${
                           addressDocumentUrl && "opacity-40"
@@ -1614,7 +1617,11 @@ export default function OnboardAgentForm() {
         <div className="space-y-5 sm:space-y-6">
           <ComponentCard title="Business Document">
             <div>
-              <Label>
+              <Label
+                htmlFor={`${
+                  TargetAgent ? "businessImage" : "businessDocument"
+                }`}
+              >
                 {TargetAgent
                   ? "Upload Business Place Image"
                   : "Upload Business Registration Document"}{" "}
@@ -1652,6 +1659,7 @@ export default function OnboardAgentForm() {
                   }
                 >
                   <input
+                    id={`${TargetAgent ? "businessImage" : "businessDocument"}`}
                     {...(TargetAgent
                       ? getBusinessImageInputProps()
                       : getRegDocumentInputProps())}
@@ -1784,7 +1792,7 @@ export default function OnboardAgentForm() {
                   )}
             </div>
             <div className="relative">
-              <Label>
+              <Label htmlFor="idType">
                 ID Type <span className="text-error-500">*</span>
               </Label>
               <Controller
@@ -1838,7 +1846,7 @@ export default function OnboardAgentForm() {
               )}
             </div>
             <div>
-              <Label>
+              <Label htmlFor="idImage">
                 Upload ID Document <span className="text-error-500">*</span>
               </Label>
               <div
@@ -1858,7 +1866,7 @@ export default function OnboardAgentForm() {
                     } `}
                   id="id-image-upload"
                 >
-                  <input {...getIdImageInputProps()} />
+                  <input id="idImage" {...getIdImageInputProps()} />
 
                   <div
                     className={`dz-message flex flex-col items-center upload ${

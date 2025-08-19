@@ -141,6 +141,21 @@ const Agents: React.FC = () => {
     }
   };
 
+  const resetFilters = () => {
+    setFilterRole("All");
+    setFilterModel("All");
+    setFilterStatus("All");
+    setFilterKycStatus("All");
+    setFilterRefBy("");
+    setDateRange({
+      startDate: "",
+      endDate: "",
+    });
+    setCurrentPage(1);
+    setSearchTerm("");
+    setDateError("");
+  };
+
   const handleSearch = (term: string) => {
     setSearchTerm(term);
     setCurrentPage(1);
@@ -259,6 +274,7 @@ const Agents: React.FC = () => {
         "Business Phone",
         "Residual Amount",
         "Referred By",
+        "Master Vendor",
         "Address",
         "Region",
         "District",
@@ -269,6 +285,7 @@ const Agents: React.FC = () => {
         "Business Registration",
         "Business Image",
         "Address Document",
+        "Rejection Reason",
         "Created At",
       ];
       exportTableData(
@@ -384,7 +401,7 @@ const Agents: React.FC = () => {
             tableHeading={tableHeader}
             tableContent={tableData}
             loading={loading}
-            setCurrentPage={setCurrentPage}
+            resetFilters={resetFilters}
           />
           <TablePagination
             pagination={{

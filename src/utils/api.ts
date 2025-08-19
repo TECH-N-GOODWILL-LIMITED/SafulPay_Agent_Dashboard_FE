@@ -31,9 +31,6 @@ export const requestOtp = async (
     const response = await fetch(`${BASE_URL}/auth/sendOTP`, {
       method: "POST",
       headers: {
-        // "Access-Control-Allow-Origin": "*",
-        // "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-        // "Access-Control-Allow-Headers": "Content-Type, Accept",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ phone }),
@@ -490,7 +487,7 @@ export const registerUser = async (
   }
 };
 
-export const addAgent = async (
+export const onboardAgent = async (
   formData: FormData
 ): Promise<ApiResponse<{ agent: Agent }>> => {
   try {
@@ -508,7 +505,6 @@ export const addAgent = async (
     if (response.ok && data.status) {
       return { success: true, data: { agent: data.data } };
     } else {
-      console.log(data);
       return {
         success: false,
         error: data.errors.phone
@@ -520,6 +516,53 @@ export const addAgent = async (
     }
   } catch (err) {
     return { success: false, error: `Error onboarding agent: ${err}` };
+  }
+};
+
+export const agentSignup = async (
+  accessToken: string,
+  agentId: number,
+  masterId: number,
+  reason: string
+): Promise<ApiResponse<{ status?: string }>> => {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/agents/agentSignup`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ agent_id: agentId, master_id: masterId, reason }),
+      redirect: "follow",
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return {
+        success: true,
+        data: { status: data.status },
+      };
+    } else {
+      let errorMessage = "Failed to approve agent";
+
+      if (data.errors && typeof data.errors === "object") {
+        // Handle validation errors (400 response)
+        const errorDetails = Object.values(data.errors).flat().join(", ");
+        errorMessage = `Validation failed: ${errorDetails}`;
+      } else if (data.data?.message) {
+        errorMessage = data.data.message;
+      } else if (data.message) {
+        errorMessage = data.message;
+      }
+
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  } catch (err) {
+    return { success: false, error: `Error approving agent: ${err}` };
   }
 };
 
@@ -601,8 +644,7 @@ export const changeAgentStatus = async (
   accessToken: string,
   agentId: number,
   status: number,
-  reason: string,
-  masterId?: number
+  reason: string
 ): Promise<ApiResponse<{ agent: Agent }>> => {
   try {
     const response = await fetch(`${BASE_URL}/auth/agents/changeAgentStatus`, {
@@ -615,7 +657,6 @@ export const changeAgentStatus = async (
         agent_id: agentId,
         status,
         reason,
-        ...(masterId !== undefined && { master_id: masterId }),
       }),
       redirect: "follow",
     });

@@ -165,7 +165,11 @@ const TableFilters: React.FC<TableFiltersProps> = ({
       >
         {searchConfig && (
           <div className="relative flex-1 sm:flex-auto self-baseline">
+            <Label htmlFor="search-by" className="sr-only">
+              Search
+            </Label>
             <Input
+              id="search-by"
               type="text"
               placeholder={searchConfig?.placeholder || "Search..."}
               value={searchTerm}
@@ -201,7 +205,7 @@ const TableFilters: React.FC<TableFiltersProps> = ({
             className="flex items-center gap-2"
           >
             <svg
-              className="stroke-current"
+              className="stroke-current fill-white dark:fill-gray-800"
               width="20"
               height="20"
               viewBox="0 0 20 20"
@@ -315,8 +319,9 @@ const TableFilters: React.FC<TableFiltersProps> = ({
           >
             {referralFilter && (
               <div>
-                <Label>Referred By</Label>
+                <Label htmlFor="referred-by">Referred By</Label>
                 <Input
+                  id="referred-by"
                   type="text"
                   value={referralFilter.value}
                   onChange={(e) => referralFilter.onChange(e.target.value)}
@@ -339,8 +344,9 @@ const TableFilters: React.FC<TableFiltersProps> = ({
             )}
             {performedByFilter && (
               <div>
-                <Label>Performed By</Label>
+                <Label htmlFor="performed-by">Performed By</Label>
                 <Input
+                  id="performed-by"
                   type="text"
                   value={performedByFilter.value}
                   onChange={(e) => performedByFilter.onChange(e.target.value)}
@@ -351,34 +357,32 @@ const TableFilters: React.FC<TableFiltersProps> = ({
               </div>
             )}
             {dateFilter && (
-              <div>
-                <DatePicker
-                  label="Date Range"
-                  id="date-range-picker"
-                  mode="range"
-                  placeholder="Select date range..."
-                  maxDate={new Date()}
-                  error={!!startDateError || !!endDateError || !!dateError}
-                  hint={startDateError || endDateError || dateError}
-                  value={
-                    dateFilter.startDate && dateFilter.endDate
-                      ? `${dateFilter.startDate} to ${dateFilter.endDate}`
-                      : ""
+              <DatePicker
+                label="Date Range"
+                id="date-range-picker"
+                mode="range"
+                placeholder="Select date range..."
+                maxDate={new Date()}
+                error={!!startDateError || !!endDateError || !!dateError}
+                hint={startDateError || endDateError || dateError}
+                value={
+                  dateFilter.startDate && dateFilter.endDate
+                    ? `${dateFilter.startDate} to ${dateFilter.endDate}`
+                    : ""
+                }
+                onChange={(dates) => {
+                  // In range mode, flatpickr provides 2 dates once the range is selected.
+                  if (dates.length === 2) {
+                    const startDate = dates[0].toISOString().split("T")[0];
+                    const endDate = dates[1].toISOString().split("T")[0];
+                    dateFilter.onDateRangeChange(startDate, endDate);
+                  } else if (dates.length === 0) {
+                    dateFilter.onDateRangeChange("", "");
                   }
-                  onChange={(dates) => {
-                    // In range mode, flatpickr provides 2 dates once the range is selected.
-                    if (dates.length === 2) {
-                      const startDate = dates[0].toISOString().split("T")[0];
-                      const endDate = dates[1].toISOString().split("T")[0];
-                      dateFilter.onDateRangeChange(startDate, endDate);
-                    } else if (dates.length === 0) {
-                      dateFilter.onDateRangeChange("", "");
-                    }
-                    // If dates.length is 1, do nothing, wait for the user to select the second date.
-                  }}
-                  onClear={() => dateFilter.onDateRangeChange("", "")}
-                />
-              </div>
+                  // If dates.length is 1, do nothing, wait for the user to select the second date.
+                }}
+                onClear={() => dateFilter.onDateRangeChange("", "")}
+              />
             )}
           </div>
         </div>

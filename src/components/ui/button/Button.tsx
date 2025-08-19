@@ -2,18 +2,22 @@ import { ReactNode } from "react";
 import { Link } from "react-router";
 
 interface ButtonProps {
-  children: ReactNode; // Button text or content
-  size?: "sm" | "md"; // Button size
-  variant?: "primary" | "outline"; // Button variant
-  startIcon?: ReactNode; // Icon before the text
-  endIcon?: ReactNode; // Icon after the text
-  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void | Promise<void>; // Click handler
-  disabled?: boolean; // Disabled state
-  className?: string; // Additional CSS classes
-  to?: string; // Optional: URL for Link component
+  id?: string;
+  type?: "button" | "submit" | "reset";
+  children: ReactNode;
+  size?: "sm" | "md";
+  variant?: "primary" | "outline";
+  startIcon?: ReactNode;
+  endIcon?: ReactNode;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void | Promise<void>;
+  disabled?: boolean;
+  className?: string;
+  to?: string;
 }
 
 const Button: React.FC<ButtonProps> = ({
+  id,
+  type = "submit",
   children,
   size = "md",
   variant = "primary",
@@ -41,6 +45,7 @@ const Button: React.FC<ButtonProps> = ({
   if (to) {
     return (
       <Link
+        id={id}
         to={to}
         className={`inline-flex items-center justify-center gap-2 rounded-lg transition ${className} ${
           sizeClasses[size]
@@ -57,6 +62,8 @@ const Button: React.FC<ButtonProps> = ({
 
   return (
     <button
+      id={id}
+      type={type}
       className={`inline-flex items-center justify-center gap-2 rounded-lg transition ${className} ${
         sizeClasses[size]
       } ${variantClasses[variant]} ${

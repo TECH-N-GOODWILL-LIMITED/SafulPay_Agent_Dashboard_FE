@@ -219,6 +219,7 @@ export const prepareAgentsForExport = async (
       "Referred By": `${
         agent.ref_by ? `${referrerName} - ${agent.ref_by}` : "N/A"
       }`,
+      "Master Vendor": agent.master_id || "N/A",
       Status:
         agent.status === 1
           ? "Active"
@@ -238,6 +239,7 @@ export const prepareAgentsForExport = async (
       "Business Registration": agent.business_registration || null,
       "Business Image": agent.business_image || null,
       "Address Document": agent.address_document || null,
+      "Rejection Reason": agent.reason || "N/A",
       "Created At": new Date(agent.created_at).toLocaleDateString(),
     };
   });
