@@ -22,7 +22,6 @@ import type {
 } from "../types/types";
 
 const BASE_URL = import.meta.env.VITE_AGENCY_BASE_URL;
-// const CORE_URL = import.meta.env.VITE_AGENCY_CORE_URL;
 
 export const requestOtp = async (
   phone: string
@@ -288,7 +287,7 @@ export const getAllVendors = async (
   }>
 > => {
   try {
-    const response = await fetch(`/vendor/core/merchantvendorlist`, {
+    const response = await fetch(`${BASE_URL}/auth/agents/merchantlist`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -302,7 +301,7 @@ export const getAllVendors = async (
     if (response.ok && data.status) {
       return {
         success: true,
-        data: { vendors: data.vendors || [] },
+        data: { vendors: data.data.vendors || [] },
       };
     } else {
       return { success: false, error: data.message || "Failed to get vendors" };

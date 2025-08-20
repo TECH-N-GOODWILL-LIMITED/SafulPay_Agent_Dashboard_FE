@@ -5,17 +5,17 @@ import { useAuth } from "../context/AuthContext";
 import { ACCOUNTANT_ROLE, ADMIN_ROLE, MARKETER_ROLE } from "../utils/roles";
 import { useClickOutside } from "../hooks/useClickOutside";
 import {
-  BoxCubeIcon,
   ChevronDownIcon,
   GridIcon,
   HorizontaLDots,
   UserIcon,
   ListIcon,
-  PlusIcon,
-  DollarLineIcon,
-  ArrowUpIcon,
   PieChartIcon,
   GroupIcon,
+  // BoxCubeIcon,
+  // PlusIcon,
+  // DollarLineIcon,
+  // ArrowUpIcon,
 } from "../icons";
 
 type NavItem = {
@@ -61,16 +61,6 @@ const AppSidebar: React.FC = () => {
           path: "/marketers",
           roles: [ADMIN_ROLE, MARKETER_ROLE],
         },
-        // {
-        //   name: "Agents",
-        //   path: "/agents",
-        //   roles: ["Guest", ADMIN_ROLE],
-        // },
-        // {
-        //   name: "My Agents",
-        //   path: "/myagents",
-        //   roles: [MARKETER_ROLE],
-        // },
         {
           name: "Riders",
           path: "/riders",
@@ -81,14 +71,8 @@ const AppSidebar: React.FC = () => {
           path: "/accountants",
           roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
         },
-        // {
-        //   name: "Register Agent",
-        //   path: `/onboardagent/${user?.referral_code}`,
-        //   roles: [MARKETER_ROLE, ADMIN_ROLE],
-        // },
       ],
     },
-
     {
       icon: <GroupIcon />,
       name: "Agents and Vendors",
@@ -122,7 +106,6 @@ const AppSidebar: React.FC = () => {
         },
       ],
     },
-
     {
       icon: <UserIcon />,
       name: "Edit Profile",
@@ -137,30 +120,30 @@ const AppSidebar: React.FC = () => {
   ];
 
   const othersItems: NavItem[] = [
-    {
-      icon: <BoxCubeIcon />,
-      name: "Recollections",
-      path: "/recollections",
-      roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
-    },
-    {
-      icon: <DollarLineIcon />,
-      name: "Disbursement",
-      path: "/disbursement",
-      roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
-    },
-    {
-      icon: <PlusIcon />,
-      name: "Deposit",
-      path: "/deposit",
-      roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
-    },
-    {
-      icon: <ArrowUpIcon />,
-      name: "Withdrawal",
-      path: "/withdrawal",
-      roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
-    },
+    // {
+    //   icon: <BoxCubeIcon />,
+    //   name: "Recollections",
+    //   path: "/recollections",
+    //   roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
+    // },
+    // {
+    //   icon: <DollarLineIcon />,
+    //   name: "Disbursement",
+    //   path: "/disbursement",
+    //   roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
+    // },
+    // {
+    //   icon: <PlusIcon />,
+    //   name: "Deposit",
+    //   path: "/deposit",
+    //   roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
+    // },
+    // {
+    //   icon: <ArrowUpIcon />,
+    //   name: "Withdrawal",
+    //   path: "/withdrawal",
+    //   roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
+    // },
     {
       icon: <ListIcon />,
       name: "Transactions Log",
@@ -244,7 +227,6 @@ const AppSidebar: React.FC = () => {
       .filter((item) => !item.roles || item.roles.includes(userRole))
       .map((item) => {
         if (item.subItems) {
-          // Filter subItems too
           const filteredSubItems = item.subItems.filter(
             (sub) => !sub.roles || sub.roles.includes(userRole)
           );
@@ -264,93 +246,36 @@ const AppSidebar: React.FC = () => {
     }
   });
 
-  const getFilteredSubItems = (
-    subItems: NavItem["subItems"],
-    role: string
-  ): NavItem["subItems"] => {
-    if (!subItems) return subItems;
-    switch (role) {
-      case "Admin":
-        return subItems;
-      case "Accountant":
-        return subItems.filter((item) =>
-          ["Accountants", "Riders", "Agents"].includes(item.name)
-        );
-      case "Marketer":
-        return subItems.filter((item) =>
-          ["Marketers", "My Agents", "Register Agents"].includes(item.name)
-        );
-      default:
-        return;
-    }
-  };
-
   const renderMenuItems = (items: NavItem[], menuType: "main" | "others") => (
     <ul className="flex flex-col gap-4">
       {items.map((nav, index) => {
-        const filteredSubItems =
-          nav.name === "Users" || nav.name === "Agents and Vendors"
-            ? getFilteredSubItems(nav.subItems, userRole)
-            : nav.subItems;
+        const filteredSubItems = nav.subItems;
+        const hasSubItems = filteredSubItems && filteredSubItems.length > 0;
+
         return (
-          <li key={nav.name}>
-            {filteredSubItems ? (
-              <button
-                onClick={() => handleSubmenuToggle(index, menuType)}
-                className={`menu-item group ${
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
-                    ? "menu-item-active"
-                    : "menu-item-inactive"
-                } cursor-pointer ${
-                  !isExpanded && !isHovered
-                    ? "lg:justify-center"
-                    : "lg:justify-start"
-                }`}
-              >
-                <span
-                  className={`menu-item-icon-size ${
+          <li
+            key={`${nav.name}-${index}`}
+            className={!(hasSubItems || nav.path) ? "hidden" : ""}
+          >
+            <>
+              {hasSubItems ? (
+                <button
+                  onClick={() => handleSubmenuToggle(index, menuType)}
+                  className={`menu-item group ${
                     openSubmenu?.type === menuType &&
                     openSubmenu?.index === index
-                      ? "menu-item-icon-active"
-                      : "menu-item-icon-inactive"
-                  }`}
-                >
-                  {nav.icon}
-                </span>
-                {(isExpanded || isHovered || isMobileOpen) && (
-                  <span className="menu-item-text">{nav.name}</span>
-                )}
-                {(isExpanded || isHovered || isMobileOpen) &&
-                  filteredSubItems.length > 0 && (
-                    <ChevronDownIcon
-                      className={`ml-auto w-5 h-5 transition-transform duration-200 ${
-                        openSubmenu?.type === menuType &&
-                        openSubmenu?.index === index
-                          ? "rotate-180 text-brand-500"
-                          : ""
-                      }`}
-                    />
-                  )}
-              </button>
-            ) : (
-              nav.path && (
-                <Link
-                  to={nav.path}
-                  onClick={() => {
-                    // Close mobile sidebar when navigating
-                    if (isMobileOpen) {
-                      closeMobileSidebar();
-                    }
-                  }}
-                  className={`menu-item group ${
-                    isActive(nav.path)
                       ? "menu-item-active"
                       : "menu-item-inactive"
+                  } cursor-pointer ${
+                    !isExpanded && !isHovered
+                      ? "lg:justify-center"
+                      : "lg:justify-start"
                   }`}
                 >
                   <span
                     className={`menu-item-icon-size ${
-                      isActive(nav.path)
+                      openSubmenu?.type === menuType &&
+                      openSubmenu?.index === index
                         ? "menu-item-icon-active"
                         : "menu-item-icon-inactive"
                     }`}
@@ -360,12 +285,49 @@ const AppSidebar: React.FC = () => {
                   {(isExpanded || isHovered || isMobileOpen) && (
                     <span className="menu-item-text">{nav.name}</span>
                   )}
-                </Link>
-              )
-            )}
-            {filteredSubItems &&
-              (isExpanded || isHovered || isMobileOpen) &&
-              filteredSubItems.length > 0 && (
+                  {(isExpanded || isHovered || isMobileOpen) && (
+                    <ChevronDownIcon
+                      className={`ml-auto w-5 h-5 transition-transform duration-200 ${
+                        openSubmenu?.type === menuType &&
+                        openSubmenu?.index === index
+                          ? "rotate-180 text-brand-500"
+                          : ""
+                      }`}
+                    />
+                  )}
+                </button>
+              ) : (
+                nav.path && (
+                  <Link
+                    to={nav.path}
+                    onClick={() => {
+                      // Close mobile sidebar when navigating
+                      if (isMobileOpen) {
+                        closeMobileSidebar();
+                      }
+                    }}
+                    className={`menu-item group ${
+                      isActive(nav.path)
+                        ? "menu-item-active"
+                        : "menu-item-inactive"
+                    }`}
+                  >
+                    <span
+                      className={`menu-item-icon-size ${
+                        isActive(nav.path)
+                          ? "menu-item-icon-active"
+                          : "menu-item-icon-inactive"
+                      }`}
+                    >
+                      {nav.icon}
+                    </span>
+                    {(isExpanded || isHovered || isMobileOpen) && (
+                      <span className="menu-item-text">{nav.name}</span>
+                    )}
+                  </Link>
+                )
+              )}
+              {hasSubItems && (isExpanded || isHovered || isMobileOpen) && (
                 <div
                   ref={(el) => {
                     subMenuRefs.current[`${menuType}-${index}`] = el;
@@ -381,11 +343,10 @@ const AppSidebar: React.FC = () => {
                 >
                   <ul className="mt-2 space-y-1 ml-9">
                     {filteredSubItems.map((subItem) => (
-                      <li key={subItem.name}>
+                      <li key={`${subItem.name}-${index}`}>
                         <Link
                           to={subItem.path}
                           onClick={() => {
-                            // Close mobile sidebar when navigating
                             if (isMobileOpen) {
                               closeMobileSidebar();
                             }
@@ -427,6 +388,7 @@ const AppSidebar: React.FC = () => {
                   </ul>
                 </div>
               )}
+            </>
           </li>
         );
       })}
@@ -508,7 +470,8 @@ const AppSidebar: React.FC = () => {
                   }`}
                 >
                   {isExpanded || isHovered || isMobileOpen ? (
-                    "Finance and Logs"
+                    // "Finance and Logs"
+                    "Logs"
                   ) : (
                     <HorizontaLDots />
                   )}
