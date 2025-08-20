@@ -5,17 +5,17 @@ import { useAuth } from "../context/AuthContext";
 import { ACCOUNTANT_ROLE, ADMIN_ROLE, MARKETER_ROLE } from "../utils/roles";
 import { useClickOutside } from "../hooks/useClickOutside";
 import {
-  BoxCubeIcon,
   ChevronDownIcon,
   GridIcon,
   HorizontaLDots,
   UserIcon,
   ListIcon,
-  PlusIcon,
-  DollarLineIcon,
-  ArrowUpIcon,
   PieChartIcon,
   GroupIcon,
+  // BoxCubeIcon,
+  // PlusIcon,
+  // DollarLineIcon,
+  // ArrowUpIcon,
 } from "../icons";
 
 type NavItem = {
@@ -73,7 +73,6 @@ const AppSidebar: React.FC = () => {
         },
       ],
     },
-
     {
       icon: <GroupIcon />,
       name: "Agents and Vendors",
@@ -107,7 +106,6 @@ const AppSidebar: React.FC = () => {
         },
       ],
     },
-
     {
       icon: <UserIcon />,
       name: "Edit Profile",
@@ -122,30 +120,30 @@ const AppSidebar: React.FC = () => {
   ];
 
   const othersItems: NavItem[] = [
-    {
-      icon: <BoxCubeIcon />,
-      name: "Recollections",
-      path: "/recollections",
-      roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
-    },
-    {
-      icon: <DollarLineIcon />,
-      name: "Disbursement",
-      path: "/disbursement",
-      roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
-    },
-    {
-      icon: <PlusIcon />,
-      name: "Deposit",
-      path: "/deposit",
-      roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
-    },
-    {
-      icon: <ArrowUpIcon />,
-      name: "Withdrawal",
-      path: "/withdrawal",
-      roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
-    },
+    // {
+    //   icon: <BoxCubeIcon />,
+    //   name: "Recollections",
+    //   path: "/recollections",
+    //   roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
+    // },
+    // {
+    //   icon: <DollarLineIcon />,
+    //   name: "Disbursement",
+    //   path: "/disbursement",
+    //   roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
+    // },
+    // {
+    //   icon: <PlusIcon />,
+    //   name: "Deposit",
+    //   path: "/deposit",
+    //   roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
+    // },
+    // {
+    //   icon: <ArrowUpIcon />,
+    //   name: "Withdrawal",
+    //   path: "/withdrawal",
+    //   roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
+    // },
     {
       icon: <ListIcon />,
       name: "Transactions Log",
@@ -253,28 +251,70 @@ const AppSidebar: React.FC = () => {
       {items.map((nav, index) => {
         const filteredSubItems = nav.subItems;
         const hasSubItems = filteredSubItems && filteredSubItems.length > 0;
+
         return (
-          <>
-            {(hasSubItems || nav.path) && (
-              <li key={nav.name}>
-                {hasSubItems ? (
-                  <button
-                    onClick={() => handleSubmenuToggle(index, menuType)}
-                    className={`menu-item group ${
+          <li
+            key={`${nav.name}-${index}`}
+            className={!(hasSubItems || nav.path) ? "hidden" : ""}
+          >
+            <>
+              {hasSubItems ? (
+                <button
+                  onClick={() => handleSubmenuToggle(index, menuType)}
+                  className={`menu-item group ${
+                    openSubmenu?.type === menuType &&
+                    openSubmenu?.index === index
+                      ? "menu-item-active"
+                      : "menu-item-inactive"
+                  } cursor-pointer ${
+                    !isExpanded && !isHovered
+                      ? "lg:justify-center"
+                      : "lg:justify-start"
+                  }`}
+                >
+                  <span
+                    className={`menu-item-icon-size ${
                       openSubmenu?.type === menuType &&
                       openSubmenu?.index === index
+                        ? "menu-item-icon-active"
+                        : "menu-item-icon-inactive"
+                    }`}
+                  >
+                    {nav.icon}
+                  </span>
+                  {(isExpanded || isHovered || isMobileOpen) && (
+                    <span className="menu-item-text">{nav.name}</span>
+                  )}
+                  {(isExpanded || isHovered || isMobileOpen) && (
+                    <ChevronDownIcon
+                      className={`ml-auto w-5 h-5 transition-transform duration-200 ${
+                        openSubmenu?.type === menuType &&
+                        openSubmenu?.index === index
+                          ? "rotate-180 text-brand-500"
+                          : ""
+                      }`}
+                    />
+                  )}
+                </button>
+              ) : (
+                nav.path && (
+                  <Link
+                    to={nav.path}
+                    onClick={() => {
+                      // Close mobile sidebar when navigating
+                      if (isMobileOpen) {
+                        closeMobileSidebar();
+                      }
+                    }}
+                    className={`menu-item group ${
+                      isActive(nav.path)
                         ? "menu-item-active"
                         : "menu-item-inactive"
-                    } cursor-pointer ${
-                      !isExpanded && !isHovered
-                        ? "lg:justify-center"
-                        : "lg:justify-start"
                     }`}
                   >
                     <span
                       className={`menu-item-icon-size ${
-                        openSubmenu?.type === menuType &&
-                        openSubmenu?.index === index
+                        isActive(nav.path)
                           ? "menu-item-icon-active"
                           : "menu-item-icon-inactive"
                       }`}
@@ -284,112 +324,72 @@ const AppSidebar: React.FC = () => {
                     {(isExpanded || isHovered || isMobileOpen) && (
                       <span className="menu-item-text">{nav.name}</span>
                     )}
-                    {(isExpanded || isHovered || isMobileOpen) && (
-                      <ChevronDownIcon
-                        className={`ml-auto w-5 h-5 transition-transform duration-200 ${
-                          openSubmenu?.type === menuType &&
-                          openSubmenu?.index === index
-                            ? "rotate-180 text-brand-500"
-                            : ""
-                        }`}
-                      />
-                    )}
-                  </button>
-                ) : (
-                  nav.path && (
-                    <Link
-                      to={nav.path}
-                      onClick={() => {
-                        // Close mobile sidebar when navigating
-                        if (isMobileOpen) {
-                          closeMobileSidebar();
-                        }
-                      }}
-                      className={`menu-item group ${
-                        isActive(nav.path)
-                          ? "menu-item-active"
-                          : "menu-item-inactive"
-                      }`}
-                    >
-                      <span
-                        className={`menu-item-icon-size ${
-                          isActive(nav.path)
-                            ? "menu-item-icon-active"
-                            : "menu-item-icon-inactive"
-                        }`}
-                      >
-                        {nav.icon}
-                      </span>
-                      {(isExpanded || isHovered || isMobileOpen) && (
-                        <span className="menu-item-text">{nav.name}</span>
-                      )}
-                    </Link>
-                  )
-                )}
-                {hasSubItems && (isExpanded || isHovered || isMobileOpen) && (
-                  <div
-                    ref={(el) => {
-                      subMenuRefs.current[`${menuType}-${index}`] = el;
-                    }}
-                    className="overflow-hidden transition-all duration-300"
-                    style={{
-                      height:
-                        openSubmenu?.type === menuType &&
-                        openSubmenu?.index === index
-                          ? `${subMenuHeight[`${menuType}-${index}`]}px`
-                          : "0px",
-                    }}
-                  >
-                    <ul className="mt-2 space-y-1 ml-9">
-                      {filteredSubItems.map((subItem) => (
-                        <li key={subItem.name}>
-                          <Link
-                            to={subItem.path}
-                            onClick={() => {
-                              if (isMobileOpen) {
-                                closeMobileSidebar();
-                              }
-                            }}
-                            className={`menu-dropdown-item ${
-                              isActive(subItem.path)
-                                ? "menu-dropdown-item-active"
-                                : "menu-dropdown-item-inactive"
-                            }`}
-                          >
-                            {subItem.name}
-                            <span className="flex items-center gap-1 ml-auto">
-                              {subItem.new && (
-                                <span
-                                  className={`ml-auto ${
-                                    isActive(subItem.path)
-                                      ? "menu-dropdown-badge-active"
-                                      : "menu-dropdown-badge-inactive"
-                                  } menu-dropdown-badge`}
-                                >
-                                  new
-                                </span>
-                              )}
-                              {subItem.pro && (
-                                <span
-                                  className={`ml-auto ${
-                                    isActive(subItem.path)
-                                      ? "menu-dropdown-badge-active"
-                                      : "menu-dropdown-badge-inactive"
-                                  } menu-dropdown-badge`}
-                                >
-                                  pro
-                                </span>
-                              )}
-                            </span>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </li>
-            )}
-          </>
+                  </Link>
+                )
+              )}
+              {hasSubItems && (isExpanded || isHovered || isMobileOpen) && (
+                <div
+                  ref={(el) => {
+                    subMenuRefs.current[`${menuType}-${index}`] = el;
+                  }}
+                  className="overflow-hidden transition-all duration-300"
+                  style={{
+                    height:
+                      openSubmenu?.type === menuType &&
+                      openSubmenu?.index === index
+                        ? `${subMenuHeight[`${menuType}-${index}`]}px`
+                        : "0px",
+                  }}
+                >
+                  <ul className="mt-2 space-y-1 ml-9">
+                    {filteredSubItems.map((subItem) => (
+                      <li key={`${subItem.name}-${index}`}>
+                        <Link
+                          to={subItem.path}
+                          onClick={() => {
+                            if (isMobileOpen) {
+                              closeMobileSidebar();
+                            }
+                          }}
+                          className={`menu-dropdown-item ${
+                            isActive(subItem.path)
+                              ? "menu-dropdown-item-active"
+                              : "menu-dropdown-item-inactive"
+                          }`}
+                        >
+                          {subItem.name}
+                          <span className="flex items-center gap-1 ml-auto">
+                            {subItem.new && (
+                              <span
+                                className={`ml-auto ${
+                                  isActive(subItem.path)
+                                    ? "menu-dropdown-badge-active"
+                                    : "menu-dropdown-badge-inactive"
+                                } menu-dropdown-badge`}
+                              >
+                                new
+                              </span>
+                            )}
+                            {subItem.pro && (
+                              <span
+                                className={`ml-auto ${
+                                  isActive(subItem.path)
+                                    ? "menu-dropdown-badge-active"
+                                    : "menu-dropdown-badge-inactive"
+                                } menu-dropdown-badge`}
+                              >
+                                pro
+                              </span>
+                            )}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          </li>
         );
       })}
     </ul>
@@ -470,7 +470,8 @@ const AppSidebar: React.FC = () => {
                   }`}
                 >
                   {isExpanded || isHovered || isMobileOpen ? (
-                    "Finance and Logs"
+                    // "Finance and Logs"
+                    "Logs"
                   ) : (
                     <HorizontaLDots />
                   )}
