@@ -47,6 +47,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const coreApiToken = responseData?.core_api_bearer_token || null;
 
   console.log("coreApiToken==>", coreApiToken);
+  console.log("token==>", token);
 
   const login = (data: LoginResponseData, keepLoggedIn: boolean) => {
     setResponseData(data);
