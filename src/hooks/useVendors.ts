@@ -18,7 +18,7 @@ export const useVendors = (): UseVendorsReturn => {
 
   const fetchVendors = async () => {
     if (!coreApiToken) {
-      setError("Technical errro: Authentication required");
+      setError("Technical error: Authentication required");
       return;
     }
 
