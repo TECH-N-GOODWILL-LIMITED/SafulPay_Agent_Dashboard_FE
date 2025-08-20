@@ -14,11 +14,11 @@ export const useVendors = (): UseVendorsReturn => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { token, coreApiToken } = useAuth();
+  const { coreApiToken } = useAuth();
 
   const fetchVendors = async () => {
-    if (!token || !coreApiToken) {
-      setError("Authentication required");
+    if (!coreApiToken) {
+      setError("Technical errro: Authentication required");
       return;
     }
 

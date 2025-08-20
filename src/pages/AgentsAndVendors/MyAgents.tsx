@@ -23,7 +23,7 @@ import type { Agent } from "../../types/types";
 
 const tableHeader: string[] = [
   "Name / Business Name",
-  "Role / Model",
+  "Model / Role",
   "Residual Amount",
   "Business Phone / Primary Phone",
   "KYC Status",
