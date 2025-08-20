@@ -38,7 +38,7 @@ export interface LoginResponse {
   error?: [];
 }
 
-// NOTE: Comon denomination of Agent and Users👇🏼
+// NOTE: Common denomination of Agent and Users👇🏼
 export interface Users {
   id: number;
   master_id?: string;

@@ -7,8 +7,10 @@ export const setResponseCookies = (
 ) => {
   Cookies.set("responseData", JSON.stringify(data), {
     expires: keepLoggedIn ? 30 : undefined,
-    secure: true,
-    sameSite: "Strict",
+    secure:
+      typeof window !== "undefined" && window.location.protocol === "https:",
+    sameSite: "Lax" as const,
+    path: "/",
   });
 };
 
