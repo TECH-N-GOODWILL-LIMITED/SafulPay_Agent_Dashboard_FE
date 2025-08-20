@@ -16,15 +16,34 @@ export const setResponseCookies = (
 
 export const getResponseCookies = (): LoginResponseData | null => {
   const dataStr = Cookies.get("responseData");
-  if (!dataStr) return null;
-  try {
-    const data = JSON.parse(dataStr) as LoginResponseData;
-    return data;
-  } catch {
-    return null;
+  let parsed: LoginResponseData | null = null;
+
+  if (dataStr) {
+    try {
+      parsed = JSON.parse(dataStr) as LoginResponseData;
+    } catch {
+      parsed = null;
+    }
   }
+
+  // Fallback inject tokens from dedicated cookies if missing
+  const access = Cookies.get("access_token") || parsed?.access_token || null;
+  const core =
+    Cookies.get("core_api_bearer_token") ||
+    parsed?.core_api_bearer_token ||
+    null;
+
+  if (!parsed && !access && !core) return null;
+
+  return {
+    ...(parsed ?? ({} as LoginResponseData)),
+    access_token: access ?? "",
+    core_api_bearer_token: core ?? "",
+  };
 };
 
 export const clearResponseCookies = () => {
-  Cookies.remove("responseData");
+  Cookies.remove("responseData", { path: "/" });
+  Cookies.remove("access_token", { path: "/" });
+  Cookies.remove("core_api_bearer_token", { path: "/" });
 };
