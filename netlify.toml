@@ -1,9 +1,3 @@
-# Proxy rule for API calls
-[[redirects]]
-  from = "/vendor/*"
-  to = "https://ycd141j4sl.execute-api.us-east-1.amazonaws.com/v1/:splat"
-  status = 200
-
 # SPA rule for client-side routing
 [[redirects]]
   from = "/*"
