@@ -27,7 +27,7 @@ import { isValidDateFormat, validateDateRange } from "../../utils/utils";
 
 const tableHeader: string[] = [
   "Name / Business Name",
-  "Role / Model",
+  "Model / Role",
   "Residual Amount",
   "Business Phone / Primary Phone",
   "Referred By",
@@ -37,7 +37,6 @@ const tableHeader: string[] = [
 ];
 
 const AllAgentsAndVendors: React.FC = () => {
-  const [filterRole, setFilterRole] = useState<string>("All");
   const [filterModel, setFilterModel] = useState<string>("All");
   const [filterStatus, setFilterStatus] = useState<string>("All");
   const [filterKycStatus, setFilterKycStatus] = useState<string>("All");
@@ -122,7 +121,6 @@ const AllAgentsAndVendors: React.FC = () => {
     fetchAgents(params);
   }, [
     currentPage,
-    filterRole,
     filterModel,
     filterStatus,
     filterKycStatus,
@@ -139,7 +137,6 @@ const AllAgentsAndVendors: React.FC = () => {
   };
 
   const resetFilters = () => {
-    setFilterRole("All");
     setFilterModel("All");
     setFilterStatus("All");
     setFilterKycStatus("All");
@@ -207,9 +204,7 @@ const AllAgentsAndVendors: React.FC = () => {
       format,
     };
 
-    if (filterRole !== "All") {
-      params.type = filterRole;
-    }
+    params.type = AGENT_ROLE;
 
     if (filterModel !== "All") {
       params.model = filterModel;

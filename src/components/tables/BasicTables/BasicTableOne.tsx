@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { Modal } from "../../ui/modal";
 import { useModal } from "../../../hooks/useModal";
-import { CheckCircleIcon, ChevronDownIcon } from "../../../icons";
+import {
+  CheckCircleIcon,
+  ChevronDownIcon,
+  EyeIcon,
+  PencilIcon,
+} from "../../../icons";
 import {
   Table,
   TableBody,
@@ -574,14 +579,14 @@ const BasicTableOne: React.FC<Order> = ({
                       </TableCell>
                     )}
                     <TableCell className="p-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                      <button
+                      <Button
+                        endIcon={<EyeIcon />}
+                        variant="outline"
                         onClick={() => handleOpenModal(order)}
-                        className="hover:text-brand-500 dark:text-gray-400 dark:hover:text-gray-300"
+                        className="hover:text-brand-500 p-2! shadow-sm"
                       >
-                        {canEditUser(user?.role, order)
-                          ? "View / Edit"
-                          : "View"}
-                      </button>
+                        View
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))

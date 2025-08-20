@@ -14,6 +14,7 @@ export default function SignInForm() {
   const [showPin, setShowPin] = useState<boolean>(false);
   const [isChecked, setIsChecked] = useState<boolean>(false);
   const [phone, setPhone] = useState<string>("");
+  const [formatphone, setFormatPhone] = useState<string>("");
   const [pin, setPin] = useState<string>("");
   const [otp, setOtp] = useState<string>("");
   const [showOtpStep, setShowOtpStep] = useState<boolean>(false);
@@ -48,7 +49,8 @@ export default function SignInForm() {
     setWarnError(false);
     setSuccessAlert("");
     setLoading(true);
-    setPhone(phoneNumber);
+    setFormatPhone(phoneNumber);
+    // setPhone(phoneNumber);
 
     // Call your API function instead of fetch
     const response = await requestOtp(phoneNumber);
@@ -90,7 +92,12 @@ export default function SignInForm() {
     setSuccessAlert("");
     setLoading(true);
 
-    const response = await verifyOtpAndLogin(phone, pin, otp, sessionToken);
+    const response = await verifyOtpAndLogin(
+      formatphone,
+      pin,
+      otp,
+      sessionToken
+    );
 
     if (response.success && response.data) {
       // Save user and token in context

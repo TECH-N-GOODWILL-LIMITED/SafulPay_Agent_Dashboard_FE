@@ -101,7 +101,7 @@ const AppSidebar: React.FC = () => {
         {
           name: "Agents",
           path: "/agents",
-          roles: [ADMIN_ROLE],
+          roles: [ADMIN_ROLE, ACCOUNTANT_ROLE],
         },
 
         { name: "Super Agents", path: "/superagents", roles: [ADMIN_ROLE] },
@@ -289,7 +289,7 @@ const AppSidebar: React.FC = () => {
     <ul className="flex flex-col gap-4">
       {items.map((nav, index) => {
         const filteredSubItems =
-          nav.name === "Users"
+          nav.name === "Users" || nav.name === "Agents and Vendors"
             ? getFilteredSubItems(nav.subItems, userRole)
             : nav.subItems;
         return (

@@ -22,12 +22,12 @@ import {
   exportTableData,
 } from "../../utils/downloadUtils";
 import type { Agent, DownloadAgentsParams } from "../../types/types";
-import {  MERCHANT_ROLE, SUPER_AGENT_ROLE } from "../../utils/roles";
+import { MERCHANT_ROLE, SUPER_AGENT_ROLE } from "../../utils/roles";
 import { isValidDateFormat, validateDateRange } from "../../utils/utils";
 
 const tableHeader: string[] = [
   "Name / Business Name",
-  "Role / Model",
+  "Model / Role",
   "Residual Amount",
   "Business Phone / Primary Phone",
   "Referred By",
@@ -37,7 +37,6 @@ const tableHeader: string[] = [
 ];
 
 const Agents: React.FC = () => {
-  const [filterRole, setFilterRole] = useState<string>("All");
   const [filterModel, setFilterModel] = useState<string>("All");
   const [filterStatus, setFilterStatus] = useState<string>("All");
   const [filterKycStatus, setFilterKycStatus] = useState<string>("All");
@@ -58,7 +57,6 @@ const Agents: React.FC = () => {
 
   const navigate = useNavigate();
 
-  
   const modelOptions = ["All", "Target", "Independent"];
   const kycStatusOptions = ["All", "Completed", "Incomplete"];
   const statusOptions = ["All", "Pending", "Active", "Suspended", "Rejected"];
@@ -79,9 +77,7 @@ const Agents: React.FC = () => {
       per_page: 10,
     };
 
-  
-      params.type = SUPER_AGENT_ROLE;
-    
+    params.type = SUPER_AGENT_ROLE;
 
     if (filterModel !== "All") {
       params.model = filterModel;
@@ -125,7 +121,6 @@ const Agents: React.FC = () => {
     fetchAgents(params);
   }, [
     currentPage,
-    filterRole,
     filterModel,
     filterStatus,
     filterKycStatus,
@@ -142,7 +137,6 @@ const Agents: React.FC = () => {
   };
 
   const resetFilters = () => {
-    setFilterRole("All");
     setFilterModel("All");
     setFilterStatus("All");
     setFilterKycStatus("All");
@@ -210,9 +204,7 @@ const Agents: React.FC = () => {
       format,
     };
 
-    if (filterRole !== "All") {
-      params.type = filterRole;
-    }
+    params.type = SUPER_AGENT_ROLE;
 
     if (filterModel !== "All") {
       params.model = filterModel;
