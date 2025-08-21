@@ -280,18 +280,18 @@ export const getAllAgents = async (
 };
 
 export const getAllVendors = async (
-  coreApiToken: string
+  accessToken: string
 ): Promise<
   ApiResponse<{
     vendors: Vendor[];
   }>
 > => {
   try {
-    const response = await fetch(`${BASE_URL}/auth/agents/merchantlist`, {
+    const response = await fetch(`${BASE_URL}/auth/agents/merchantList`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${coreApiToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
       redirect: "follow",
     });
