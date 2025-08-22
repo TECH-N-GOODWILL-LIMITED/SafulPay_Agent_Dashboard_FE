@@ -1,5 +1,5 @@
 import Cookies from "js-cookie";
-import { LoginResponseData } from "../types/types";
+import type { LoginResponseData } from "../types/types";
 
 export const setResponseCookies = (
   data: LoginResponseData,

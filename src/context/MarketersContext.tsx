@@ -4,6 +4,7 @@ import {
   useState,
   useEffect,
   ReactNode,
+  useCallback,
 } from "react";
 import { useAuth } from "./AuthContext";
 import { getAllMarketers, getMarketersStats } from "../utils/api";
@@ -48,31 +49,32 @@ export const MarketersProvider: React.FC<{ children: ReactNode }> = ({
 
   const { user, token } = useAuth();
 
-  const fetchMarketers = async (params: GetAllMarketersParams = {}) => {
-    setLoading(true);
-    setError("");
+  const fetchMarketers = useCallback(
+    async (params: GetAllMarketersParams = {}) => {
+      setLoading(true);
+      setError("");
 
-    if (!token) {
-      setError("Not authenticated");
+      if (!token) {
+        setError("Not authenticated");
+        setLoading(false);
+        return;
+      }
+
+      const response = await getAllMarketers(token, params);
+      if (response.success && response.data) {
+        setAllMarketers(response.data);
+      } else {
+        setError(response.error || "Failed to fetch marketers");
+      }
       setLoading(false);
-      return;
-    }
-
-    const response = await getAllMarketers(token, params);
-    if (response.success && response.data) {
-      setAllMarketers(response.data);
-      // setTotalMarketers(response.data.total_marketers);
-    } else {
-      setError(response.error || "Failed to fetch marketers");
-    }
-    setLoading(false);
-  };
+    },
+    [token]
+  );
 
   const fetchMarketerStats = async () => {
     setLoading(true);
     setError("");
 
-    // Removed token and user role check to allow unauthenticated access
     const response = await getMarketersStats();
     if (response.success && response.data) {
       setMarketerStats(response.data);

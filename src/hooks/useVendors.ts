@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { getAllVendors } from "../utils/api";
 import type { Vendor } from "../types/types";
+import { ADMIN_ROLE } from "../utils/roles";
 
 interface UseVendorsReturn {
   vendors: Vendor[];
@@ -14,11 +15,15 @@ export const useVendors = (): UseVendorsReturn => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { coreApiToken } = useAuth();
+  const { user, token } = useAuth();
 
   const fetchVendors = async () => {
-    if (!coreApiToken) {
+    if (!token) {
       setError("Technical error: Authentication required");
+      return;
+    }
+
+    if (user?.role !== ADMIN_ROLE) {
       return;
     }
 
@@ -26,7 +31,7 @@ export const useVendors = (): UseVendorsReturn => {
     setError(null);
 
     try {
-      const response = await getAllVendors(coreApiToken);
+      const response = await getAllVendors(token);
 
       if (response.success && response.data) {
         setVendors(response.data.vendors);
@@ -41,10 +46,10 @@ export const useVendors = (): UseVendorsReturn => {
   };
 
   useEffect(() => {
-    if (coreApiToken) {
+    if (token) {
       fetchVendors();
     }
-  }, [coreApiToken]);
+  }, [token]);
 
   return {
     vendors,
