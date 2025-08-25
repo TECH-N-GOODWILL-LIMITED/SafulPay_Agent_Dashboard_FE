@@ -478,7 +478,7 @@ export const registerUser = async (
         success: false,
         error: data.errors.phone
           ? data.errors.phone[0]
-          : data.message || "Failed to onboard agent",
+          : data.message || "Failed to register user",
       };
     }
   } catch (err) {
@@ -504,13 +504,21 @@ export const onboardAgent = async (
     if (response.ok && data.status) {
       return { success: true, data: { agent: data.data } };
     } else {
+      let errorMessage = "Failed to onboard agent";
+
+      if (data.errors && typeof data.errors === "object") {
+        // Handle validation errors (400 response)
+        const errorDetails = Object.values(data.errors).flat().join(", ");
+        errorMessage = `Registration failed: ${errorDetails}`;
+      } else if (data.data?.message) {
+        errorMessage = data.data.message;
+      } else if (data.message) {
+        errorMessage = data.message;
+      }
+
       return {
         success: false,
-        error: data.errors.phone
-          ? data.errors.phone[0]
-          : data.errors.email
-          ? data.errors.email[0]
-          : data.message || "Failed to onboard agent",
+        error: errorMessage,
       };
     }
   } catch (err) {
