@@ -5,7 +5,7 @@ import {
   ReactNode,
   useEffect,
 } from "react";
-import { checkSession, logOut } from "../utils/api";
+import { checkSession, logOut, refreshToken } from "../utils/api";
 import {
   clearResponseCookies,
   getResponseCookies,
@@ -19,6 +19,7 @@ interface AuthContextType {
   coreApiToken: string | null;
   login: (data: LoginResponseData, keepLoggedIn: boolean) => void;
   logout: () => Promise<void>;
+  refreshToken: () => Promise<void>;
   isLoggedIn: boolean | null;
   setSessionValidity: (valid: boolean) => void;
   onboardingUser: UserBio | null;
@@ -49,6 +50,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const login = (data: LoginResponseData, keepLoggedIn: boolean) => {
     setResponseData(data);
     setResponseCookies(data, keepLoggedIn);
+  };
+
+  const refreshTokenHandler = async () => {
+    if (!token) return;
+
+    try {
+      const response = await refreshToken(token);
+      if (response.success && response.data) {
+        // Spread existing responseData and only update the tokens
+        const updatedData: LoginResponseData = {
+          ...responseData!,
+          access_token: response.data.accessToken,
+          core_api_bearer_token: response.data.coreApiToken,
+        };
+
+        setResponseData(updatedData);
+
+        // Determine keepLoggedIn preference from existing cookies
+        const existingData = getResponseCookies();
+        // If cookies exist and have an expiration date, keep logged in
+        const keepLoggedIn = existingData ? true : false;
+        setResponseCookies(updatedData, keepLoggedIn);
+      }
+    } catch (error) {
+      console.error("Token refresh failed:", error);
+      // If refresh fails, logout the user
+      await logout();
+    }
   };
 
   const logout = async () => {
@@ -89,6 +118,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         coreApiToken,
         login,
         logout,
+        refreshToken: refreshTokenHandler,
         isLoggedIn,
         setSessionValidity: (valid: boolean) => setIsLoggedIn(valid),
         onboardingUser,

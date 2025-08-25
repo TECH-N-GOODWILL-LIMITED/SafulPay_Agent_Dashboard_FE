@@ -120,7 +120,7 @@ const BasicTableOne: React.FC<Order> = ({
   }
 
   const { isOpen, openModal, closeModal } = useModal();
-  const { user, token, coreApiToken, logout } = useAuth();
+  const { user, token, coreApiToken, logout, refreshToken } = useAuth();
   const { fetchUsers } = useUsers();
   const { fetchAgents } = useAgents();
   const { fetchMyAgents } = useMyAgents();
@@ -156,13 +156,20 @@ const BasicTableOne: React.FC<Order> = ({
 
     const sessionResponse = await checkSession(token);
     if (!sessionResponse.success || !sessionResponse.data?.status) {
-      setAlertTitle("Session Expired");
-      setErrorMessage("Your session has expired. You will be logged out.");
-      setLoadingAction(null);
+      // Try to refresh token before logging out
+      try {
+        await refreshToken();
+        // If refresh succeeds, continue with the action
+      } catch {
+        // If refresh fails, logout
+        setAlertTitle("Session Expired");
+        setErrorMessage("Your session has expired. You will be logged out.");
+        setLoadingAction(null);
 
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-      await logout();
-      return false;
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        await logout();
+        return false;
+      }
     }
 
     setAlertTitle("");

@@ -6,6 +6,7 @@ import AppSidebar from "./AppSidebar";
 import { MyAgentsProvider } from "../context/MyAgentsContext";
 import { useRevalidateSessionOnRouteChange } from "../hooks/validateSessionOnRouteChange";
 import { MarketersProvider } from "../context/MarketersContext";
+import { useUserActivityTokenRefresh } from "../hooks/useUserActivityTokenRefresh";
 
 const LayoutContent: React.FC = () => {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
@@ -32,6 +33,7 @@ const LayoutContent: React.FC = () => {
 
 const AppLayout: React.FC = () => {
   useRevalidateSessionOnRouteChange();
+  useUserActivityTokenRefresh(); // Track user activity for token refresh
 
   return (
     <SidebarProvider>

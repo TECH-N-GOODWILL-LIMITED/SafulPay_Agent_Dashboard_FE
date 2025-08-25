@@ -896,3 +896,43 @@ export const downloadAuditLogsData = async (
     };
   }
 };
+
+export const refreshToken = async (
+  accessToken: string
+): Promise<
+  ApiResponse<{
+    accessToken: string;
+    coreApiToken: string;
+  }>
+> => {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/refreshToken`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      redirect: "follow",
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.status) {
+      return {
+        success: true,
+        data: {
+          accessToken: data.data.access_token,
+          coreApiToken: data.data.core_api_bearer_token,
+        },
+      };
+    } else {
+      return {
+        success: false,
+        error: data.message || "Failed to refresh token",
+      };
+    }
+  } catch (err) {
+    return { success: false, error: `Error refreshing token: ${err}` };
+  }
+};
