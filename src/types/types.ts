@@ -31,6 +31,21 @@ export interface LoginResponseData {
   user: UserBio;
 }
 
+export interface OtpRequestResponse {
+  otp_mode: "new" | "reuse";
+  phone: string;
+  otp_id?: string;
+  message?: string;
+}
+
+export interface LoginRequest {
+  login: string;
+  pin: string;
+  otp_code?: string;
+  otp_mode: "new" | "reuse";
+  otp_id?: string;
+}
+
 export interface LoginResponse {
   status: boolean;
   message: string;

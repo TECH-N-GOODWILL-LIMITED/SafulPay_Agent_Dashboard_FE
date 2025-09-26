@@ -19,6 +19,7 @@ export default function SignInForm() {
   const [otp, setOtp] = useState<string>("");
   const [showOtpStep, setShowOtpStep] = useState<boolean>(false);
   const [sessionToken, setSessionToken] = useState<string>("");
+  const [otpMode, setOtpMode] = useState<"new" | "reuse">("new");
   const [loading, setLoading] = useState<boolean>(false);
   const [alertTitle, setAlertTitle] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -50,16 +51,26 @@ export default function SignInForm() {
     setSuccessAlert("");
     setLoading(true);
     setFormatPhone(phoneNumber);
+    setOtp(""); // Clear OTP when requesting new OTP
     // setPhone(phoneNumber);
 
     // Call your API function instead of fetch
     const response = await requestOtp(phoneNumber);
 
     if (response.success && response.data) {
-      setShowOtpStep(true);
-      setSessionToken(response.data.otp_id);
-      setAlertTitle("OTP Sent");
-      setSuccessAlert(response.data.message || "OTP sent successfully");
+      setOtpMode(response.data.otp_mode);
+      setSessionToken(response.data.otp_id || "");
+
+      if (response.data.otp_mode === "new") {
+        setShowOtpStep(true);
+        setAlertTitle("OTP Sent");
+        setSuccessAlert(response.data.message || "OTP sent successfully");
+      } else {
+        // For reuse mode, proceed directly to PIN input
+        setShowOtpStep(true);
+        setAlertTitle("");
+        setSuccessAlert("");
+      }
     } else {
       setAlertTitle("Authentication Failed");
       setError(response.error || "Invalid phone number or PIN combination.");
@@ -79,7 +90,8 @@ export default function SignInForm() {
       return;
     }
 
-    if (!otp || otp.length !== 6) {
+    // Only validate OTP for "new" mode
+    if (otpMode === "new" && (!otp || otp.length !== 6)) {
       setSuccessAlert("");
       setAlertTitle("Please enter a valid OTP.");
       setError("Check your phone for correct OTP or resend OTP");
@@ -95,8 +107,9 @@ export default function SignInForm() {
     const response = await verifyOtpAndLogin(
       formatphone,
       pin,
-      otp,
-      sessionToken
+      otpMode === "new" ? otp : undefined,
+      otpMode,
+      otpMode === "new" ? sessionToken : undefined
     );
 
     if (response.success && response.data) {
@@ -185,7 +198,7 @@ export default function SignInForm() {
                   </div>
                   <div>
                     <Button className="w-full" size="sm" disabled={loading}>
-                      {loading ? "Sending OTP..." : "Request OTP"}
+                      {loading ? "Proceeding..." : "Proceed"}
                     </Button>
                   </div>
                 </div>
@@ -233,35 +246,37 @@ export default function SignInForm() {
                     </div>
                   </div>
 
-                  <div className="relative">
-                    <Label htmlFor="otp">
-                      OTP <span className="text-error-500">*</span>
-                    </Label>
-                    <Input
-                      id="otp"
-                      name="otp"
-                      type="text"
-                      placeholder="Enter 6-digit OTP"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      value={otp}
-                      max={6}
-                      onChange={(e) => {
-                        setOtp(e.target.value);
-                        setAlertTitle("");
-                        setError("");
-                        setWarnError(false);
-                        setSuccessAlert("");
-                      }}
-                      error={!!error && !pin}
-                    />
+                  {otpMode === "new" && (
+                    <div className="relative">
+                      <Label htmlFor="otp">
+                        OTP <span className="text-error-500">*</span>
+                      </Label>
+                      <Input
+                        id="otp"
+                        name="otp"
+                        type="text"
+                        placeholder="Enter 6-digit OTP"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={otp}
+                        max={6}
+                        onChange={(e) => {
+                          setOtp(e.target.value);
+                          setAlertTitle("");
+                          setError("");
+                          setWarnError(false);
+                          setSuccessAlert("");
+                        }}
+                        error={!!error && !pin}
+                      />
 
-                    {otp && (
-                      <span className="text-[12px] absolute z-30 translate-y-1/2 -bottom-1/2 top-1/2 right-2 text-gray-500">
-                        max length 6
-                      </span>
-                    )}
-                  </div>
+                      {otp && (
+                        <span className="text-[12px] absolute z-30 translate-y-1/2 -bottom-1/2 top-1/2 right-2 text-gray-500">
+                          max length 6
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between">
                     <button
@@ -269,12 +284,16 @@ export default function SignInForm() {
                       onClick={handleRequestOtp}
                       className="text-gray-700 text-theme-sm dark:text-gray-400 hover:text-brand-600"
                     >
-                      Resend OTP
+                      {otpMode === "new" ? "Resend OTP" : "Request OTP"}
                     </button>
                   </div>
                   <div>
                     <Button className="w-full" size="sm" disabled={loading}>
-                      {loading ? "Verifying..." : "Sign In"}
+                      {loading
+                        ? otpMode === "new"
+                          ? "Verifying..."
+                          : "Signing In..."
+                        : "Sign In"}
                     </Button>
                   </div>
                 </div>
