@@ -19,13 +19,15 @@ import type {
   DownloadAuditLogsParams,
   AllMarketersData,
   Vendor,
+  OtpRequestResponse,
+  LoginRequest,
 } from "../types/types";
 
 const BASE_URL = import.meta.env.VITE_AGENCY_BASE_URL;
 
 export const requestOtp = async (
   phone: string
-): Promise<ApiResponse<{ otp_id: string; message?: string }>> => {
+): Promise<ApiResponse<OtpRequestResponse>> => {
   try {
     const response = await fetch(`${BASE_URL}/auth/sendOTP`, {
       method: "POST",
@@ -40,7 +42,12 @@ export const requestOtp = async (
     if (response.ok && data.status) {
       return {
         success: true,
-        data: { otp_id: data.data.otp_id, message: data.message },
+        data: {
+          otp_mode: data.data.otp_mode,
+          phone: data.data.phone,
+          otp_id: data.data.otp_id,
+          message: data.message,
+        },
       };
     } else {
       return { success: false, error: data.message || "Failed to send OTP" };
@@ -53,21 +60,29 @@ export const requestOtp = async (
 export const verifyOtpAndLogin = async (
   phone: string,
   pin: string,
-  otpCode: string,
-  otpId: string
+  otpCode: string | undefined,
+  otpMode: "new" | "reuse",
+  otpId: string | undefined
 ): Promise<ApiResponse<LoginResponseData>> => {
   try {
+    const loginData: LoginRequest = {
+      login: phone,
+      pin,
+      otp_mode: otpMode,
+    };
+
+    // Only include otp_code and otp_id for "new" mode
+    if (otpMode === "new" && otpCode && otpId) {
+      loginData.otp_code = otpCode;
+      loginData.otp_id = otpId;
+    }
+
     const response = await fetch(`${BASE_URL}/auth/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        login: phone,
-        pin,
-        otp_code: otpCode,
-        otp_id: otpId,
-      }),
+      body: JSON.stringify(loginData),
       redirect: "follow",
     });
 
@@ -133,10 +148,13 @@ export const checkSession = async (
         data: { status: data.status, message: data.message },
       };
     } else {
-      return { success: false, error: data.message || "Failed to logout user" };
+      return {
+        success: false,
+        error: data.message || "Failed to check session",
+      };
     }
   } catch (err) {
-    return { success: false, error: `Error logging user out: ${err}` };
+    return { success: false, error: `Error checking session: ${err}` };
   }
 };
 
