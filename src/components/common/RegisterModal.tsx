@@ -8,7 +8,12 @@ import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Button from "../ui/button/Button";
 import Alert from "../ui/alert/Alert";
-import { AGENT_ROLE, MERCHANT_ROLE, SUPER_AGENT_ROLE } from "../../utils/roles";
+import {
+  AGENT_ROLE,
+  MERCHANT_ROLE,
+  SUPER_AGENT_ROLE,
+  RIDER_ROLE,
+} from "../../utils/roles";
 
 interface RegisterModalProps {
   modalHeading: string;
@@ -30,6 +35,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
     selectRole
   );
   const [phone, setPhone] = useState<string | undefined>("");
+  const [imei, setImei] = useState<string | undefined>("");
   const [alertTitle, setAlertTitle] = useState<string>("");
   const [error, setError] = useState<string | undefined>("");
   const [warnError, setWarnError] = useState<boolean>(false);
@@ -57,6 +63,18 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
     e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>
   ) => {
     setSelectedRole(e.target.value);
+    // Clear IMEI when role changes
+    if (e.target.value !== RIDER_ROLE) {
+      setImei("");
+    }
+  };
+
+  const handleImeiChange = (
+    e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>
+  ) => {
+    setImei(e.target.value);
+    setError("");
+    setWarnError(false);
   };
 
   const handleRegister = async () => {
@@ -78,6 +96,12 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
       return;
     }
 
+    if (selectedRole === RIDER_ROLE && !imei) {
+      setAlertTitle("Fill the required field");
+      setError("Input IMEI for rider");
+      return;
+    }
+
     if (!token) {
       setAlertTitle("Not authenticated");
       setError("Refresh page...");
@@ -95,7 +119,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
     setError("");
     setWarnError(false);
 
-    const response = await registerUser(token, phoneNumber, selectedRole);
+    const response = await registerUser(token, phoneNumber, selectedRole, imei);
 
     if (response.success && response.data) {
       await fetchUsers({
@@ -183,6 +207,22 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
                 />
                 <ChevronDownIcon className="absolute bottom-1/5 right-3 text-gray-800 dark:text-white/90" />
               </div>
+
+              {selectedRole === RIDER_ROLE && (
+                <div className="col-span-2 lg:col-span-1">
+                  <Label>
+                    IMEI <span className="text-error-500 ml-2">*</span>
+                  </Label>
+                  <Input
+                    type="text"
+                    id="imei"
+                    name="imei"
+                    value={imei}
+                    onChange={handleImeiChange}
+                    placeholder="Enter device IMEI"
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>

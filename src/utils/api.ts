@@ -510,16 +510,26 @@ export const getAgentById = async (
 export const registerUser = async (
   accessToken: string,
   phone: string,
-  role: string
+  role: string,
+  imei?: string
 ): Promise<ApiResponse<{ user: UserBio }>> => {
   try {
+    const requestBody: { phone: string; role: string; imei?: string } = {
+      phone,
+      role,
+    };
+
+    if (imei) {
+      requestBody.imei = imei;
+    }
+
     const response = await fetch(`${BASE_URL}/auth/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({ phone, role }),
+      body: JSON.stringify(requestBody),
       redirect: "follow",
     });
     const data = await response.json();
