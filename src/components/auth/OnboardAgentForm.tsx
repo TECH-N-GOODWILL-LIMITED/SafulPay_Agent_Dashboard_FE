@@ -485,46 +485,46 @@ export default function OnboardAgentForm() {
       }
     }
 
-    if (field === "phone") {
-      const phoneTypeResponse = await checkPhoneType(formattedPhoneNumber);
-      if (phoneTypeResponse.success && phoneTypeResponse.data?.type) {
-        if (phoneTypeResponse.data.type === "business_phone") {
-          const errorMessage =
-            "This number is already registered as a business phone.";
-          setFormError("phone", {
-            type: "manual",
-            message: errorMessage,
-          });
-          setUserPhoneError(errorMessage);
-        }
-        return;
-      } else {
-        setUserPhoneError(null);
-      }
-    } else if (field === "businessPhone") {
-      const phoneTypeResponse = await checkPhoneType(formattedPhoneNumber);
-      if (phoneTypeResponse.success && phoneTypeResponse.data?.type) {
-        if (phoneTypeResponse.data.type === "phone") {
-          const errorMessage =
-            "This number is already registered as a personal phone.";
-          setFormError("businessPhone", {
-            type: "manual",
-            message: errorMessage,
-          });
-          setBusinessPhoneError(errorMessage);
-        } else if (phoneTypeResponse.data.type === "business_phone") {
-          const errorMessage =
-            "This number is already registered as a business phone.";
-          setFormError("businessPhone", {
-            type: "manual",
-            message: errorMessage,
-          });
-          setBusinessPhoneError(errorMessage);
-        }
-      } else {
-        setBusinessPhoneError(null);
-      }
-    }
+    // if (field === "phone") {
+    //   const phoneTypeResponse = await checkPhoneType(formattedPhoneNumber);
+    //   if (phoneTypeResponse.success && phoneTypeResponse.data?.type) {
+    //     if (phoneTypeResponse.data.type === "business_phone") {
+    //       const errorMessage =
+    //         "This number is already registered as a business phone.";
+    //       setFormError("phone", {
+    //         type: "manual",
+    //         message: errorMessage,
+    //       });
+    //       setUserPhoneError(errorMessage);
+    //     }
+    //     return;
+    //   } else {
+    //     setUserPhoneError(null);
+    //   }
+    // } else if (field === "businessPhone") {
+    //   const phoneTypeResponse = await checkPhoneType(formattedPhoneNumber);
+    //   if (phoneTypeResponse.success && phoneTypeResponse.data?.type) {
+    //     if (phoneTypeResponse.data.type === "phone") {
+    //       const errorMessage =
+    //         "This number is already registered as a personal phone.";
+    //       setFormError("businessPhone", {
+    //         type: "manual",
+    //         message: errorMessage,
+    //       });
+    //       setBusinessPhoneError(errorMessage);
+    //     } else if (phoneTypeResponse.data.type === "business_phone") {
+    //       const errorMessage =
+    //         "This number is already registered as a business phone.";
+    //       setFormError("businessPhone", {
+    //         type: "manual",
+    //         message: errorMessage,
+    //       });
+    //       setBusinessPhoneError(errorMessage);
+    //     }
+    //   } else {
+    //     setBusinessPhoneError(null);
+    //   }
+    // }
   };
 
   // Debounced existence checks on change when length > 7
