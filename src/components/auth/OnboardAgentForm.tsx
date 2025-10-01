@@ -10,7 +10,7 @@ import {
   getUserByReferralCode,
   uploadToCloudinary,
   checkExistingUser,
-  checkPhoneType,
+  // checkPhoneType,
 } from "../../utils/api";
 import { useUsers } from "../../context/UsersContext";
 import { filterPhoneNumber } from "../../utils/utils";
@@ -459,7 +459,7 @@ export default function OnboardAgentForm() {
     const isValid = await trigger(field);
     if (!isValid) return;
 
-    const formattedPhoneNumber = filterPhoneNumber(phoneNumber);
+    // const formattedPhoneNumber = filterPhoneNumber(phoneNumber);
 
     // Check if phone and business phone are the same
     const currentPhone = watch("phone");
