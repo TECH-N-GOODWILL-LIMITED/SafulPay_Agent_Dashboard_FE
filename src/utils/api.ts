@@ -230,21 +230,16 @@ export const checkExistingUser = async (
   coreApiToken: string
 ): Promise<ApiResponse<{ exists: boolean }>> => {
   try {
-    // const url = "https://test.techengood.com/api/auth/agents/checkExistingUser";
-
-    const response = await fetch(
-      "https://test.techengood.com/api/auth/agents/checkExistingUser",
-      {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${coreApiToken}`,
-        },
-        body: JSON.stringify({ phone }),
-        redirect: "follow",
-      }
-    );
+    const response = await fetch(`${BASE_URL}/auth/agents/checkExistingUser`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${coreApiToken}`,
+      },
+      body: JSON.stringify({ phone }),
+      redirect: "follow",
+    });
 
     const data = await response.json().catch(() => ({}));
 
