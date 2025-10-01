@@ -7,9 +7,9 @@ import * as yup from "yup";
 import { useFormPersistence } from "../../hooks/useFormPersistence";
 import {
   onboardAgent,
-  checkPhoneType,
   getUserByReferralCode,
   uploadToCloudinary,
+  checkExistingUser,
 } from "../../utils/api";
 import { useUsers } from "../../context/UsersContext";
 import { filterPhoneNumber } from "../../utils/utils";
@@ -101,7 +101,10 @@ export default function OnboardAgentForm() {
   const [error, setError] = useState<string>("");
   const [successAlert, setSuccessAlert] = useState<string>("");
   const [userExistError, setUserExistError] = useState<string | null>(null);
-  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [userPhoneError, setUserPhoneError] = useState<string | null>(null);
+  const [businessPhoneError, setBusinessPhoneError] = useState<string | null>(
+    null
+  );
   const [idImage, setIdImage] = useState<File | null>(null);
   const [businessImage, setBusinessImage] = useState<File | null>(null);
   const [addressDocument, setAddressDocument] = useState<File | null>(null);
@@ -122,6 +125,7 @@ export default function OnboardAgentForm() {
     trigger,
     reset,
     setError: setFormError,
+    clearErrors,
     formState: { errors, dirtyFields },
   } = useForm({
     resolver: yupResolver(validationSchema),
@@ -173,7 +177,7 @@ export default function OnboardAgentForm() {
   const TargetAgent = agentType === AGENT_ROLE && agentModel === "Target";
 
   const { fetchUsers } = useUsers();
-  const { setOnboardingUser } = useAuth();
+  const { setOnboardingUser, coreApiToken } = useAuth();
 
   const { isOpen, openModal, closeModal } = useModal();
 
@@ -250,7 +254,7 @@ export default function OnboardAgentForm() {
         }
       });
     }
-  }, []); // Only run once on mount
+  }, [loadSavedData, setValue]); // Only run once on mount
 
   const typeOptions = [AGENT_ROLE, SUPER_AGENT_ROLE, MERCHANT_ROLE];
   const modelOptions = ["Target", "Independent"];
@@ -454,7 +458,7 @@ export default function OnboardAgentForm() {
     const isValid = await trigger(field);
     if (!isValid) return;
 
-    const formattedPhoneNumber = filterPhoneNumber(phoneNumber);
+    // const formattedPhoneNumber = filterPhoneNumber(phoneNumber);
 
     // Check if phone and business phone are the same
     const currentPhone = watch("phone");
@@ -475,52 +479,140 @@ export default function OnboardAgentForm() {
           type: "manual",
           message: errorMessage,
         });
-        setPhoneError(errorMessage);
+        setUserPhoneError(errorMessage);
         return;
       }
     }
 
-    if (field === "phone") {
-      const phoneTypeResponse = await checkPhoneType(formattedPhoneNumber);
-      if (phoneTypeResponse.success && phoneTypeResponse.data?.type) {
-        if (phoneTypeResponse.data.type === "business_phone") {
-          const errorMessage =
-            "This number is already registered as a business phone.";
-          setFormError("phone", {
-            type: "manual",
-            message: errorMessage,
-          });
-          setPhoneError(errorMessage);
-        }
-        return;
-      } else {
-        setPhoneError(null);
-      }
-    } else if (field === "businessPhone") {
-      const phoneTypeResponse = await checkPhoneType(formattedPhoneNumber);
-      if (phoneTypeResponse.success && phoneTypeResponse.data?.type) {
-        if (phoneTypeResponse.data.type === "phone") {
-          const errorMessage =
-            "This number is already registered as a personal phone.";
-          setFormError("businessPhone", {
-            type: "manual",
-            message: errorMessage,
-          });
-          setPhoneError(errorMessage);
-        } else if (phoneTypeResponse.data.type === "business_phone") {
-          const errorMessage =
-            "This number is already registered as a business phone.";
-          setFormError("businessPhone", {
-            type: "manual",
-            message: errorMessage,
-          });
-          setPhoneError(errorMessage);
-        }
-      } else {
-        setPhoneError(null);
-      }
-    }
+    // if (field === "phone") {
+    //   const phoneTypeResponse = await checkPhoneType(formattedPhoneNumber);
+    //   if (phoneTypeResponse.success && phoneTypeResponse.data?.type) {
+    //     if (phoneTypeResponse.data.type === "business_phone") {
+    //       const errorMessage =
+    //         "This number is already registered as a business phone.";
+    //       setFormError("phone", {
+    //         type: "manual",
+    //         message: errorMessage,
+    //       });
+    //       setPhoneError(errorMessage);
+    //     }
+    //     return;
+    //   } else {
+    //     setPhoneError(null);
+    //   }
+    // } else if (field === "businessPhone") {
+    //   const phoneTypeResponse = await checkPhoneType(formattedPhoneNumber);
+    //   if (phoneTypeResponse.success && phoneTypeResponse.data?.type) {
+    //     if (phoneTypeResponse.data.type === "phone") {
+    //       const errorMessage =
+    //         "This number is already registered as a personal phone.";
+    //       setFormError("businessPhone", {
+    //         type: "manual",
+    //         message: errorMessage,
+    //       });
+    //       setPhoneError(errorMessage);
+    //     } else if (phoneTypeResponse.data.type === "business_phone") {
+    //       const errorMessage =
+    //         "This number is already registered as a business phone.";
+    //       setFormError("businessPhone", {
+    //         type: "manual",
+    //         message: errorMessage,
+    //       });
+    //       setPhoneError(errorMessage);
+    //     }
+    //   } else {
+    //     setPhoneError(null);
+    //   }
+    // }
   };
+
+  // Debounced existence checks on change when length > 7
+  useEffect(() => {
+    const phoneVal = watchedValues.phone || "";
+    const businessPhoneVal = watchedValues.businessPhone || "";
+
+    // const schedule = (fn: () => void, delay: number) => {
+    //   const id = setTimeout(fn, delay);
+    //   return () => clearTimeout(id);
+    // };
+
+    // const cancelers: Array<() => void> = [];
+
+    // Helper to call existence API
+    const runCheck = async (value: string, isPersonal: boolean) => {
+      const trimmed = filterPhoneNumber(value);
+      if (!trimmed || trimmed.length !== 11) return;
+      try {
+        const usetoken = coreApiToken || "";
+        if (!usetoken) {
+          // If no token, skip remote check
+          return;
+        }
+
+        const { success, data } = await checkExistingUser(trimmed, usetoken);
+        if (!success || !data) return;
+
+        if (isPersonal) {
+          // Only set error if API explicitly says not found
+
+          if (data.exists == false) {
+            setUserPhoneError("Phone not registered as a SafulPay user");
+            setFormError("phone", {
+              type: "manual",
+              message: "Phone is not registered as a SafulPay user.",
+            });
+          } else if (data.exists === true) {
+            setUserPhoneError(null);
+            clearErrors("phone");
+          }
+          // If exists is undefined/null, do not change current error state
+        } else {
+          // Business phone must NOT exist; only error if API explicitly says it exists
+          if (data.exists === true) {
+            setBusinessPhoneError(
+              "Business phone must not be an already registered SafulPay user."
+            );
+            setFormError("businessPhone", {
+              type: "manual",
+              message:
+                "Business phone must not be an already registered SafulPay user.",
+            });
+          } else if (data.exists === false) {
+            setBusinessPhoneError(null);
+            clearErrors("businessPhone");
+          }
+        }
+      } finally {
+        // no-op
+      }
+    };
+
+    // if (phoneVal && filterPhoneNumber(phoneVal).length > 10) {
+    //   cancelers.push(schedule(() => void runCheck(phoneVal, true), 400));
+    // } else {
+    //   setPhoneError(null);
+    // }
+    runCheck(phoneVal, true);
+    runCheck(businessPhoneVal, false);
+
+    // if (businessPhoneVal && filterPhoneNumber(businessPhoneVal).length > 7) {
+    //   cancelers.push(
+    //     schedule(() => void runCheck(businessPhoneVal, false), 400)
+    //   );
+    // } else {
+    //   // no-op
+    // }
+
+    // return () => {
+    //   cancelers.forEach((c) => c());
+    // };
+  }, [
+    watchedValues.phone,
+    watchedValues.businessPhone,
+    setFormError,
+    clearErrors,
+    coreApiToken,
+  ]);
 
   const processRegistration = async (data: FormData, tempValue: number) => {
     setLoading(true);
@@ -637,7 +729,7 @@ export default function OnboardAgentForm() {
         setAddressDocument(null);
         setBusinessRegDocument(null);
         setUserExistError(null);
-        setPhoneError(null);
+        setUserPhoneError(null);
         // Clear saved form data on successful submission
         clearSavedData();
         if (!isOpen) {
@@ -671,9 +763,9 @@ export default function OnboardAgentForm() {
     }
 
     // Check for phone errors first
-    if (phoneError) {
+    if (userPhoneError) {
       setAlertTitle("Phone Number Error");
-      setError(phoneError);
+      setError(userPhoneError);
       return;
     }
 
@@ -1000,11 +1092,15 @@ export default function OnboardAgentForm() {
                       {...field}
                       disabled={loading || uploadLoading}
                       onBlur={(e) => handlePhoneBlur(e, "businessPhone")}
-                      error={!!errors.businessPhone || !!phoneError}
+                      error={!!errors.businessPhone || !!businessPhoneError}
                       success={
                         dirtyFields.businessPhone && !errors.businessPhone
                       }
-                      hint={errors.businessPhone?.message || phoneError || ""}
+                      hint={
+                        errors.businessPhone?.message ||
+                        businessPhoneError ||
+                        ""
+                      }
                       selectedCountries={["SL"]}
                     />
                   )}
@@ -1025,12 +1121,12 @@ export default function OnboardAgentForm() {
                       {...field}
                       disabled={loading || uploadLoading}
                       onBlur={(e) => handlePhoneBlur(e, "phone")}
-                      error={!!errors.phone || !!phoneError}
+                      error={!!errors.phone || !!userPhoneError}
                       success={dirtyFields.phone && !errors.phone}
                       hint={
                         errors.phone?.message ||
                         userExistError ||
-                        phoneError ||
+                        userPhoneError ||
                         ""
                       }
                       selectedCountries={["SL"]}

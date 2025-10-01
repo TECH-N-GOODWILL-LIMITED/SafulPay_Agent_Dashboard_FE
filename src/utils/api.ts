@@ -224,6 +224,46 @@ export const checkPhoneType = async (
   }
 };
 
+// New: Check if a user exists in the core database (testing endpoint)
+export const checkExistingUser = async (
+  phone: string,
+  coreApiToken: string
+): Promise<ApiResponse<{ exists: boolean }>> => {
+  try {
+    // const url = "https://test.techengood.com/api/auth/agents/checkExistingUser";
+
+    const response = await fetch(
+      "https://test.techengood.com/api/auth/agents/checkExistingUser",
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${coreApiToken}`,
+        },
+        body: JSON.stringify({ phone }),
+        redirect: "follow",
+      }
+    );
+
+    const data = await response.json().catch(() => ({}));
+
+    if (response) {
+      // As per provided response structure
+      // const exists = Boolean(data?.data?.exists);
+      return { success: true, data: data.data };
+    }
+
+    return {
+      success: false,
+      data: data.data,
+      error: data?.message || `Request failed`,
+    };
+  } catch (err) {
+    return { success: false, error: `Error checking existing user: ${err}` };
+  }
+};
+
 export const getAllUsers = async (
   accessToken: string,
   params: GetAllUsersParams = {}
