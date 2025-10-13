@@ -22,7 +22,10 @@ import {
   exportTableData,
 } from "../../utils/downloadUtils";
 import type { Agent, DownloadAgentsParams } from "../../types/types";
-import { AGENT_ROLE, MERCHANT_ROLE, SUPER_AGENT_ROLE } from "../../utils/roles";
+import {
+  AGENT_ROLE,
+  /*MERCHANT_ROLE,*/ SUPER_AGENT_ROLE,
+} from "../../utils/roles";
 import { isValidDateFormat, validateDateRange } from "../../utils/utils";
 
 const tableHeader: string[] = [
@@ -58,7 +61,12 @@ const AllAgentsAndVendors: React.FC = () => {
 
   const navigate = useNavigate();
 
-  const roleOptions = ["All", AGENT_ROLE, SUPER_AGENT_ROLE, MERCHANT_ROLE];
+  const roleOptions = [
+    "All",
+    AGENT_ROLE,
+    SUPER_AGENT_ROLE,
+    /*MERCHANT_ROLE*/ "Merchant",
+  ];
   const modelOptions = ["All", "Target", "Independent"];
   const kycStatusOptions = ["All", "Completed", "Incomplete"];
   const statusOptions = ["All", "Pending", "Active", "Suspended", "Rejected"];
@@ -319,7 +327,10 @@ const AllAgentsAndVendors: React.FC = () => {
       businessName: agent.business_name || "No Business name",
       username: agent.username || "No username",
       role: agent.type,
-      model: agent.type !== MERCHANT_ROLE ? agent.model : "Independent",
+      model:
+        agent.type !== /*MERCHANT_ROLE*/ "Merchant"
+          ? agent.model
+          : "Independent",
       residualAmount: agent?.residual_amount || 0.0,
       phone: agent.phone || "No Phone number",
       businessPhone: agent.business_phone || "No Business phone",

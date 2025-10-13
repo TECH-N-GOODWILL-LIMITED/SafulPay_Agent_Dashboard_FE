@@ -28,7 +28,7 @@ import {
   ADMIN_ROLE,
   AGENT_ROLE,
   MARKETER_ROLE,
-  MERCHANT_ROLE,
+  // MERCHANT_ROLE,
   SUPER_AGENT_ROLE,
 } from "../../../utils/roles";
 import { formatDateTime } from "../../../utils/utils";
@@ -128,9 +128,9 @@ const BasicTableOne: React.FC<Order> = ({
   const showResidualAmount = tableHeading?.includes("Residual Amount");
 
   const isAgent =
-    currentUser?.role === AGENT_ROLE ||
-    currentUser?.role === SUPER_AGENT_ROLE ||
-    currentUser?.role === MERCHANT_ROLE;
+    currentUser?.role === AGENT_ROLE || currentUser?.role === SUPER_AGENT_ROLE;
+  /*||
+    currentUser?.role === MERCHANT_ROLE;*/
 
   const changeStatus = async (
     user: TableContentItem,
@@ -176,9 +176,9 @@ const BasicTableOne: React.FC<Order> = ({
     setErrorMessage("");
     try {
       const isAgent =
-        user.role === AGENT_ROLE ||
-        user.role === SUPER_AGENT_ROLE ||
-        user.role === MERCHANT_ROLE;
+        user.role === AGENT_ROLE || user.role === SUPER_AGENT_ROLE;
+      /*||
+        user.role === MERCHANT_ROLE;*/
 
       let response;
 
@@ -329,8 +329,8 @@ const BasicTableOne: React.FC<Order> = ({
 
   const isAgentRole =
     currentUser?.role === AGENT_ROLE ||
-    currentUser?.role === SUPER_AGENT_ROLE ||
-    currentUser?.role === MERCHANT_ROLE;
+    currentUser?.role === SUPER_AGENT_ROLE; /*||
+    currentUser?.role === MERCHANT_ROLE; */
 
   const handleSuspend = async (): Promise<void> => {
     if (!currentUser) return;
@@ -490,9 +490,9 @@ const BasicTableOne: React.FC<Order> = ({
                           </span>
                           <span className="block text-gray-500 text-theme-xs dark:text-gray-400 truncate">
                             {order.role === AGENT_ROLE ||
-                            order.role === SUPER_AGENT_ROLE ||
-                            order.role === MERCHANT_ROLE
-                              ? order.businessName
+                            order.role === SUPER_AGENT_ROLE
+                              ? //  || order.role === MERCHANT_ROLE
+                                order.businessName
                               : order.username}
                           </span>
                         </div>
@@ -502,9 +502,9 @@ const BasicTableOne: React.FC<Order> = ({
                     <TableCell className="p-3 text-start flex flex-col max-w-50">
                       <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
                         {(order.role === AGENT_ROLE ||
-                          order.role === SUPER_AGENT_ROLE ||
-                          order.role === MERCHANT_ROLE) &&
-                          order.model}
+                          order.role === SUPER_AGENT_ROLE) &&
+                          /*||
+                          order.role === MERCHANT_ROLE*/ order.model}
                       </span>
                       <span className="block font-medium text-gray-500 text-theme-sm dark:text-white/90">
                         {order.role}
@@ -539,9 +539,9 @@ const BasicTableOne: React.FC<Order> = ({
                     <TableCell className="p-3 text-start">
                       <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
                         {(order.role === AGENT_ROLE ||
-                          order.role === SUPER_AGENT_ROLE ||
-                          order.role === MERCHANT_ROLE) &&
-                          order.businessPhone}
+                          order.role === SUPER_AGENT_ROLE) &&
+                          /*||
+                          order.role === MERCHANT_ROLE*/ order.businessPhone}
                       </span>
                       <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
                         {order.phone}
@@ -875,8 +875,9 @@ const BasicTableOne: React.FC<Order> = ({
                                 <Input
                                   id="type-model"
                                   type="text"
-                                  value={`${currentUser.role} ${
-                                    currentUser.role !== MERCHANT_ROLE
+                                  value={`${currentUser.role} 
+                                  ${
+                                    currentUser.role /*!== MERCHANT_ROLE*/
                                       ? `/ ${currentUser.model} model`
                                       : ""
                                   }`}

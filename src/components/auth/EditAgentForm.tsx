@@ -29,7 +29,7 @@ import TextArea from "../form/input/TextArea";
 import {
   ADMIN_ROLE,
   AGENT_ROLE,
-  MERCHANT_ROLE,
+  /*MERCHANT_ROLE,*/
   SUPER_AGENT_ROLE,
 } from "../../utils/roles";
 import type { Agent } from "../../types/types";
@@ -212,7 +212,7 @@ export default function EditAgentForm({ agentData }: EditAgentFormProps) {
     }
   };
 
-  const typeOptions = [AGENT_ROLE, SUPER_AGENT_ROLE, MERCHANT_ROLE];
+  const typeOptions = [AGENT_ROLE, SUPER_AGENT_ROLE, /*MERCHANT_ROLE*/ "Merchant"];
   const modelOptions = ["Target", "Independent"];
   const idTypeOptions = [
     "driver's license",
@@ -405,7 +405,7 @@ export default function EditAgentForm({ agentData }: EditAgentFormProps) {
     const missingImagesList: string[] = [];
 
     if (
-      agentType !== "Merchant" &&
+      agentType !== /*MERCHANT_ROLE*/ "Merchant" &&
       !businessImageFile &&
       !originalAgentData?.business_image &&
       !deletedImageKeys.includes("business_image")
@@ -414,7 +414,7 @@ export default function EditAgentForm({ agentData }: EditAgentFormProps) {
     }
 
     if (
-      agentType === "Merchant" &&
+      agentType === /*MERCHANT_ROLE*/ "Merchant" &&
       !addressDocumentFile &&
       !originalAgentData?.address_document &&
       !deletedImageKeys.includes("address_document")

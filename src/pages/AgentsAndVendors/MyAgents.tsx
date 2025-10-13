@@ -16,7 +16,7 @@ import {
   ADMIN_ROLE,
   AGENT_ROLE,
   SUPER_AGENT_ROLE,
-  MERCHANT_ROLE,
+  // MERCHANT_ROLE,
 } from "../../utils/roles";
 import AgentsStatsCard from "../../components/common/AgentStatsCard";
 import type { Agent } from "../../types/types";
@@ -40,7 +40,12 @@ const MyAgents: React.FC = () => {
   const { agents, loading, error, fetchMyAgents } = useMyAgents();
   const navigate = useNavigate();
 
-  const roleOptions = ["All", AGENT_ROLE, SUPER_AGENT_ROLE, MERCHANT_ROLE];
+  const roleOptions = [
+    "All",
+    AGENT_ROLE,
+    SUPER_AGENT_ROLE,
+    /*MERCHANT_ROLE*/ "Merchant",
+  ];
   const modelOptions = ["All", "Target", "Independent"];
   const kycStatusOptions = ["All", "Completed", "Incomplete"];
   const statusOptions = ["All", "Pending", "Active", "Suspended", "Rejected"];
@@ -101,7 +106,10 @@ const MyAgents: React.FC = () => {
 
   const myAgentsData = useMemo(() => {
     const filteredAgents = agents.filter((agent: Agent) => {
-      const model = agent.type !== MERCHANT_ROLE ? agent.model : "Independent";
+      const model =
+        agent.type !== /*MERCHANT_ROLE*/ "Merchant"
+          ? agent.model
+          : "Independent";
       const status =
         agent.status === 1
           ? "Active"
@@ -128,7 +136,10 @@ const MyAgents: React.FC = () => {
       businessName: agent.business_name || "No Business name",
       username: agent.username || "No username",
       role: agent.type,
-      model: agent.type !== MERCHANT_ROLE ? agent.model : "Independent",
+      model:
+        agent.type !== /*MERCHANT_ROLE*/ "Merchant"
+          ? agent.model
+          : "Independent",
       residualAmount: agent?.residual_amount || 0.0,
       phone: agent.phone || "No Phone number",
       businessPhone: agent.business_phone || "No Business phone",
