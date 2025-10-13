@@ -17,7 +17,9 @@ import { useModal } from "../../hooks/useModal";
 import { Modal } from "../../components/ui/modal";
 import RegisterModal from "../../components/common/RegisterModal";
 import type { UserBio } from "../../types/types";
-
+import DeviceMap from "../../components/maps/DeviceMap";
+import { useNavigate } from "react-router";
+import { EyeIcon } from "../../icons";
 const tableHeader: string[] = [
   "Name / Username",
   "Role",
@@ -33,7 +35,7 @@ const Riders: React.FC = () => {
 
   const { allUsers, title, error, loading, fetchUsers } = useUsers();
   const { isOpen, openModal, closeModal } = useModal();
-
+  const navigate = useNavigate();
   const statusOptions = ["All", "Pending", "Active", "Suspended"];
 
   useEffect(() => {
@@ -67,6 +69,14 @@ const Riders: React.FC = () => {
   const actionButton: ActionButtonConfig = {
     label: "Add Rider",
     onClick: openModal,
+  };
+
+  const actionButton2: ActionButtonConfig = {
+    label: "Track Riders",
+    onClick: () => {
+      navigate("/tracking");
+    },
+    icon: <EyeIcon className="w-4 h-4" />,
   };
 
   const filters: FilterConfig[] = [
@@ -130,12 +140,13 @@ const Riders: React.FC = () => {
         description="List of all agency riders - Management system for SafulPay's Agency Platform"
       />
       <PageBreadcrumb pageTitle="Riders" />
-
+      <DeviceMap devices={[]} />
       <div className="space-y-6">
         <ComponentCard
           title="Riders Table"
           desc="Details of all Riders"
           actionButton={actionButton}
+          actionButton2={actionButton2}
         >
           <TableFilters filters={filters} searchConfig={searchConfig} />
           <BasicTableOne

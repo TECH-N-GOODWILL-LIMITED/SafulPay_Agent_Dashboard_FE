@@ -23,6 +23,7 @@ interface ComponentCardProps {
   className?: string;
   desc?: string;
   actionButton?: ActionButtonConfig;
+  actionButton2?: ActionButtonConfig;
   downloadButton?: DownloadButtonConfig;
 }
 
@@ -32,6 +33,7 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
   className = "",
   desc = "",
   actionButton,
+  actionButton2,
   downloadButton,
 }) => {
   const [showDownloadDropdown, setShowDownloadDropdown] = useState(false);
@@ -104,6 +106,19 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
                 </DropdownItem>
               </Dropdown>
             </div>
+          )}
+          {actionButton2 && (
+            <Button
+              size="sm"
+              startIcon={
+                actionButton2.icon || (
+                  <CloseIcon className="w-4 h-4 rotate-45" />
+                )
+              }
+              onClick={actionButton2.onClick}
+            >
+              {actionButton2.label}
+            </Button>
           )}
           {actionButton && (
             <Button

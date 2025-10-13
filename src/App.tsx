@@ -49,6 +49,7 @@ const MarketersLeaderboard = lazy(
   () => import("./pages/MarketersLeaderboard/MarketersLeaderboard")
 );
 const MyAgents = lazy(() => import("./pages/AgentsAndVendors/MyAgents"));
+const Tracking = lazy(() => import("./pages/Tracking/Tracking"));
 const OnboardAgentForm = lazy(
   () => import("./components/auth/OnboardAgentForm")
 );
@@ -108,7 +109,7 @@ export default function App() {
                   <Route path="/editagent/:id" element={<EditAgent />} />
                 </Route>
 
-                {/* Accountants, Riders Page and financial pages*/}
+                {/* Accountants, Riders Page, Tracking and financial pages*/}
                 <Route
                   element={
                     <ProtectedRoute
@@ -118,6 +119,7 @@ export default function App() {
                 >
                   <Route path="/accountants" element={<Accountants />} />
                   <Route path="/riders" element={<Riders />} />
+                  <Route path="/tracking" element={<Tracking />} />
                   <Route path="/recollections" element={<Recollections />} />
                   <Route path="/disbursement" element={<Disbursement />} />
                   <Route path="/transactions" element={<Transactions />} />
