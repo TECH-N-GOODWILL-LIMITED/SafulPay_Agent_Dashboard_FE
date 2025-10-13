@@ -14,4 +14,4 @@ export const ACCOUNTANT_ROLE = "Accountant";
 export const RIDER_ROLE = "Rider";
 export const AGENT_ROLE = "Agent";
 export const SUPER_AGENT_ROLE = "Super Agent";
-export const MERCHANT_ROLE = "Merchant";
+// export const MERCHANT_ROLE = "Merchant";

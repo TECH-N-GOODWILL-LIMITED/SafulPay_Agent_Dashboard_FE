@@ -22,7 +22,7 @@ import {
   exportTableData,
 } from "../../utils/downloadUtils";
 import type { Agent, DownloadAgentsParams } from "../../types/types";
-import { MERCHANT_ROLE } from "../../utils/roles";
+// import { MERCHANT_ROLE } from "../../utils/roles";
 import { isValidDateFormat, validateDateRange } from "../../utils/utils";
 
 const tableHeader: string[] = [
@@ -77,7 +77,7 @@ const Agents: React.FC = () => {
       per_page: 10,
     };
 
-    params.type = MERCHANT_ROLE;
+    // params.type = MERCHANT_ROLE;
 
     if (filterModel !== "All") {
       params.model = filterModel;
@@ -204,7 +204,7 @@ const Agents: React.FC = () => {
       format,
     };
 
-    params.type = MERCHANT_ROLE;
+    // params.type = MERCHANT_ROLE;
 
     if (filterModel !== "All") {
       params.model = filterModel;
@@ -302,7 +302,10 @@ const Agents: React.FC = () => {
       businessName: agent.business_name || "No Business name",
       username: agent.username || "No username",
       role: agent.type,
-      model: agent.type !== MERCHANT_ROLE ? agent.model : "Independent",
+      model:
+        agent.type !== /*MERCHANT_ROLE*/ "Merchant"
+          ? agent.model
+          : "Independent",
       residualAmount: agent?.residual_amount || 0.0,
       phone: agent.phone || "No Phone number",
       businessPhone: agent.business_phone || "No Business phone",

@@ -42,7 +42,7 @@ import {
   ADMIN_ROLE,
   AGENT_ROLE,
   MARKETER_ROLE,
-  MERCHANT_ROLE,
+  // MERCHANT_ROLE,
   SUPER_AGENT_ROLE,
 } from "../../utils/roles";
 import LoadingSpinner from "../common/LoadingSpinner";
@@ -257,7 +257,7 @@ export default function OnboardAgentForm() {
     }
   }, [loadSavedData, setValue]); // Only run once on mount
 
-  const typeOptions = [AGENT_ROLE, SUPER_AGENT_ROLE, MERCHANT_ROLE];
+  const typeOptions = [AGENT_ROLE, SUPER_AGENT_ROLE /*MERCHANT_ROLE*/];
   const modelOptions = ["Target", "Independent"];
   const idTypeOptions = [
     "driver's license",
@@ -791,8 +791,8 @@ export default function OnboardAgentForm() {
       missingFiles.push("Business registration document");
     }
     if (
-      (data.agentType === MERCHANT_ROLE ||
-        data.agentType === SUPER_AGENT_ROLE) &&
+      /*data.agentType === MERCHANT_ROLE ||*/
+      data.agentType === SUPER_AGENT_ROLE &&
       !data.addressDocumentUrl
     ) {
       missingFiles.push("Proof of address document");
@@ -1217,7 +1217,7 @@ export default function OnboardAgentForm() {
                 )}
               </div>
 
-              {agentType && agentType !== MERCHANT_ROLE && (
+              {agentType /*&& agentType !== MERCHANT_ROLE*/ && (
                 <div className="relative">
                   <Label htmlFor="model">
                     Agency Model <span className="text-error-500">*</span>

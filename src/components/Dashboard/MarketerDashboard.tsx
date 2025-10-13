@@ -7,7 +7,7 @@ import ComponentCard, { ActionButtonConfig } from "../common/ComponentCard";
 import {
   AGENT_ROLE,
   MARKETER_ROLE,
-  MERCHANT_ROLE,
+  // MERCHANT_ROLE,
   SUPER_AGENT_ROLE,
 } from "../../utils/roles";
 
@@ -82,7 +82,7 @@ const MarketerDashboard: React.FC = () => {
     [agents]
   );
   const myMerchants = useMemo(
-    () => agents.filter((agent) => agent.type === MERCHANT_ROLE),
+    () => agents.filter((agent) => agent.type === /*MERCHANT_ROLE*/ "Merchant"),
     [agents]
   );
 
